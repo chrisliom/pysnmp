@@ -39,6 +39,7 @@ pysnmp/v4/smi/builder.py
 pysnmp/v4/smi/error.py
 pysnmp/v4/smi/indices.py
 pysnmp/v4/smi/view.py
+pysnmp/v4/smi/mibs/__init__.py
 pysnmp/v4/smi/mibs/RFC-1212.py
 pysnmp/v4/smi/mibs/ASN1.py
 pysnmp/v4/smi/mibs/RFC-1215.py
