@@ -139,7 +139,6 @@ class ObjectTypePattern(MibNodeBase):
     def setMaxAccess(self, v):
         self.maxAccess = v
         return self
-    def setAccess(self, v): return self.setMaxAccess(v) # XXX
     def getStatus(self):
         return getattr(self, 'status', 'current')
     def setStatus(self, v):
@@ -158,6 +157,7 @@ class ObjectTypePattern(MibNodeBase):
         
 class MibVariable(ObjectTypePattern):
     """Scalar MIB variable instance. Implements read/write operations."""
+    maxAccess = 'readonly'
     def __init__(self, name=None, syntax=None):
         ObjectTypePattern.__init__(self, name)
         if syntax is not None:
@@ -250,6 +250,7 @@ class MibVariable(ObjectTypePattern):
 class MibTree(ObjectTypePattern):
     branchVersionId = 0L    # increments on tree structure change XXX
     defaultVars = None
+    maxAccess = 'not-accessible'
     def __init__(self, name=None, *vars):
         ObjectTypePattern.__init__(self, name)
         self._vars = OidOrderedDict()            
@@ -341,6 +342,7 @@ class MibTree(ObjectTypePattern):
                     )
         else:
             node = self.getBranch(name)
+
 # XXX
 #            if not isinstance(node, ObjectTypePattern):
 #                raise error.NoAccessError(
