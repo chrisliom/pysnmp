@@ -8,6 +8,7 @@ from operator import getslice, setslice, delslice
 from string import join
 from types import *
 from pysnmp.asn1 import subtypes, error
+from pysnmp.error import PySnmpError
 
 # ASN.1 tagging
 
@@ -167,9 +168,17 @@ class AbstractSimpleAsn1Item(Asn1ItemBase):
     def __cmp__(self, other):
         if isinstance(other, AbstractSimpleAsn1Item):
             if not isinstance(other, self.__class__):
-                other = self.componentFactoryBorrow(other.get())
+                try:
+                    other = self.componentFactoryBorrow(other.get())
+                except PySnmpError:
+                    # Hide coercion errors
+                    return -1
         else:
-            other = self.componentFactoryBorrow(other)
+            try:
+                other = self.componentFactoryBorrow(other)
+            except PySnmpError:
+                # Hide coercion errors
+                return -1
         return cmp(self.rawAsn1Value, other.rawAsn1Value)
 
     def __hash__(self):
@@ -253,13 +262,13 @@ class AbstractMappingAsn1Item(StructuredAsn1ItemBase):
         else: return 0
 
     def __cmp__(self, other):
-        if type(other) != InstanceType or not \
-           isinstance(other, AbstractMappingAsn1Item):
-            raise error.BadArgumentError(
-                'Incompatible types for comparation %s with %s' %
-                (self.__class__.__name__, str(other))
-            )
-        return cmp(self.items(), other.items())
+        if type(other) == InstanceType and isinstance(
+            other, AbstractMappingAsn1Item
+            ):
+            return cmp(self.items(), other.items())
+        else:
+            # Hide coercion errors
+            return -1
 
     # Mapping object protocol
     def __getitem__(self, key): return self._components[key]
@@ -288,13 +297,13 @@ class AbstractSequenceAsn1Item(StructuredAsn1ItemBase):
                  )
 
     def __cmp__(self, other):
-        if type(other) != InstanceType or not \
-           isinstance(other, AbstractSequenceAsn1Item):
-            raise error.BadArgumentError(
-                'Incompatible types for comparation %s with %s' %
-                (self.__class__.__name__, str(other))
-            )
-        return cmp(self._components, other._components)
+        if type(other) == InstanceType and isinstance(
+            other, AbstractSequenceAsn1Item
+            ):
+            return cmp(self._components, other._components)
+        else:
+            # Hide coercion errors
+            return -1
 
     def componentFactoryBorrow(self):
         if self.protoComponent is None:
