@@ -1,11 +1,10 @@
 from string import split, join
-from pysnmp.proto import rfc1902
-from pysnmp.asn1 import subtypes
+from pysnmp.asn1 import univ, subtypes
 from pysnmp.smi import error
 
 # base ASN.1 objects with SNMP table indexing & pretty print facilities support
 
-class Integer(rfc1902.Integer):
+class Integer(univ.Integer):
     def setFromName(self, value, impliedFlag=None):
         self.set(value[0])
         return value[1:]
@@ -13,7 +12,7 @@ class Integer(rfc1902.Integer):
     def getAsName(self, impliedFlag=None):
         return (self.get())
 
-class OctetString(rfc1902.OctetString):
+class OctetString(univ.OctetString):
     def setFromName(self, value, impliedFlag=None):
         if impliedFlag:
             s = reduce(lambda x,y: x+y, map(lambda x: chr(x), value))
@@ -48,10 +47,10 @@ class OctetString(rfc1902.OctetString):
             lambda x,y: x+(y,), map(lambda x: ord(x), self), initial
             )
 
-BitString = rfc1902.BitString
-Null = rfc1902.Null
+BitString = univ.BitString
+Null = univ.Null
 
-class ObjectIdentifier(rfc1902.ObjectIdentifier):
+class ObjectIdentifier(univ.ObjectIdentifier):
     def setFromName(self, value, impliedFlag=None):
         if impliedFlag:
             self.set(value)
