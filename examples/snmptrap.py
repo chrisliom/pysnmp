@@ -5,7 +5,7 @@
    Since MIB parser is not yet implemented in Python, this script takes and
    reports Object IDs in dotted numeric representation only.
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2003 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 import sys, getopt
