@@ -275,10 +275,9 @@ class OrderedFixedTypeAsn1Object(FixedTypeAsn1Object):
             for key in self.keys():
                 input = self[key].berDecode(input)
 
-        if len(rest):
-            return rest
-        else:
-            return input
+        if len(input):
+            raise error.TypeMismatchError('Extra data on wire at %s' % self.__class__.__name__)
+        return rest
 
     decode = berDecode
     
@@ -312,10 +311,9 @@ class UnorderedFixedTypeAsn1Object(FixedTypeAsn1Object):
                     raise error.TypeMismatchError('Unregistered tag %o at %s'\
                                                   % (decodeTag(input), \
                                                      self.__class__.__name__))
-        if len(rest):
-            return rest
-        else:
-            return input
+        if len(input):
+            raise error.TypeMismatchError('Extra data on wire at %s' % self.__class__.__name__)
+        return rest
 
     decode = berDecode
     
@@ -335,58 +333,47 @@ class SingleFixedTypeAsn1Object(FixedTypeAsn1Object):
         else:
             # XXX improve input[:1] based caching
             if not hasattr(self, '_cachedChoiceComponents'):
-                self._cachedChoiceComponents = {}            
-            while 1:
-                # First try current component
-                if len(self):
-                    try:
-                        input = self.values()[0].berDecode(input)
-                    except error.TypeMismatchError:
-                        pass
-                    else:
-                        break
-                # Secondly, try cache
-                cachedValues = self._cachedChoiceComponents.get(input[:1], None)
-                if cachedValues is not None:
-                    for (name, value) in cachedValues:
-                        try:
-                            input = value.berDecode(input)
-                        except error.TypeMismatchError:
-                            continue
-                        else:
-                            self[name] = value
-                            break
+                self._cachedChoiceComponents = {}
+            # First try current component
+            if len(self):
+                try:
+                    if len(self.values()[0].berDecode(input)):
+                        raise error.TypeMismatchError('Extra data on wire at %s' % self.__class__.__name__)
+                except error.TypeMismatchError:
+                    pass
                 else:
-                    # At last, try all components one by one
-                    cachedValues = self._cachedChoiceComponents.get(input[:1], None)
-                    if cachedValues is None:
-                        self._cachedChoiceComponents[input[:1]] = cachedValues = []
-                    idx = 0
-                    for idx in range(len(self.choiceComponents)):
-                        for (name, value) in cachedValues:
-                            if isinstance(value, self.choiceComponents[idx]):
-                                break
-                        else:
-                            name, value = (self.choiceNames[idx], \
-                                           self.choiceComponents[idx]())
-                            cachedValues.append((name, value))
-                        try:
-                            input = value.berDecode(input)
-                        except error.TypeMismatchError:
-                            continue
-                        else:
-                            self[name] = value
-                            break
-                    else:
-                        raise error.TypeMismatchError('Unregistered tag %o at %s' %\
-                                                      (decodeTag(input), \
-                                                       self.__class__.__name__))
-                break
+                    return rest
+            # Secondly, try cache
+            cachedValues = self._cachedChoiceComponents.get(input[:1], None)
+            if cachedValues is None:
+                self._cachedChoiceComponents[input[:1]] = cachedValues = []
+            else:
+                for (name, value) in cachedValues:
+                    try:
+                        if len(value.berDecode(input)):
+                            raise error.TypeMismatchError('Extra data on wire at %s' % self.__class__.__name__)
+                    except error.TypeMismatchError:
+                        continue
+                    else:                        
+                        self[name] = value
+                        return rest
 
-        if len(rest):
-            return rest
-        else:
-            return input
+            # At last, try all components one by one
+            idx = 0
+            for idx in range(len(self.choiceComponents)):
+                name, value = (self.choiceNames[idx], \
+                               self.choiceComponents[idx]())
+                try:
+                    if len(value.berDecode(input)):
+                        raise error.TypeMismatchError('Extra data on wire at %s' % self.__class__.__name__)
+                except error.TypeMismatchError:
+                    continue
+                else:
+                    self[name] = value
+                    cachedValues.append((name, value))
+                    return rest
+            else:
+                raise error.TypeMismatchError('Unregistered tag %o at %s' % (decodeTag(input), self.__class__.__name__))
 
     decode = berDecode
     
