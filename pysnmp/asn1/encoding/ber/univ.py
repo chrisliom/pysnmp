@@ -213,6 +213,7 @@ class SetBerCodec(base.MappingTypeBerCodecBase):
                break
            else:
                return oStream
+        return oStream
            
 class SetOfBerCodec(base.SequenceTypeBerCodec): pass
 
@@ -229,7 +230,7 @@ class ChoiceBerCodec(base.MappingTypeBerCodecBase):
             try:
                 restOfStream = component.decodeItem(oStream, codecId)
             # XXX narrow exception filter
-            except Asn1Error, why:
+            except Asn1Error:
                 continue
             client[protoName] = component
             return restOfStream
