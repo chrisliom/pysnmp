@@ -12,8 +12,16 @@ class Manager:
     """Network client: send data item to server and receive a response
     """
     def __init__(self, agent=(None, 0), iface=('0.0.0.0', 0)):
+        # Attempt to resolve default agent name
+        (host, port) = agent
+        if host is not None:
+            try:
+                host = socket.gethostbyname(host)
+            except socket.error, why:
+                raise error.NetworkError('gethostbyname() failed: %s' % why)
+        self.agent = (host, port)
+            
         # Initialize defaults
-        self.agent = agent
         self.iface = iface
         self.socket = None
         self.timeout = 1.0
