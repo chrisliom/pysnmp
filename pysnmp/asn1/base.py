@@ -144,8 +144,8 @@ class Asn1Object:
             if issubclass(self.__class__, superClass):
                 break
         else:
-            raise error.BadArgumentError('No underlying type for %s' % \
-                                         self.__class__.__name__)
+            raise error.ObjectTypeError('No underlying type for %s' % \
+                                        self.__class__.__name__)
 
         return (superClass.tagClass, superClass.tagFormat, superClass.tagId)
     
@@ -227,7 +227,7 @@ class SimpleAsn1Object(Asn1Object):
              valType == TupleType:
             self.rawAsn1Value = value
         else:
-            raise errorBadArgumentError('Unsupported value type to hold at %s: %s' % (self.__class__.__name__, valType))
+            raise error.ObjectTypeError('Unsupported value type to hold at %s: %s' % (self.__class__.__name__, valType))
         
     #
     # Simple ASN.1 object protocol definition
@@ -282,8 +282,8 @@ class StructuredAsn1Object(Asn1Object):
     _subtype_permitted_alphabet_constraint = None
 
     def getTerminal(self):
-        raise error.BadArgumentError('Ambigious type %s for operation' % \
-                                     (self.__class__.__name__))
+        raise error.ObjectTypeError('Ambigious type %s for operation' % \
+                                    (self.__class__.__name__))
 
 class FixedTypeAsn1Object(StructuredAsn1Object):
     """Base class for fixed-type ASN.1 objects
@@ -325,7 +325,7 @@ class FixedTypeAsn1Object(StructuredAsn1Object):
 
         if type(other) != InstanceType or not \
            isinstance(other, self.__class__):
-            raise error.BadArgumentError('Incompatible types for comparation %s with %s' % (self.__class__.__name__, str(other)))
+            raise error.ObjectTypeError('Incompatible types for comparation %s with %s' % (self.__class__.__name__, str(other)))
 
         return cmp(self._names, other._names) | \
                cmp(self._components, other._components)
@@ -424,9 +424,9 @@ class RecordTypeAsn1Object(FixedTypeAsn1Object):
         """
         # Hard-coded type constraint XXX
         if not isinstance(value, Asn1Object):
-            raise error.BadArgumentError('Non-ASN1 object %s at %s'\
-                                         % (repr(value), \
-                                            self.__class__.__name__))
+            raise error.ObjectTypeError('Non-ASN1 object %s at %s'\
+                                        % (repr(value), \
+                                           self.__class__.__name__))
 
         if hasattr(self, '_type_constraint'):
             self._type_constraint(value)
@@ -444,7 +444,7 @@ class RecordTypeAsn1Object(FixedTypeAsn1Object):
 
         else:
             if not isinstance(value, self._components[idx].__class__):
-                raise error.BadArgumentError('Component type mismatch: %s vs %s' % (self._components[idx].__class__.__name__, value.__class__.__name__))
+                raise error.ObjectTypeError('Component type mismatch: %s vs %s' % (self._components[idx].__class__.__name__, value.__class__.__name__))
             self._components[idx] = value
 
 class ChoiceTypeAsn1Object(FixedTypeAsn1Object):
@@ -479,8 +479,8 @@ class ChoiceTypeAsn1Object(FixedTypeAsn1Object):
         if type(valType) == InstanceType:
             valType = valType.__class__
         if not issubclass(valType, Asn1Object):
-            raise error.BadArgumentError('Non-ASN1 object or class %s'\
-                                         % valType)
+            raise error.ObjectTypeError('Non-ASN1 object or class %s'\
+                                        % valType)
         if issubclass(self.__class__, valType):
             return self
         if len(self._components):
@@ -520,9 +520,9 @@ class ChoiceTypeAsn1Object(FixedTypeAsn1Object):
         """
         # Hard-coded type constraint XXX
         if not isinstance(value, Asn1Object):
-            raise error.BadArgumentError('Non-ASN.1 assignment at %s: %s'\
-                                         % (self.__class__.__name__,
-                                            repr(value)))
+            raise error.ObjectTypeError('Non-ASN.1 assignment at %s: %s'\
+                                        % (self.__class__.__name__,
+                                           repr(value)))
 
         if hasattr(self, '_type_constraint'):
             self._type_constraint(value)
@@ -587,9 +587,9 @@ class AnyTypeAsn1Object(FixedTypeAsn1Object):
         """
         # Hard-coded type constraint XXX
         if not isinstance(value, Asn1Object):
-            raise error.BadArgumentError('Non-ASN.1 assignment at %s: %s'\
-                                         % (self.__class__.__name__,
-                                            repr(value)))
+            raise error.ObjectTypeError('Non-ASN.1 assignment at %s: %s'\
+                                        % (self.__class__.__name__,
+                                           repr(value)))
 
         if hasattr(self, '_type_constraint'):
             self._type_constraint(value)
@@ -662,7 +662,7 @@ class VariableTypeAsn1Object(StructuredAsn1Object):
 
         if type(other) != InstanceType or not \
            isinstance(other, self.__class__):
-            raise error.BadArgumentError('Incompatible types for comparation %s with %s' % (self.__class__.__name__, str(other)))
+            raise error.ObjectTypeError('Incompatible types for comparation %s with %s' % (self.__class__.__name__, str(other)))
 
         return cmp(self._components, other._components)
 
@@ -685,15 +685,15 @@ class VariableTypeAsn1Object(StructuredAsn1Object):
         
         # Hard-coded type constraint XXX
         if not isinstance(value, Asn1Object):
-            raise error.BadArgumentError('Non-ASN1 object %s at %s'\
-                                         % (repr(value), \
-                                            self.__class__.__name__))
+            raise error.ObjectTypeError('Non-ASN1 object %s at %s'\
+                                        % (repr(value), \
+                                           self.__class__.__name__))
 
         if type(self.protoComponent) != ClassType or \
            not isinstance(value, self.protoComponent):
-            raise error.BadArgumentError('Unexpected component type %s at %s'\
-                                         % (value.__class__.__name__, \
-                                            self.__class__.__name__))
+            raise error.ObjectTypeError('Unexpected component type %s at %s'\
+                                        % (value.__class__.__name__, \
+                                           self.__class__.__name__))
 
         if hasattr(self, '_type_constraint'):
             self._type_constraint(value)
@@ -734,15 +734,15 @@ class VariableTypeAsn1Object(StructuredAsn1Object):
         """
         # Hard-coded type constraint XXX
         if not isinstance(value, Asn1Object):
-            raise error.BadArgumentError('Non-ASN1 object %s at %s' %\
-                                         (repr(value), \
-                                          self.__class__.__name__))
+            raise error.ObjectTypeError('Non-ASN1 object %s at %s' %\
+                                        (repr(value), \
+                                         self.__class__.__name__))
 
         if type(self.protoComponent) != ClassType or \
            not isinstance(value, self.protoComponent):
-            raise error.BadArgumentError('Unexpected component type %s at %s'\
-                                         % (value.__class__.__name__, \
-                                            self.__class__.__name__))
+            raise error.ObjectTypeError('Unexpected component type %s at %s'\
+                                        % (value.__class__.__name__, \
+                                           self.__class__.__name__))
 
         if hasattr(self, '_type_constraint'):
             self._type_constraint(value)
@@ -767,15 +767,15 @@ class VariableTypeAsn1Object(StructuredAsn1Object):
         """
         # Hard-coded type constraint XXX
         if not isinstance(value, Asn1Object):
-            raise error.BadArgumentError('Non-ASN1 object %s at %s' %\
-                                         (repr(value),\
-                                          self.__class__.__name__))
+            raise error.ObjectTypeError('Non-ASN1 object %s at %s' %\
+                                        (repr(value),\
+                                         self.__class__.__name__))
 
         if type(self.protoComponent) != ClassType or \
            not isinstance(value, self.protoComponent):
-            raise error.BadArgumentError('Unexpected component type %s at %s'\
-                                         % (value.__class__.__name__, \
-                                            self.__class__.__name__))
+            raise error.ObjectTypeError('Unexpected component type %s at %s'\
+                                        % (value.__class__.__name__, \
+                                           self.__class__.__name__))
 
         if hasattr(self, '_type_constraint'):
             self._type_constraint(value)
