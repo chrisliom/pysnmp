@@ -2,9 +2,9 @@
 from types import InstanceType
 from pysnmp.smi import error
 
-__all__ = [ 'MibInstrumentationController' ]
+__all__ = [ 'MibInstrumController' ]
 
-class MibInstrumentationController:
+class MibInstrumController:
     fsmReadVar = {
         # ( state, status ) -> newState
         ('start', 'ok'): 'readTest',
@@ -140,14 +140,14 @@ class MibInstrumentationController:
 if __name__ == '__main__':
     from pysnmp.smi.builder import MibBuilder
 
-    mibInstr = MibInstrumentationController(MibBuilder().loadModules())
+    mibInstrum = MibInstrumController(MibBuilder().loadModules())
 
     print 'Remote manager access to MIB instrumentation (table walk)'
 
     name, val = (), None
     while 1:
         try:
-            name, val = mibInstr.readNextVars((name, val))[0]
+            name, val = mibInstrum.readNextVars((name, val))[0]
         except error.NoSuchInstanceError:
             break
         print name, val
