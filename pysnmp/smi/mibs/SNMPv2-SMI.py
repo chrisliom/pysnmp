@@ -16,6 +16,7 @@ from pysnmp.asn1.error import ValueConstraintError
 
 # syntax of objects
 
+Bits = rfc1902.Bits
 Integer32 = rfc1902.Integer32
 IpAddress = rfc1902.IpAddress
 Counter32 = rfc1902.Counter32
@@ -821,7 +822,7 @@ snmpProxys = MibIdentifier(snmpV2.name +(2,))
 snmpModules = MibIdentifier(snmpV2.name +(3,))
 
 mibBuilder.exportSymbols(
-    'SNMPv2-SMI', Integer32=Integer32, IpAddress=IpAddress,
+    'SNMPv2-SMI', Integer32=Integer32, Bits=Bits, IpAddress=IpAddress,
     Counter32=Counter32,    Gauge32=Gauge32, Unsigned32=Unsigned32,
     TimeTicks=TimeTicks, Opaque=Opaque, Counter64=Counter64,
     ExtUTCTime=ExtUTCTime, MibNodeBase=MibNodeBase,
