@@ -49,7 +49,7 @@ class TrapPduMixIn(RequestPduMixIn):
     def apiGenSetTimeStamp(self, value): self.apiAlphaSetTimeStamp(value)
 
 class MessageMixIn:
-    def apiGenGetVersion(self): return self.apiAlphaGetVersion(),get()
+    def apiGenGetVersion(self): return self.apiAlphaGetVersion().get()
     def apiGenGetCommunity(self): return self.apiAlphaGetCommunity().get()
     def apiGenSetCommunity(self, value): self.apiAlphaSetCommunity(value)
     def apiGenGetPdu(self): return self.apiAlphaGetPdu()
