@@ -315,6 +315,8 @@ class ObjectIdentifier(base.AbstractSimpleAsn1Item):
     tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x06)
     allowedTypes = ( StringType, TupleType, ListType )
     initialValue = ()
+
+    def __str__(self): return str(self.num2str(self.get()))
     
     # Sequence object protocol
     
@@ -461,12 +463,13 @@ class ObjectIdentifier(base.AbstractSimpleAsn1Item):
         if type(value) == ListType:
             value = tuple(value)
         if type(value) == TupleType:
-            return self.str2num(self.num2str(value))
+            if filter(lambda x: IntType != type(x) != LongType, value):
+                raise error.BadArgumentError(
+                    'Non-integer sub-OIDs %s at %s' %
+                    (value, self.__class__.__name__)
+                    )
         return value
     
-    def _oconv(self, value):
-        return self.num2str(value)
-
 class Real(base.AbstractSimpleAsn1Item):
     tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x09)
     allowedTypes = ( IntType, LongType, FloatType )
