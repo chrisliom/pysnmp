@@ -124,7 +124,7 @@ class Bits(univ.OctetString):
         return self
 
     def clone(self, value=None):
-        myClone = univ.OctetString.clone(self)
+        myClone = univ.OctetString.clone(self, value)
         myClone.namedValues = self.namedValues
         return myClone
     
