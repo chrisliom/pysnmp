@@ -1,14 +1,28 @@
 """Various components of SNMP applications"""
-from pysnmp import apiver
+import os
+import sys
+import string
 
-def getAvailableApiVersions():
-    return apiver.listAvailable(__path__[0])
+def switchApiVersion(subPkg):
+    pkg = os.path.split(__path__[0])[-1]
+    newMod = __import__(subPkg, globals(), locals(), pkg)
+    realPkg = '_real_' + pkg
+    if sys.modules.has_key(realPkg):
+        sys.modules[pkg] = sys.modules[realPkg]
+    sys.modules[realPkg] = sys.modules[pkg]
+    sys.modules[pkg] = newMod
 
-_gCurrentVersion = ''
+def __isSubPackage(subDir):
+    if subDir and subDir[0] == 'v' and subDir[1] in string.digits \
+           and len(subDir) == 2:
+        return 1
 
-def setApiVersion(newVer):
-    global _gCurrentVersion
-    _gCurrentVersion = apiver.importNew(__path__[0], _gCurrentVersion, newVer)
+subDirs = filter(__isSubPackage, os.listdir(__path__[0]))
+subDirs.sort(); subDirs.reverse()
 
-def getApiVersion():
-    return _gCurrentVersion
+if os.environ.has_key('PYSNMP_API_VERSION'):
+    v = os.environ['PYSNMP_API_VERSION']
+    if v:
+        switchApiVersion(v)   # do not load any API
+else:
+    switchApiVersion(subDirs[-1])  # take the most recent version
