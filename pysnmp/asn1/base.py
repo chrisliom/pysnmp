@@ -57,12 +57,13 @@ class Asn1ItemBase(Asn1Item):
 
     def isSubtype(self, other):
         """Returns true if the given instance is a ASN1 subtype of ourselves"""
-        if isinstance(other, Asn1ItemBase):
-            for t in other.tagSet:
-                if t not in self.tagSet:
+        if isinstance(other, Asn1Item):
+            # XXX is it always correct?
+            for t in self.tagSet:
+                if t not in other.tagSet:
                     return
-            for c in other.subtypeConstraints:
-                if c not in self.subtypeConstraints:
+            for c in self.subtypeConstraints:
+                if c not in other.subtypeConstraints:
                     return
             return 1
 
