@@ -65,6 +65,10 @@ class manager:
         if self._durty:
             raise ValueError('List is not valid for update (try clear())')
 
+        if req['request_id'] in map(lambda (dst, req): \
+                                    req['request_id'], self._requests):
+            raise error.BadArgument('Duplicate request IDs in queue')
+
         self._requests.append((dst, req))
 
     def __setitem__(self, idx, (dst, req)):
@@ -72,12 +76,16 @@ class manager:
         """
         if self._durty:
             raise ValueError('List is not valid for update (try clear())')
+
+        if req['request_id'] in map(lambda (dst, req): \
+                                    req['request_id'], self._requests):
+            raise error.BadArgument('Duplicate request IDs in queue')
         
         try:
             self._requests[idx] = (dst, req)
 
         except IndexError:
-            raise error.BadArgument('Request index out of range')
+            raise IndexError('Request index out of range')
 
     def __getitem__(self, idx):
         """
@@ -86,12 +94,17 @@ class manager:
             return self._requests[idx]
 
         except IndexError:
-            raise error.BadArgument('Request index out of range')
+            raise IndexError('Request index out of range')
 
-    def count(self):
+    def __len__(self):
+        """
+        """
+        return len(self._requests)
+                   
+    def count(self, val):
         """XXX
         """
-        return self._requests.count()
+        return self._requests.count(val)
 
     def index(self, (dst, req)):
         """
@@ -103,7 +116,7 @@ class manager:
             return self._requests.index((dst, req))
 
         except ValueError:
-            raise error.BadArgument('No such request in queue')
+            raise ValueError('No such request in queue')
 
     def insert(self, idx, (dst, req)):
         """
@@ -111,11 +124,15 @@ class manager:
         if self._durty:
             raise ValueError('List is not valid for update (try clear())')
 
+        if req['request_id'] in map(lambda (dst, req): \
+                                    req['request_id'], self._requests):
+            raise error.BadArgument('Duplicate request IDs in queue')
+        
         try:
             return self._requests.insert(idx, (dst, req))
 
         except IndexError:
-            raise error.BadArgument('Request index out of range')
+            raise IndexError('Request index out of range')
 
     def remove(self, (dst, req)):
         """
@@ -124,7 +141,7 @@ class manager:
             return self._requests.remove((dst, req))
 
         except ValueError:
-            raise error.BadArgument('No such request in queue')
+            raise ValueError('No such request in queue')
 
     def pop(self, idx=-1):
         """
@@ -133,7 +150,7 @@ class manager:
             return self._requests.pop(idx)
 
         except IndexError:
-            raise error.BadArgument('Request index out of range')
+            raise IndexError('Request index out of range')
 
     #
     # The main I/O method
@@ -146,37 +163,51 @@ class manager:
         """
         # Indicate that internal queue might change
         self._durty = 1
-        
+
+        # Resolve destination hostnames to IP numbers for later comparation
+        try:
+            self._requests = map(lambda (dst, req): \
+                                 ((socket.gethostbyname(dst[0]), \
+                                   dst[1]), req),\
+                                 self._requests)
+
+        except socket.error, why:
+            raise error.BadArgument(why)
+
         # Initialize a list of responses
-        self._responses = [ None ] * self._requests.count()
+        self._responses = map(lambda (dst, req): (dst, None), self._requests)
 
         # Initialize retry counter
         retries = self.retries
         
         while retries:
             # Send out requests and prepare for waiting for replies
-            for idx in range(self._requests.count()):
+            for idx in range(len(self._requests)):
                 # Skip completed session
-                if self._responses[idx] is None:
+                (src, rsp) = self._responses[idx]
+                if rsp is not None:
                     continue
 
-                (agent, req) = self._requests[idx]
+                (dst, req) = self._requests[idx]
 
                 try:
-                    # While response is not received, keep [re-]sending SNMP
-                    # request message
-                    self.transport.send(req.encode())
+                    self.transport.send(req.encode(), dst)
                     
                 except error.SNMPEngineError:
                     pass
 
             # Collect responses from agents
-            while filter(None, self._responses):
+            for (src, rsp) in self._responses:
+                # Skip responded entities
+                if rsp is not None:
+                    continue
+                
                 # Wait for response
                 (response, src) = self.transport.receive()
 
                 # Stop on timeout
                 if response is None:
+                    retries = retries - 1
                     break
 
                 # Decode response
@@ -184,10 +215,14 @@ class manager:
 
                 # Try to match response message against pending
                 # request messages
-                for idx in range(self._requests.count()):
+                for idx in range(len(self._requests)):
                     if (src, rsp) == self._requests[idx]:
                         self._responses[idx] = (src, rsp)
                         break
-
+            else:
+                # Everyone responded
+                break
+                
         # Replace list of requests with list of replies
         self._requests = self._responses            
+
