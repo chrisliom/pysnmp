@@ -38,7 +38,7 @@ def cbFun(wholeMsg, transportAddr, (req, rsp, headVars)):
         # Remove completed SNMP table columns
         map(lambda idx, headVars=headVars: headVars.__delitem__(idx), \
             filter(lambda x: x==-1, tableIndices[-1]))
-        if len(headVars) == 0: raise "EOM"
+        if not headVars: raise "EOM"
 
         # Generate request for next row
         lastRow = map(lambda cellIdx, varBindList=varBindList: \
