@@ -93,7 +93,7 @@ class AbstractTransportDispatcher:
             self.__timerCbFun(timeNow)
 
     def runDispatcher(self, timeout=0.0):
-        raise error.NotImplementedError('Method not implemented')
+        raise error.BadArgumentError('Method not implemented')
 
     def closeDispatcher(self):
         self.closeTransports()

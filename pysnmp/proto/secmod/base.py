@@ -6,16 +6,16 @@ class AbstractSecurityModel:
         self.__cacheEntries = {}
     
     def processIncomingMsg(self, msg, **kwargs):
-        raise error.NotImplementedError(
+        raise error.BadArgumentError(
             'Security model %s not implemented' % self
             )
 
     def generateRequestMsg(self, msg, **kwargs):
-        raise error.NotImplementedError(
+        raise error.BadArgumentError(
             'Security model %s not implemented' % self
             )
 
     def generateResponseMsg(self, msg, **kwargs):
-        raise error.NotImplementedError(
+        raise error.BadArgumentError(
             'Security model %s not implemented' % self
             )

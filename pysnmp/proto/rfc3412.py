@@ -19,11 +19,11 @@ class AbstractApplication:
     pduTypes = (())        
 
     def processPdu(self, dsp, **kwargs):
-        raise error.NotImplementedError(
+        raise error.BadArgumentError(
             'App %s doesn\'t accept request PDUs' % (self)
             )
     def processResponsePdu(self, dsp, **kwargs):
-        raise error.NotImplementedError(
+        raise error.BadArgumentError(
             'App %s doesn\'t accept response PDUs' % (self)
             )
 
