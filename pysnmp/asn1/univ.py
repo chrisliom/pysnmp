@@ -615,7 +615,10 @@ class ObjectIdentifier(base.SimpleAsn1Object):
             return self.str2num(self.num2str(value, self.aliases),
                                 self.aliases)
 
-    def _oconv(self, value): return self.num2str(value, self.aliases)
+    def _oconv(self, value):
+        if hasattr(self, 'aliases'):
+            return self.num2str(value, self.aliases)
+        return self.num2str(value)
 
     # Provision for hierarchical organisation
 
