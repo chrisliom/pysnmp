@@ -83,15 +83,21 @@ snmpAuthProtocols = ObjectIdentity(snmpFrameworkAdmin.name + (1,))
 snmpPrivProtocols = ObjectIdentity(snmpFrameworkAdmin.name + (2,))
 
 mibBuilder.exportSymbols(
-    modName, snmpFrameworkMIB=snmpFrameworkMIB, SnmpEngineID=SnmpEngineID,
+    'SNMP-FRAMEWORK-MIB',
+    snmpFrameworkMIB=snmpFrameworkMIB,
+    SnmpEngineID=SnmpEngineID,
     SnmpSecurityModel=SnmpSecurityModel,
     SnmpMessageProcessingModel=SnmpMessageProcessingModel,
-    SnmpSecurityLevel=SnmpSecurityLevel, SnmpAdminString=SnmpAdminString,
+    SnmpSecurityLevel=SnmpSecurityLevel,
+    SnmpAdminString=SnmpAdminString,
     snmpFrameworkAdmin=snmpFrameworkAdmin, 
     snmpFrameworkMIBObjects=snmpFrameworkMIBObjects,
     snmpFrameworkMIBConformance=snmpFrameworkMIBConformance,
-    snmpEngine=snmpEngine, snmpEngineID=snmpEngineID,
-    snmpEngineBoots=snmpEngineBoots, snmpEngineTime=snmpEngineTime,
+    snmpEngine=snmpEngine,
+    snmpEngineID=snmpEngineID,
+    snmpEngineBoots=snmpEngineBoots,
+    snmpEngineTime=snmpEngineTime,
     snmpEngineMaxMessageSize=snmpEngineMaxMessageSize,
-    snmpAuthProtocols=snmpAuthProtocols, snmpPrivProtocols=snmpPrivProtocols
+    snmpAuthProtocols=snmpAuthProtocols,
+    snmpPrivProtocols=snmpPrivProtocols
     )
