@@ -25,6 +25,7 @@ class AbstractBerCodec:
 
     def encode(self, client):
         oStream = self.encodeValue(client)
+        ### all this should be pre-calculated!
         if client.tagCategory == tagCategories['IMPLICIT']:
             taggingSequence = (
                 client.tagClass[0] | client.tagFormat[0] | client.tagId[0],
@@ -67,15 +68,16 @@ class AbstractBerCodec:
         return oStream
     
     def decode(self, client, oStream):
+        ### all this should be pre-calculated!
         restOfStream = None
         if client.tagCategory == tagCategories['IMPLICIT']:
             taggingSequence = (
-                client.tagClass[0] | client.tagFormat[0] | client.tagId[0],
+                chr(client.tagClass[0] | client.tagFormat[0] | client.tagId[0]),
             )
         elif client.tagCategory == tagCategories['UNTAGGED']:
             taggingSequence = ()
         elif client.tagCategory == tagCategories['EXPLICIT']:
-            return map(lambda x, y, z: x|y|z, client.tagClass, \
+            return map(lambda x, y, z: chr(x|y|z), client.tagClass, \
                        client.tagFormat, client.tagId)            
         else:
             raise error.BadArgumentError(
@@ -83,6 +85,7 @@ class AbstractBerCodec:
                 (client.tagCategory, self.__class__.__name__,
                  client.__class__.__name__,)
             )
+        # 'EXPLICITly' tagged types may produce a sequence of tags
         for tag in taggingSequence:
             # Decode BER tag
             if len(oStream) < 2:
@@ -90,68 +93,41 @@ class AbstractBerCodec:
                     'Short octet stream (no tag) at %r' %
                     self.__class__.__name__
             )
-            gotTag = ord(oStream[0])
+            # use strings here instead of ord
+            gotTag = oStream[0]
             if gotTag != tag:
                 raise error.TypeMismatchError(
                     'Tag mismatch at %r for %r: expected %o but got %o' %
                     (self.__class__.__name__, client.__class__.__name__,
-                     tag, gotTag)
+                     ord(tag), ord(gotTag))
                 )
 
-            # Decode length
-            while 1:
-                lenOfStream = len(oStream)
-                if lenOfStream < 2:
-                    raise error.BadEncodingError(
-                        'Short octet stream (<2) at %r' %
-                        self.__class__.__name__
-                    )
-                firstOctet  = ord(oStream[1])
-                msb = firstOctet & 0x80
-                if not msb:
-                    length, size = firstOctet & 0x7F, 1
-                    break
 
-                if lenOfStream < 3:
+            ## Hopefully faster length decoding...
+            lenOfStream = len(oStream)
+            # we know there's at least 2 bytes from above
+            firstOctet  = ord(oStream[1])
+            if firstOctet < 128:
+                length, size = firstOctet, 1
+            else:
+                size = (firstOctet & 0x7F)
+                # encoded in size bytes
+                length = 0
+                lengthString = oStream[2:size+2]
+                # missing check on maximum size, which shouldn't be a problem,
+                # we can handle more than is possible
+                if len(lengthString) != size:
                     raise error.BadEncodingError(
-                        'Short octet stream (<3) at %r' %
-                        self.__class__.__name__
+                        'Expected %r bytes of length encoding for %r, but not enough data in stream, only %r bytes' %
+                        size,
+                        self.__class__.__name__,
+                        len( lengthString ),
                     )
-                size = firstOctet & 0x7F
-                secondOctet  = ord(oStream[2])
-                if msb and size == 1:
-                    length, size = secondOctet, size+1
-                    break
-            
-                if lenOfStream < 4:
-                    raise error.BadEncodingError(
-                        'Short octet stream (<4) at %r' %
-                        self.__class__.__name__
-                    )
-                if msb and size == 2:
-                    length = secondOctet
-                    length = length << 8
-                    length, size = length | ord(oStream[3]), size+1
-                    break
+                for char in lengthString:
+                    length = (length << 8) | ord(char)
+                size += 1
 
-                if lenOfStream < 5:
-                    raise error.BadEncodingError(
-                        'Short octet stream (<5) at %r' %
-                        self.__class__.__name__
-                    )
-                if msb and size == 3:
-                    length = secondOctet
-                    length = length << 8
-                    length = length | ord(oStream[3])
-                    length = length << 8
-                    length, size = length | ord(oStream[4]), size+1
-                    break
-
-                raise error.OverFlowError(
-                    'Too many length bytes %d at %r' %
-                    (size, self.__class__.__name__)
-                )
-            if len(oStream) - 1 - size < length:
+            if lenOfStream - 1 - size < length:
                 raise error.UnderRunError(
                     'Incomplete octet-stream at %r for %r' %
                     (self.__class__.__name__, client.__class__.__name__)
