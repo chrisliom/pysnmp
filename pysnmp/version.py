@@ -2,9 +2,9 @@
 """
 import error
 
-__versionMajor = 3
-__versionMinor = 5
-__patchLevel = 1
+__versionMajor = 4
+__versionMinor = 0
+__patchLevel = 0
 
 def getVersion(): return (__versionMajor, __versionMinor, __patchLevel)
 def verifyVersionRequirement(versionMajor, versionMinor, patchLevel=0):
