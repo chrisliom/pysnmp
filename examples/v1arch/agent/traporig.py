@@ -1,6 +1,4 @@
 """Notification Originator Application"""
-from pysnmp import setApiVersion
-setApiVersion('v4')
 from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
 from pysnmp.carrier.asynsock.dgram.udp import UdpSocketTransport
 from pysnmp.proto import omni
