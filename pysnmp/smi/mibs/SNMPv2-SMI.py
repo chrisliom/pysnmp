@@ -3,21 +3,21 @@ from pysnmp.smi.indices import OidOrderedDict
 from pysnmp.smi import error
 from pysnmp.proto import rfc1902
 from pysnmp.asn1 import subtypes
+from pysnmp.asn1.error import ValueConstraintError
 
-OctetString, = mibBuilder.importSymbols('ASN1', 'OctetString')
+( OctetString,
+  ObjectIdentifier,
+  Integer ) = mibBuilder.importSymbols(
+    'ASN1',
+    'OctetString',
+    'ObjectIdentifier',
+    'Integer'
+    )
 
 # syntax of objects
 
 Integer32 = rfc1902.Integer32
-
-class IpAddress(rfc1902.IpAddress):
-    def setFromName(self, value, impliedFlag=None):
-        self.set(join(map(str, value), '.'))
-        return value[4:]
-
-    def getAsName(self, impliedFlag=None):
-        return tuple(map(int, split(self.get(), '.')))    
-
+IpAddress = rfc1902.IpAddress
 Counter32 = rfc1902.Counter32
 Gauge32 = rfc1902.Gauge32
 Unsigned32 = rfc1902.Unsigned32
@@ -585,7 +585,76 @@ class MibTableRow(MibTree):
         else:
             self.indexNames = ()
         self.augmentingRows = {}
-        
+
+    # Table indices resolution
+
+    __intValue = Integer()
+    __strValue = OctetString()
+    __oidValue = ObjectIdentifier()
+    __ipaddrValue = IpAddress()
+
+    def setFromName(self, obj, value, impliedFlag=None):
+        if self.__intValue.isSubtype(obj):
+            obj.set(value[0])
+            return value[1:]
+        elif self.__ipaddrValue.isSubtype(obj):
+            obj.set(join(map(str, value[:4]), '.'))
+            return value[4:]
+        elif self.__strValue.isSubtype(obj):
+            if impliedFlag:
+                s = reduce(lambda x,y: x+y, map(lambda x: chr(x), value))
+            else:
+                s = reduce(lambda x,y: x+y, map(lambda x: chr(x), value[1:]))
+                # XXX check name vs str length
+            valueLength = len(s)
+            while valueLength:
+                try:
+                    obj.set(s[:valueLength])
+                    s = s[valueLength:]
+                    # XXX
+                    if impliedFlag:
+                        initial = ()
+                    else:
+                        initial = (len(obj),)
+                    return reduce(
+                        lambda x,y: x+(y,), map(lambda x: ord(x), s), initial
+                        )
+                except ValueConstraintError:
+                    valueLength = valueLength - 1
+                raise error.SmiError(
+                    'Instance ID %s does not fit INDEX %r' % (value, obj)
+                    )
+        elif self.__oidValue.isSubtype(obj):
+            if impliedFlag:
+                obj.set(value)
+            else:
+                obj.set(value[1:])
+            return ()
+        else:
+            obj.set(value)
+            return ()
+            
+    def getAsName(self, obj, impliedFlag=None):
+        if self.__intValue.isSubtype(obj):
+            return (obj.get())
+        elif self.__strValue.isSubtype(obj):
+            if impliedFlag:
+                initial = ()
+            else:
+                initial = (len(obj),)
+            return reduce(
+                lambda x,y: x+(y,), map(lambda x: ord(x), obj), initial
+                )
+        elif self.__oidValue.isSubtype(obj):
+            if impliedFlag:
+                return tuple(self)
+            else:
+                return (len(self),) + tuple(self)            
+        elif self.__ipaddrValue.isSubtype(obj):
+            return tuple(map(int, split(obj.get(), '.')))
+        else:
+            return (obj.get())
+            
     # Fate sharing mechanics
 
     def announceManagementEvent(self, action, name):
@@ -594,8 +663,9 @@ class MibTableRow(MibTree):
         baseIndices = []
         for impliedFlag, modName, symName in self.indexNames:
             mibObj, = mibBuilder.importSymbols(modName, symName)
-            instId = mibObj.getColumnInitializer(
-                ).syntax.setFromName(instId, impliedFlag)
+            instId = self.setFromName(
+                mibObj.getColumnInitializer().syntax, instId, impliedFlag
+                )
             if self.name == mibObj.name[:-1]:
                 baseIndices.append(mibObj)
         if instId:
@@ -618,8 +688,9 @@ class MibTableRow(MibTree):
             for baseIndex in baseIndices:
                 if baseIndex.name == mibObj.name:
                     newSuffix = newSuffix + \
-                                baseIndex.getColumnInitializer(
-                        ).syntax.getAsName(impliedFlag)
+                                self.getAsName(
+                        baseIndex.getColumnInitializer().syntax, impliedFlag
+                        )
         if newSuffix:
             self.__manageColumns(action, newSuffix)
 
@@ -682,7 +753,7 @@ class MibTableRow(MibTree):
         for impliedFlag, modName, symName in self.indexNames:
             mibObj, = mibBuilder.importSymbols(modName, symName)
             val = mibObj.getColumnInitializer().syntax
-            instId = val.setFromName(instId, impliedFlag)
+            instId = self.setFromName(val, instId, impliedFlag)
             indices.append(val.get())
         if instId:
             raise error.SmiError(
@@ -697,8 +768,10 @@ class MibTableRow(MibTree):
         for impliedFlag, modName, symName in self.indexNames:
             mibObj, = mibBuilder.importSymbols(modName, symName)
             if idx < len(indices):
-                instId = instId + mibObj.getColumnInitializer(
-                    ).syntax.set(indices[idx]).getAsName(impliedFlag)
+                instId = instId + self.getAsName(
+                    mibObj.getColumnInitializer().syntax.set(indices[idx]),
+                    impliedFlag
+                    )
         return instId
 
     # Table access by index
