@@ -168,3 +168,7 @@ class PermittedAlphabetConstraint(SingleValueConstraint): pass
 #                     self.values.keys(),
 #                 )
 #             )
+
+# XXX
+# implement constraints evaluator object
+# order constraint objects in layers (reflecting subtyping)
