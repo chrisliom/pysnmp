@@ -1,8 +1,6 @@
-from string import split, join
-from pysnmp.asn1 import univ, subtypes
-from pysnmp.smi import error
+# Base ASN.1 objects
 
-# base ASN.1 objects with SNMP table indexing & pretty print facilities support
+from pysnmp.asn1 import univ
 
 Integer = univ.Integer
 OctetString = univ.OctetString
@@ -11,6 +9,6 @@ Null = univ.Null
 ObjectIdentifier = univ.ObjectIdentifier
 
 mibBuilder.exportSymbols(
-    modName, Integer=Integer, OctetString=OctetString,
+    'ASN1', Integer=Integer, OctetString=OctetString,
     BitString=BitString, Null=Null, ObjectIdentifier=ObjectIdentifier
     )
