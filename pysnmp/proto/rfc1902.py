@@ -150,20 +150,7 @@ class ApplicationSyntax(univ.Choice):
         } # BITS misplaced?
 
 class ObjectSyntax(univ.Choice):
-    class TableSyntax(univ.Choice):
-        protoComponents = {
-            'table': SequenceOf(),
-            'row': Sequence()
-            }
     protoComponents = {
         'simple_syntax': SimpleSyntax(),
         'application_syntax': ApplicationSyntax(),
-        'sequence_syntax': TableSyntax()
         }
-
-if __name__ == '__main__':
-    b = Bits()
-    b.namedValues = b.namedValues.clone(('Zero', 0), ('One', 1))
-    #b.clone('One')
-    b.set(('Zero','One'))
-    print b

@@ -124,14 +124,8 @@ class ApplicationSyntax(univ.Choice):
         }
 
 class ObjectSyntax(univ.Choice):
-    class TableSyntax(univ.Choice):
-        protoComponents = {
-            'table': SequenceOf(),
-            'row': Sequence()
-            }
     protoComponents = {
         'simple': SimpleSyntax(),
         'application_wide': ApplicationSyntax(),
-        'sequence': TableSyntax()
         }
     initialComponentKey = 'simple'
