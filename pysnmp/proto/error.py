@@ -12,38 +12,14 @@ class ProtoError(error.PySnmpError):
 
 # Common exceptions
 
-class BadArgumentError(ProtoError):
-    """Malformed argument
-    """
-    pass
-
-class NotImplementedError(ProtoError):
-    """Feature not implemented
-    """
-    pass
+class BadArgumentError(ProtoError): pass
+class NotImplementedError(ProtoError): pass
 
 # SNMP v3 exceptions
 
-class SnmpV3Error(ProtoError):
-    """SNMPv3 specific exceptions
-    """
-    pass
-
-class CacheExpiredError(SnmpV3Error):
-    """Request information (rfc3412) cache expired
-    """
-    pass
-
-class InternalError(SnmpV3Error):
-    """SNMP v.3 engine error
-    """
-    pass
-
-class MessageProcessingError(SnmpV3Error):
-    """Illegal message params
-    """
-
-class CacheExpiredError(SnmpV3Error):
-    """Request information (rfc3412) cache expired
-    """
-    pass
+class SnmpV3Error(ProtoError): pass
+class CacheExpiredError(SnmpV3Error): pass
+class InternalError(SnmpV3Error): pass
+class MessageProcessingError(SnmpV3Error): pass
+class CacheExpiredError(SnmpV3Error): pass
+class RequestTimeout(SnmpV3Error): pass

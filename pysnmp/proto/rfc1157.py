@@ -136,3 +136,6 @@ class Message(rfc1155.Sequence):
                         'community': Community(),
                         'pdu': Pdus() }
     protoSequence = ( 'version', 'community', 'pdu' )
+
+
+    
