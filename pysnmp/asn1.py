@@ -313,16 +313,13 @@ class ASN1OBJECT(BERHEADER):
                                     + str(why))
     
 class INTEGER(ASN1OBJECT):
-    """A ASN.1 integer object
+    """An ASN.1, indefinite length integer object
     """
     def __init__(self, value=None):
         """Invoke base class constructor and install specific defaults
         """
         ASN1OBJECT.__init__(self, value)
 
-        # This flag indicates that the integer is signed by default
-        self.signed = 1
-        
     def _encode(self):
         """
            _encode() -> octet stream
@@ -360,21 +357,21 @@ class INTEGER(ASN1OBJECT):
         """
            _decode(input)
            
-           Decode octet stream into signed (self.signed != None) or
-           unsigned ASN.1 integer otherwise (of any length).
+           Decode octet stream into signed ASN.1 integer (of any length).
         """
         bytes = map(ord, input)
 
-        if self.signed and bytes[0] & 0x80:
-            return -1 - reduce(lambda x,y: x<<8 | 0xff & ~y, bytes, 0)
-        else:
-            return reduce(lambda x,y: x<<8 | y, bytes, 0)
+        if bytes[0] & 0x80:
+            bytes.insert(0, -1L)
 
-    def _range(self, value):
-        """
-        """
-        return value & ~0xffffffff
-        
+        result = reduce(lambda x,y: x<<8 | y, bytes, 0L)
+
+        try:
+            return int(result)
+
+        except OverflowError:
+            return result
+
 class UNSIGNED32(INTEGER):
     """ASN.1 UNSIGNED32 object
     """
@@ -384,8 +381,30 @@ class UNSIGNED32(INTEGER):
         """
         INTEGER.__init__(self, value)
 
-        # Turn base class to treat integers as unsigned
-        self.signed = None
+    def _decode(self, input):
+        """
+           _decode(input)
+           
+           Decode octet stream into unsigned ASN.1 integer (of any length).
+        """
+        bytes = map(ord, input)
+
+        if bytes[0] & 0x80:
+            bytes.insert(0, 0xffffffffL)
+
+        res = reduce(lambda x,y: x<<8 | y, bytes, 0L)
+
+        # Attempt to return int whenever possible
+        try:
+            return int(res)
+
+        except OverflowError:
+            return res
+
+    def _range(self, value):
+        """
+        """
+        return value < 0 or value & ~0xffffffffL
 
 class TIMETICKS(UNSIGNED32):
     """ASN.1 TIMETICKS object
@@ -407,67 +426,19 @@ class GAUGE32(UNSIGNED32):
     """
     pass
 
-class COUNTER64(ASN1OBJECT):
+class COUNTER64(UNSIGNED32):
     """ASN.1 COUNTER64 object
     """
     def __init__(self, value=None):
         """Invoke base class constructor and install specific defaults
         """
-        ASN1OBJECT.__init__(self, value)
+        UNSIGNED32.__init__(self, value)
         
-    def _encode(self):
-        """
-           _encode() -> octet stream
-           
-           Encode 8-byte integer into octet stream.
-        """
-        result = ''
-        integer = self.value
-        
-        # The 0 and -1 values need to be handled separately since
-        # they are the terminating cases of the positive and negative
-        # cases repectively.
-        if integer == 0:
-            result = '\000'
-            
-        elif integer == -1:
-            result = '\377'
-            
-        elif integer < 0:
-            while integer <> -1:
-                (integer, result) = integer>>8, chr(integer & 0xff) + result
-                
-            if ord(result[0]) & 0x80 == 0:
-                result = chr(0xff) + result
-        else:
-            while integer > 0:
-                (integer, result) = integer>>8, chr(integer & 0xff) + result
-                
-            if (ord(result[0]) & 0x80 <> 0):
-                result = chr(0x00) + result
-
-        return result
-
-    def _decode(self, input):
-        """
-           _decode(input)
-           
-           Decode octet stream into signed ASN.1 integer otherwise
-           (of any length).
-        """
-        bytes = map(ord, input)
-
-        # XXX
-        if bytes[0] & 0x80:
-            return -1 - reduce(lambda x,y: x<<8 | 0xff & ~y, bytes, 0L)
-        else:
-            return reduce(lambda x,y: x<<8 | y, bytes, 0L)
-
     def _range(self, value):
         """
         """
-        return value & ~0xffffffffffffffffL
-
+        return value < 0 or value & ~0xffffffffffffffffL
+    
 class SEQUENCE(ASN1OBJECT):
     """ASN.1 sequence object
     """
