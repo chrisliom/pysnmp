@@ -15,9 +15,7 @@ from pysnmp.proto import rfc1905
 from pysnmp.proto.api.generic import rfc1157
 import pysnmp.proto.api.alpha
 
-class RequestPduMixIn(rfc1157.RequestPduMixIn):
-    def apiGenGetVarBind(self): return self.apiAlphaGetVarBind()
-    def apiGenSetVarBind(self, value): self.apiAlphaSetVarBind(value)
+class RequestPduMixIn(rfc1157.RequestPduMixIn): pass
         
 # Request PDU mix-ins
 class GetRequestPduMixIn(RequestPduMixIn): pass
@@ -27,11 +25,7 @@ class InformRequestPduMixIn(RequestPduMixIn): pass
 class ReportPduMixIn(RequestPduMixIn): pass
 class SnmpV2TrapPduMixIn(RequestPduMixIn): pass
 
-class ResponsePduMixIn(RequestPduMixIn):
-    def apiGenGetErrorStatus(self): return self.apiAlphaGetErrorStatus().get()
-    def apiGenSetErrorStatus(self, value): self.apiAlphaSetErrorStatus(value)
-    def apiGenGetErrorIndex(self): return self.apiAlphaGetErrorIndex().get()
-    def apiGenSetErrorIndex(self, value): self.apiAlphaSetErrorIndex(value)
+class ResponsePduMixIn(rfc1157.GetResponsePduMixIn): pass
 
 # A v1-style alias
 GetResponsePduMixIn = ResponsePduMixIn
