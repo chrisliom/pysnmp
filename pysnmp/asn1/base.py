@@ -9,6 +9,8 @@ __all__ = [ 'tagClasses', 'tagFormats', 'tagCategories', 'SimpleAsn1Object', \
             'RecordTypeAsn1Object', 'ChoiceTypeAsn1Object', \
             'VariableTypeAsn1Object' ]
 
+from sys import version_info
+from operator import getslice, setslice, delslice
 from types import *
 from pysnmp.asn1 import error
 
@@ -345,7 +347,7 @@ class FixedTypeAsn1Object(StructuredAsn1Object):
             idx = self._names.index(key)
 
         except ValueError:
-            raise KeyError, str(key)
+            raise KeyError, str('at %s: %s' % (self.__class__.__name__, key))
 
         else:
             return self._components[idx]
@@ -470,6 +472,45 @@ class ChoiceTypeAsn1Object(FixedTypeAsn1Object):
             return component.getTerminal()
         return component
 
+    def getInnerComponent(self, valType):
+        """Search for value type over the component tree.
+        """
+        # XXX
+        if type(valType) == InstanceType:
+            valType = valType.__class__
+        if not issubclass(valType, Asn1Object):
+            raise error.BadArgumentError('Non-ASN1 object or class %s'\
+                                         % valType)
+        if issubclass(self.__class__, valType):
+            return self
+        if len(self._components):
+            if hasattr(self._components[0], 'getInnerComponent'):
+                r = self._components[0].getInnerComponent(valType)
+                if r is not None: return r
+            if isinstance(self._components[0], valType):
+                return self._components[0]
+            
+    def setInnerComponent(self, value):
+        """Walk over the component tree, attempt to assign
+           passed value. Return true on success.
+        """
+        # XXX cache comps
+        try:
+            self[None] = value
+            return 1
+        except error.ObjectTypeError:
+            if len(self._components):
+                if hasattr(self._components[0], 'setInnerComponent'):
+                    r = self._components[0].setInnerComponent(value)
+                    if r: return r
+            for choiceComponent in self.choiceComponents:
+                if hasattr(choiceComponent, 'setInnerComponent'):
+                    comp = choiceComponent()
+                    r = comp.setInnerComponent(value)
+                    if r:
+                        self[None] = comp
+                        return r
+
     #
     # Dictionary interface emulation (for strict ordering)
     #
@@ -489,6 +530,12 @@ class ChoiceTypeAsn1Object(FixedTypeAsn1Object):
         if hasattr(self, '_subtype_constraint'):
             self._subtype_constraint(value)
 
+        # Try current value first (might be efficient for tables walking)
+        if len(self._components) and \
+               isinstance(value, self._components[0].__class__):
+            self._components[0] = value
+            return
+        
         for choiceComponent in self.choiceComponents:
             if isinstance(value, choiceComponent):
                 # Drop possibly existing values as it is a CHOICE
@@ -501,7 +548,7 @@ class ChoiceTypeAsn1Object(FixedTypeAsn1Object):
                     self._names = [ str(choiceComponent.__name__) ]
                 break
         else:
-            raise error.BadArgumentError('Unexpected component type %s at %s'\
+            raise error.ObjectTypeError('Unexpected component type %s at %s'\
                                          % (value.__class__.__name__, \
                                             self.__class__.__name__))
 
@@ -512,7 +559,7 @@ class ChoiceTypeAsn1Object(FixedTypeAsn1Object):
             idx = self._names.index(key)
 
         except ValueError:
-            raise KeyError, str(key)
+            raise KeyError, str('at %s: %s' % (self.__class__.__name__, key))
 
         else:
             del self._names[idx]
@@ -561,7 +608,7 @@ class AnyTypeAsn1Object(FixedTypeAsn1Object):
             idx = self._names.index(key)
 
         except ValueError:
-            raise KeyError, str(key)
+            raise KeyError, str('at %s: %s' % (self.__class__.__name__, key))
 
         else:
             del self._names[idx]
@@ -632,6 +679,10 @@ class VariableTypeAsn1Object(StructuredAsn1Object):
     def __setitem__(self, idx, value):
         """Set object by subscription
         """
+        if type(idx) == SliceType:
+            setslice(self._components, idx.start, idx.stop, list(value))
+            return
+        
         # Hard-coded type constraint XXX
         if not isinstance(value, Asn1Object):
             raise error.BadArgumentError('Non-ASN1 object %s at %s'\
@@ -649,18 +700,34 @@ class VariableTypeAsn1Object(StructuredAsn1Object):
 
         if hasattr(self, '_subtype_constraint'):
             self._subtype_constraint(value)
-
+            
         self._components[idx] = value
 
     def __getitem__(self, idx):
         """Get object by subscription
         """
-        return self._components[idx]
+        if type(idx) == SliceType:
+            return apply(self.__class__, \
+                         getslice(self._components, idx.start, idx.stop))
+        else:
+            return self._components[idx]
 
     def __delitem__(self, idx):
         """Remove object by subscription
         """
-        del self._components[idx]
+        if type(idx) == SliceType:
+            delslice(self._components, idx.start, idx.stop)
+        else:
+            del self._components[idx]
+
+    # They won't be defined if version is at least 2.0 final
+    if version_info < (2, 0):
+        def __getslice__(self, i, j):
+            return self[max(0, i):max(0, j):]
+        def __setslice__(self, i, j, seq):
+            self[max(0, i):max(0, j):] = seq
+        def __delslice__(self, i, j):
+            del self[max(0, i):max(0, j):]
 
     def append(self, value):
         """Append object to end
