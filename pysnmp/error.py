@@ -1,7 +1,4 @@
-"""Top-level exception class
-"""   
-from exceptions import Exception
-
+# Top-level exception class
 class PySnmpError(Exception):
     def __init__(self, why=None):
         Exception.__init__(self)
