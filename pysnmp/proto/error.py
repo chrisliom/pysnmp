@@ -1,17 +1,6 @@
-"""
-   Package exception classes.
-
-   Written by Ilya Etingof <ilya@glas.net>, 2001, 2002.
-"""   
 from pysnmp import error
 
-class ProtoError(error.PySnmpError):
-    """Base class for snmp sub-package exceptions
-    """
-    pass
-
-# Common exceptions
-
+class ProtoError(error.PySnmpError): pass
 class BadArgumentError(ProtoError): pass
 class NotImplementedError(ProtoError): pass
 
