@@ -64,29 +64,29 @@ class BERHEADER(v1.BERHEADER):
     """
     # v.2 PDU tags
     TAGS = {
-        'GETREQUEST_PDU'     : 0x00 | v1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | v1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'GETNEXTREQUEST_PDU' : 0x01 | v1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | v1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'RESPONSE_PDU'       : 0x02 | v1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | v1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'SETREQUEST_PDU'     : 0x03 | v1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | v1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'GETBULKREQUEST_PDU' : 0x05 | v1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | v1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'INFORMREQUEST_PDU'  : 0x06 | v1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | v1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'TRAP_PDU'           : 0x07 | v1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | v1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'REPORT_PDU'         : 0x08 | v1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | v1.BERHEADER.FLAGS['CONSTRUCTOR']
+        'GETREQUEST_PDU'     : 0x00 | v1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | v1.BERHEADER.CLASS['CONTEXT'],
+        'GETNEXTREQUEST_PDU' : 0x01 | v1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | v1.BERHEADER.CLASS['CONTEXT'],
+        'RESPONSE_PDU'       : 0x02 | v1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | v1.BERHEADER.CLASS['CONTEXT'],
+        'SETREQUEST_PDU'     : 0x03 | v1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | v1.BERHEADER.CLASS['CONTEXT'],
+        'GETBULKREQUEST_PDU' : 0x05 | v1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | v1.BERHEADER.CLASS['CONTEXT'],
+        'INFORMREQUEST_PDU'  : 0x06 | v1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | v1.BERHEADER.CLASS['CONTEXT'],
+        'TRAP_PDU'           : 0x07 | v1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | v1.BERHEADER.CLASS['CONTEXT'],
+        'REPORT_PDU'         : 0x08 | v1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | v1.BERHEADER.CLASS['CONTEXT']
         }
 
 #
 # SNMP v.2 PDU types
 #
 
-class PDU_SEQUENCE(BERHEADER, asn1.TAGGEDSEQUENCE):
+class PDU_SEQUENCE(BERHEADER, asn1.SEQUENCE):
     """Extended ASN.1 data type
     """
     pass

@@ -67,23 +67,23 @@ class BERHEADER(asn1.BERHEADER):
     """Extended, SNMP v.1 specific ASN.1 data types
     """
     TAGS = {
-        'GETREQUEST_PDU'     : 0x00 | asn1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | asn1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'GETNEXTREQUEST_PDU' : 0x01 | asn1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | asn1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'GETRESPONSE_PDU'    : 0x02 | asn1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | asn1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'SETREQUEST_PDU'     : 0x03 | asn1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | asn1.BERHEADER.FLAGS['CONSTRUCTOR'],
-        'TRAPREQUEST_PDU'    : 0x04 | asn1.BERHEADER.FLAGS['CONTEXT'] \
-                                    | asn1.BERHEADER.FLAGS['CONSTRUCTOR']
+        'GETREQUEST_PDU'     : 0x00 | asn1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | asn1.BERHEADER.CLASS['CONTEXT'],
+        'GETNEXTREQUEST_PDU' : 0x01 | asn1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | asn1.BERHEADER.CLASS['CONTEXT'],
+        'GETRESPONSE_PDU'    : 0x02 | asn1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | asn1.BERHEADER.CLASS['CONTEXT'],
+        'SETREQUEST_PDU'     : 0x03 | asn1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | asn1.BERHEADER.CLASS['CONTEXT'],
+        'TRAPREQUEST_PDU'    : 0x04 | asn1.BERHEADER.FORMAT['CONSTRUCTED'] \
+                                    | asn1.BERHEADER.CLASS['CONTEXT']
         }
 
 #
 # SNMP v.1 PDU types
 #
 
-class PDU_SEQUENCE(BERHEADER, asn1.TAGGEDSEQUENCE):
+class PDU_SEQUENCE(BERHEADER, asn1.SEQUENCE):
     """Extended ASN.1 data type
     """
     pass
@@ -329,13 +329,13 @@ class BINDINGS(SNMPOBJECT):
 
             # Encode merged pairs
             encoded_oid_pairs = encoded_oid_pairs + \
-                asn1.TAGGEDSEQUENCE(oid_pairs).encode()
+                asn1.SEQUENCE(oid_pairs).encode()
 
             # Progress index
             index = index + 1
 
         # Return encoded bindings
-        return asn1.TAGGEDSEQUENCE(encoded_oid_pairs).encode()
+        return asn1.SEQUENCE(encoded_oid_pairs).encode()
 
     def _decode(self, input):
         """
@@ -344,7 +344,7 @@ class BINDINGS(SNMPOBJECT):
            Decode input octet stream (string) into lists or encoded
            Object IDs and their associated values (lists of strings).
         """
-        (bindings, rest) = asn1.TAGGEDSEQUENCE().decode(input)
+        (bindings, rest) = asn1.SEQUENCE().decode(input)
             
         # Initialize objids and vals lists
         self['encoded_oids'] = []
@@ -353,7 +353,7 @@ class BINDINGS(SNMPOBJECT):
         # Walk over bindings
         while bindings:
             # Unpack one binding
-            (binding, bindings) = asn1.TAGGEDSEQUENCE().decode(bindings)
+            (binding, bindings) = asn1.SEQUENCE().decode(bindings)
 
             # Get OID
             oid = asn1.OBJECTID()
@@ -476,7 +476,7 @@ class MESSAGE(SNMPOBJECT):
 
            Encode SNMP version, community name and PDU into SNMP message.
         """
-        return asn1.TAGGEDSEQUENCE( \
+        return asn1.SEQUENCE( \
                asn1.INTEGER(self['version']).encode() + \
                asn1.OCTETSTRING(self['community']).encode() + \
                self['pdu']).encode()
@@ -489,7 +489,7 @@ class MESSAGE(SNMPOBJECT):
            (integer), community name (string) and SNMP PDU (string).
         """
         # Unpack message
-        (message, rest) = asn1.TAGGEDSEQUENCE().decode(input)
+        (message, rest) = asn1.SEQUENCE().decode(input)
         
         # Get SNMP version
         (self['version'], message) = asn1.INTEGER().decode(message)
@@ -507,7 +507,7 @@ class MESSAGE(SNMPOBJECT):
            (integer) and community name (string).
         """
         # Unpack message
-        (message, rest) = asn1.TAGGEDSEQUENCE().decode(input)
+        (message, rest) = asn1.SEQUENCE().decode(input)
         
         # Get SNMP version
         (self['version'], message) = asn1.INTEGER().decode(message)
