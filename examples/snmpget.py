@@ -112,7 +112,7 @@ vars = rsp.apiGenGetPdu().apiGenGetVarBind()
 if rsp.apiGenGetPdu().apiGenGetErrorStatus():
     errorIndex = rsp.apiGenGetPdu().apiGenGetErrorIndex() - 1
     errorStatus = str(rsp['pdu'].values()[0]['error_status'])
-    if errorIndex < len(vars):
+    if errorIndex in range(len(vars)):
         raise error.ProtoError(errorStatus + ' at ' + str(vars[errorIndex][0]))
     raise error.ProtoError(errorStatus)
         

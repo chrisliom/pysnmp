@@ -281,7 +281,7 @@ class telnet_engine(asynchat.async_chat):
             errorIndex = rsp.apiGenGetPdu().apiGenGetErrorIndex() - 1
             errorStatus = str(rsp['pdu'].values()[0]['error_status'])
             self.push(errorStatus)
-            if errorIndex < len(vars):
+            if errorIndex in range(len(vars)):
                 self.push(' at ' + str(vars[errorIndex][0]))
 
         # Convert two lists into a list of tuples and print 'em all
