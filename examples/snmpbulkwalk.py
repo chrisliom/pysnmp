@@ -33,7 +33,6 @@ usage = usage + ' ' + v2c.GetBulkRequest().cliUcdGetUsage() + '\n' + options
 # Initialize defaults
 port = 161; retries = 5; timeout = 1; reportTypeFlag = None
 reportTypeFlag = prtNumFlag = inclOidFlag = None
-nonRepeaters = 0; maxRepeaters = 10
 chkIncOidFlag = 1
 
 # Parse possible options
@@ -70,24 +69,8 @@ try:
                 if opt[1][i] == 'p': prtNumFlag = 1
                 if opt[1][i] == 'i': inclOidFlag = 1
                 if opt[1][i] == 'c': chkIncOidFlag = 0
-                if opt[1][i] in [ 'r', 'n' ]:
-                    j = i + 1
-                    while j < len(opt[1]) and opt[1][j] in string.digits:
-                        j = j + 1
-                    try:
-                        n = string.atoi(opt[1][i+1:j])
-                    except ValueError, why:
-                        print 'Non/max repeaters parse error %s: %s' % \
-                              (opt[1][i:j], why)
-                        sys.exit(-1)
-                    if opt[1][i] == 'r':
-                        nonRepeaters = n
-                    else:
-                        maxRepeaters = n
-                    i = j
-                    continue
                 i = i + 1
-                
+
 except ValueError, why:
     print 'Bad parameter \'%s\' for option %s: %s\n%s' \
           % (opt[1], opt[0], why, usage)
@@ -154,8 +137,8 @@ while 1:
                                        str(vars[errorIndex][0]))
             raise error.ProtoError(errorStatus)
 
-        # The following is taken from RFC1905 (fixed not to depend of
-        # repetitions)
+        # The following is taken from RFC1905 (fixed not to
+        # depend of repetitions)
         N = 0;
         R = len(req.apiGenGetPdu().apiGenGetVarBind()) - N
         if R == 0: raise error.ProtoError('Short VarBindList in response')
@@ -185,15 +168,17 @@ while 1:
                     break
             else:
                 break
-            
+
+        if len(headVars) == 0: break
+        
         # Make sure OIDs are increasing
         if chkIncOidFlag:
             bOids = filter(lambda (x, y): \
                            v2c.ObjectIdentifier(x) > v2c.ObjectIdentifier(y),
                            map(None, \
-                               map(lambda x: x[0], vars), \
                                map(lambda x: x[0], \
-                                   rsp.apiGenGetPdu().apiGenGetVarBind())))
+                                   req.apiGenGetPdu().apiGenGetVarBind()), \
+                               map(lambda x: x[0], vars)))
             if len(bOids):
                 print 'Error: OID not increasing: ', str(bOids)
                 sys.exit(-1)
@@ -206,8 +191,7 @@ while 1:
                 print repr(val.getTerminal().get())
             prtOidCount = prtOidCount + 1
         
-    if len(headVars) == 0:
-        break
+    if len(headVars) == 0: break
         
     # Update request ID
     req.apiGenGetPdu()['request_id'].inc(1)
