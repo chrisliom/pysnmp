@@ -13,7 +13,7 @@ class MibViewController:
     # Indexing part
     
     def __indexMib(self):
-        if self.lastBuildId == mibBuilder.lastBuildId:
+        if self.lastBuildId == self.mibBuilder.lastBuildId:
             return
 
         #
@@ -72,7 +72,10 @@ class MibViewController:
         # Build oid->long-label index
         oidToLabelIdx = self.__mibSymbolsIdx['']['oidToLabelIdx']
         labelToOidIdx = self.__mibSymbolsIdx['']['labelToOidIdx']
-        prevOid = oidToLabelIdx.keys()[0]
+        if oidToLabelIdx:
+            prevOid = oidToLabelIdx.keys()[0]
+        else:
+            prevOid = ()
         baseLabel = ()
         for key in oidToLabelIdx.keys():
             keydiff = len(key) - len(prevOid)
@@ -104,7 +107,7 @@ class MibViewController:
             
 #        for k, v in oidToLabelIdx.items(): print k, v
         
-        self.lastBuildId = mibBuilder.lastBuildId
+        self.lastBuildId = self.mibBuilder.lastBuildId
 
     # Module management
     
