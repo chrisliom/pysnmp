@@ -219,7 +219,9 @@ class StructuredAsn1Object(SimpleAsn1Object):
     def berUnwrapHeader(self, input):
         """Decode BER header, return (data, rest)
         """
-        if self.tagCategory != tagCategories['UNTAGGED']:
+        if self.tagCategory == tagCategories['UNTAGGED']:
+            return (input, '')
+        else:
             if decodeTag(input, self.__class__.__name__) != \
                self.tagClass | self.tagFormat | self.tagId:
                 raise error.TypeMismatchError('Tag mismatch %o at %s' %\
@@ -232,8 +234,6 @@ class StructuredAsn1Object(SimpleAsn1Object):
                                           self.__class__.__name__)
 
             return (input[1+size:1+size+length], input[1+size+length:])
-        else:
-            return (input, '')
 
 class FixedTypeAsn1Object(StructuredAsn1Object):
     """BER for fixed-type ASN.1 objects
@@ -268,7 +268,7 @@ class OrderedFixedTypeAsn1Object(FixedTypeAsn1Object):
             return the rest of input stream.
         """
         (input, rest) = self.berUnwrapHeader(input)
-            
+        
         if hasattr(self, '_berDecode'):
             input = self._berDecode(input)
         else:
@@ -329,25 +329,60 @@ class SingleFixedTypeAsn1Object(FixedTypeAsn1Object):
             BER decode input (octet string) into ASN1 object payload,
             return the rest of input stream.
         """
-        (input, rest) = self.berUnwrapHeader(input)
-            
+        (input, rest) = self.berUnwrapHeader(input)            
         if hasattr(self, '_berDecode'):
             input = self._berDecode(input)
         else:
-            for idx in range(len(self.choiceComponents)):
-                value = self.choiceComponents[idx]()
-                try:
-                    input = value.berDecode(input)
-                    
-                except error.TypeMismatchError:
-                    continue
-
-                self[self.choiceNames[idx]] = value
+            # XXX improve input[:1] based caching
+            if not hasattr(self, '_cachedChoiceComponents'):
+                self._cachedChoiceComponents = {}            
+            while 1:
+                # First try current component
+                if len(self):
+                    try:
+                        input = self.values()[0].berDecode(input)
+                    except error.TypeMismatchError:
+                        pass
+                    else:
+                        break
+                # Secondly, try cache
+                cachedValues = self._cachedChoiceComponents.get(input[:1], None)
+                if cachedValues is not None:
+                    for (name, value) in cachedValues:
+                        try:
+                            input = value.berDecode(input)
+                        except error.TypeMismatchError:
+                            continue
+                        else:
+                            self[name] = value
+                            break
+                else:
+                    # At last, try all components one by one
+                    cachedValues = self._cachedChoiceComponents.get(input[:1], None)
+                    if cachedValues is None:
+                        self._cachedChoiceComponents[input[:1]] = cachedValues = []
+                    idx = 0
+                    for idx in range(len(self.choiceComponents)):
+                        for (name, value) in cachedValues:
+                            if isinstance(value, self.choiceComponents[idx]):
+                                break
+                        else:
+                            name, value = (self.choiceNames[idx], \
+                                           self.choiceComponents[idx]())
+                            cachedValues.append((name, value))
+                        try:
+                            input = value.berDecode(input)
+                        except error.TypeMismatchError:
+                            continue
+                        else:
+                            self[name] = value
+                            break
+                    else:
+                        raise error.TypeMismatchError('Unregistered tag %o at %s' %\
+                                                      (decodeTag(input), \
+                                                       self.__class__.__name__))
                 break
-            else:
-                raise error.TypeMismatchError('Unregistered tag %o at %s' %\
-                                              (decodeTag(input), \
-                                               self.__class__.__name__))
+
         if len(rest):
             return rest
         else:
@@ -389,11 +424,15 @@ class VariableTypeAsn1Object(StructuredAsn1Object):
         if hasattr(self, '_berDecode'):
             return self._berDecode(input)
         else:
+            if not hasattr(self, '_cachedComponents'):
+                self._cachedComponents = []
+            idx = 0
             while len(input):
-                value = self.protoComponent()
-                input = value.berDecode(input)
-                self.append(value)
-
+                if len(self._cachedComponents) <= idx:
+                    self._cachedComponents.append(self.protoComponent())
+                input = self._cachedComponents[idx].berDecode(input)
+                idx = idx + 1
+            self[:] = self._cachedComponents[:idx]
         return rest
 
     decode = berDecode
