@@ -133,6 +133,14 @@ class ObjectTypePattern(MibNodeBase):
     maxAccess = None
     def getSyntax(self):
         return getattr(self, 'syntax', None)   # XXX
+    def getSyntaxClone(self):
+        # May be used to preserve backend instrumentation settings
+        # whenever SNMP engine shares the same MIB for manager & agent roles
+        if hasattr(self, 'syntaxClone'):
+            return self.syntaxClone
+        elif hasattr(self, 'syntax'):
+            self.syntaxClone = self.syntax.clone()
+            return self.syntaxClone        
     def setSyntax(self, v):
         self.syntax = v
         return self
