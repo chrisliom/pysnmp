@@ -46,7 +46,7 @@ snmpNotifyFilterProfileTable = MibTable(snmpNotifyObjects.name + (2,))
 
 snmpNotifyFilterProfileEntry = MibTableRow(snmpNotifyFilterProfileTable.name + (1,)).setIndexNames((1, 'SNMP-TARGET-MIB', 'snmpTargetParamsName'))
 snmpTargetParamsEntry, = mibBuilder.importSymbols('SNMP-TARGET-MIB', 'snmpTargetParamsEntry')
-snmpTargetParamsEntry.registerAugmention(modName, 'snmpNotifyFilterProfileEntry')
+snmpTargetParamsEntry.registerAugmentions((modName, 'snmpNotifyFilterProfileEntry'))
 snmpNotifyFilterProfileName = MibTableColumn(snmpNotifyFilterProfileEntry.name + (1,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueRangeConstraint(1, 32))).setMaxAccess('readcreate'))
 
 snmpNotifyFilterProfileStorType = MibTableColumn(snmpNotifyFilterProfileEntry.name + (2,)).setColumnInitializer(MibVariable((), StorageType(3)).setMaxAccess('readcreate'))
@@ -59,7 +59,7 @@ snmpNotifyFilterTable = MibTable(snmpNotifyObjects.name + (3,))
 
 snmpNotifyFilterEntry = MibTableRow(snmpNotifyFilterTable.name + (1,)).setIndexNames((0, modName, 'snmpNotifyFilterProfileName'), (1, modName, 'snmpNotifyFilterSubtree'))
 
-snmpNotifyFilterProfileEntry.registerAugmention(modName, 'snmpNotifyFilterEntry')
+snmpNotifyFilterProfileEntry.registerAugmentions((modName, 'snmpNotifyFilterEntry'))
 
 snmpNotifyFilterSubtree = MibTableColumn(snmpNotifyFilterEntry.name + (1,)).setColumnInitializer(MibVariable((), ObjectIdentifier()).setMaxAccess('noaccess'))
 

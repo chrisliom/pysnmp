@@ -60,7 +60,7 @@ snmpTargetAddrTMask = MibTableColumn(snmpTargetAddrExtEntry.name + (1,)).setColu
 snmpTargetAddrMMS = MibTableColumn(snmpTargetAddrExtEntry.name + (2,)).setColumnInitializer(MibVariable((), Integer32().addConstraints(subtypes.ValueRangeConstraint(484, 2147483647))).setMaxAccess('readcreate'))
 
 snmpTargetAddrExtEntry.setIndexNames((0, 'SNMP-TARGET-MIB', 'snmpTargetAddrName'))
-snmpTargetAddrEntry.registerAugmention(modName, 'snmpTargetAddrExtEntry')
+snmpTargetAddrEntry.registerAugmentions((modName, 'snmpTargetAddrExtEntry'))
 
 snmpTrapAddress = MibVariable(snmpCommunityMIBObjects.name + (3,), IpAddress()).setMaxAccess('notifyonly')
 

@@ -53,7 +53,7 @@ vacmAccessEntry = MibTableRow(vacmAccessTable.name + (1,)).setIndexNames(
     (0, modName, 'vacmAccessSecurityModel'),
     (0, modName, 'vacmAccessSecurityLevel')
     )
-vacmSecurityToGroupEntry.registerAugmention(modName, 'vacmAccessEntry')
+vacmSecurityToGroupEntry.registerAugmentions((modName, 'vacmAccessEntry'))
 
 vacmAccessContextPrefix = MibTableColumn(vacmAccessEntry.name + (1,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueRangeConstraint(0, 32))).setMaxAccess('noaccess'))
 
