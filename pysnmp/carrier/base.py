@@ -35,8 +35,6 @@ class AbstractTransportDispatcher:
         self.__recvCbFun = recvCbFun
 
     def unregisterRecvCbFun(self):
-        if self.__recvCbFun is None:
-            raise error.BadArgumentError('Recive callback not registered')
         self.__recvCbFun = None
 
     def registerTimerCbFun(self, timerCbFun):
@@ -47,8 +45,6 @@ class AbstractTransportDispatcher:
         self.__timerCbFun = timerCbFun
 
     def unregisterTimerCbFun(self):
-        if self.__timerCbFun is None:
-            raise error.BadArgumentError('Timer callback not registered')
         self.__timerCbFun = None
 
     def closeTransports(self, *args):
@@ -102,7 +98,8 @@ class AbstractTransportDispatcher:
     def closeDispatcher(self):
         self.closeTransports()
         self.unregisterTransports()
-        self.unregisterCbFun()
+        self.unregisterRecvCbFun()
+        self.unregisterTimerCbFun()
         
 # XXX
 # support mapping API?
