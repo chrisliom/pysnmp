@@ -48,7 +48,11 @@ class MibNodeBase:
         self.name = name
         return self
 
-    def clone(self): return self.__class__(self.name)
+    def clone(self, name=None):
+        myClone = self.__class__(self.name)
+        if name is not None:
+            myClone.name = name
+        return myClone
     
 # definitions for information modules
 
@@ -172,10 +176,12 @@ class MibVariable(ObjectTypePattern):
     def __cmp__(self, other): return cmp(self.syntax, other)
     
     def clone(self, name=None, syntax=None):
-        myClone = ObjectTypePattern.clone()
+        myClone = ObjectTypePattern.clone(self, name)
         myClone.maxAccess = self.maxAccess
         # XXX constr checking on initialisation
-        if self.syntax is not None:
+        if syntax is not None:
+            myClone.syntax = syntax
+        elif self.syntax is not None:
             # XXX clone the rest of attrs
             myClone.syntax = self.syntax.clone()
         return myClone
@@ -310,7 +316,7 @@ class MibTree(ObjectTypePattern):
             nextNode = self.getBranch(name)
         except error.NoSuchInstanceError:
             # Start from the beginning
-            if self._vars:
+            if self._vars and name <= self._vars.keys()[0]:
                 return self._vars[self._vars.keys()[0]]
             else:
                 raise
@@ -660,22 +666,6 @@ class MibTableRow(MibTree):
     def getInstName(self, colId, instId):
         return self.name + (colId,) + instId
 
-    def getInstNames(self, instId):
-        instNames = []
-        for columnName in self._vars.keys():
-            instNames.append(
-                self.name + (columnName[-1],) + instId
-                )
-        return tuple(instNames)
-
-    # Column instances traversal
-
-    def getNextInstId(self, instId):
-        """Return next column instance ID"""
-        return self.getNextNode(
-            self.name + (self.indexNames[0][1][-1],) + instId
-            ).name[len(self.name)+1:]
-        
     # Table index management
 
     def getIndicesFromInstId(self, instId):
