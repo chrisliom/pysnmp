@@ -31,21 +31,21 @@ snmpCommunityTable = MibTable(snmpCommunityMIBObjects.name + (1,))
 
 snmpCommunityEntry = MibTableRow(snmpCommunityTable.name + (1,))
 
-snmpCommunityIndex = MibTableColumn(snmpCommunityEntry.name + (1,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueSizeConstraint(1, 32))).setAccess('noaccess'))
+snmpCommunityIndex = MibTableColumn(snmpCommunityEntry.name + (1,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueSizeConstraint(1, 32))).setMaxAccess('noaccess'))
 
-snmpCommunityName = MibTableColumn(snmpCommunityEntry.name + (2,)).setColumnInitializer(MibVariable((), OctetString('public')).setAccess('readcreate'))
+snmpCommunityName = MibTableColumn(snmpCommunityEntry.name + (2,)).setColumnInitializer(MibVariable((), OctetString('public')).setMaxAccess('readcreate'))
 
-snmpCommunitySecurityName = MibTableColumn(snmpCommunityEntry.name + (3,)).setColumnInitializer(MibVariable((), SnmpAdminString('public').addConstraints(subtypes.ValueSizeConstraint(1, 32))).setAccess('readcreate'))
+snmpCommunitySecurityName = MibTableColumn(snmpCommunityEntry.name + (3,)).setColumnInitializer(MibVariable((), SnmpAdminString('public').addConstraints(subtypes.ValueSizeConstraint(1, 32))).setMaxAccess('readcreate'))
 
-snmpCommunityContextEngineID = MibTableColumn(snmpCommunityEntry.name + (4,)).setColumnInitializer(MibVariable((), SnmpEngineID()).setAccess('readcreate'))
+snmpCommunityContextEngineID = MibTableColumn(snmpCommunityEntry.name + (4,)).setColumnInitializer(MibVariable((), SnmpEngineID()).setMaxAccess('readcreate'))
 
-snmpCommunityContextName = MibTableColumn(snmpCommunityEntry.name + (5,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueSizeConstraint(0, 32))).setAccess('readcreate'))
+snmpCommunityContextName = MibTableColumn(snmpCommunityEntry.name + (5,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueSizeConstraint(0, 32))).setMaxAccess('readcreate'))
 
-snmpCommunityTransportTag = MibTableColumn(snmpCommunityEntry.name + (6,)).setColumnInitializer(MibVariable((), SnmpTagValue('')).setAccess('readcreate'))
+snmpCommunityTransportTag = MibTableColumn(snmpCommunityEntry.name + (6,)).setColumnInitializer(MibVariable((), SnmpTagValue('')).setMaxAccess('readcreate'))
 
-snmpCommunityStorageType = MibTableColumn(snmpCommunityEntry.name + (7,)).setColumnInitializer(MibVariable((), StorageType()).setAccess('readcreate'))
+snmpCommunityStorageType = MibTableColumn(snmpCommunityEntry.name + (7,)).setColumnInitializer(MibVariable((), StorageType()).setMaxAccess('readcreate'))
 
-snmpCommunityStatus = MibTableColumn(snmpCommunityEntry.name + (8,)).setColumnInitializer(MibVariable((), RowStatus()).setAccess('readcreate'))
+snmpCommunityStatus = MibTableColumn(snmpCommunityEntry.name + (8,)).setColumnInitializer(MibVariable((), RowStatus()).setMaxAccess('readcreate'))
 
 snmpCommunityEntry.setIndexNames((1, modName, 'snmpCommunityIndex'))
 
@@ -55,16 +55,16 @@ snmpTargetAddrExtTable = MibTable(snmpCommunityMIBObjects.name + (2,))
 
 snmpTargetAddrExtEntry = MibTableRow(snmpTargetAddrExtTable.name + (1,))
 
-snmpTargetAddrTMask = MibTableColumn(snmpTargetAddrExtEntry.name + (1,)).setColumnInitializer(MibVariable((), OctetString().addConstraints(subtypes.ValueSizeConstraint(0, 255))).setAccess('readcreate'))
+snmpTargetAddrTMask = MibTableColumn(snmpTargetAddrExtEntry.name + (1,)).setColumnInitializer(MibVariable((), OctetString().addConstraints(subtypes.ValueSizeConstraint(0, 255))).setMaxAccess('readcreate'))
 
-snmpTargetAddrMMS = MibTableColumn(snmpTargetAddrExtEntry.name + (2,)).setColumnInitializer(MibVariable((), Integer32().addConstraints(subtypes.ValueRangeConstraint(484, 2147483647))).setAccess('readcreate'))
+snmpTargetAddrMMS = MibTableColumn(snmpTargetAddrExtEntry.name + (2,)).setColumnInitializer(MibVariable((), Integer32().addConstraints(subtypes.ValueRangeConstraint(484, 2147483647))).setMaxAccess('readcreate'))
 
 snmpTargetAddrExtEntry.setIndexNames((0, 'SNMP-TARGET-MIB', 'snmpTargetAddrName'))
 snmpTargetAddrEntry.registerAugmention(modName, 'snmpTargetAddrExtEntry')
 
-snmpTrapAddress = MibVariable(snmpCommunityMIBObjects.name + (3,), IpAddress()).setAccess('notifyonly')
+snmpTrapAddress = MibVariable(snmpCommunityMIBObjects.name + (3,), IpAddress()).setMaxAccess('notifyonly')
 
-snmpTrapCommunity = MibVariable(snmpCommunityMIBObjects.name + (4,), OctetString()).setAccess('notifyonly')
+snmpTrapCommunity = MibVariable(snmpCommunityMIBObjects.name + (4,), OctetString()).setMaxAccess('notifyonly')
 
 mibBuilder.exportSymbols(
     modName,

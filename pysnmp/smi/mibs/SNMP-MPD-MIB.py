@@ -12,11 +12,11 @@ snmpMPDMIBConformance = MibIdentifier(snmpMPDMIB.name + (3,))
 
 snmpMPDStats = MibIdentifier(snmpMPDMIBObjects.name + (1,))
 
-snmpUnknownSecurityModels = MibVariable(snmpMPDStats.name + (1,), Counter32()).setAccess('readonly')
+snmpUnknownSecurityModels = MibVariable(snmpMPDStats.name + (1,), Counter32()).setMaxAccess('readonly')
 
-snmpInvalidMsgs = MibVariable(snmpMPDStats.name + (2,), Counter32()).setAccess('readonly')
+snmpInvalidMsgs = MibVariable(snmpMPDStats.name + (2,), Counter32()).setMaxAccess('readonly')
 
-snmpUnknownPDUHandlers = MibVariable(snmpMPDStats.name + (3,), Counter32()).setAccess('readonly')
+snmpUnknownPDUHandlers = MibVariable(snmpMPDStats.name + (3,), Counter32()).setMaxAccess('readonly')
 
 mibBuilder.exportSymbols(
     modName,

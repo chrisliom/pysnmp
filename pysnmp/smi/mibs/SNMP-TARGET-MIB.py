@@ -44,7 +44,7 @@ class SnmpTagList(TextualConvention, OctetString):
 
 snmpTargetSpinLock = MibVariable(
     snmpTargetObjects.name + (1,), TestAndIncr()
-    ).setAccess('readwrite')
+    ).setMaxAccess('readwrite')
 
 # snmpTargetAddrTable
 
@@ -52,23 +52,23 @@ snmpTargetAddrTable = MibTable(snmpTargetObjects.name + (2,))
 
 snmpTargetAddrEntry = MibTableRow(snmpTargetAddrTable.name + (1,)).setIndexNames((1, modName, 'snmpTargetAddrTable'))
 
-snmpTargetAddrName = MibTableColumn(snmpTargetAddrEntry.name + (1,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueRangeConstraint(1, 32))).setAccess('noaccess'))
+snmpTargetAddrName = MibTableColumn(snmpTargetAddrEntry.name + (1,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueRangeConstraint(1, 32))).setMaxAccess('noaccess'))
 
-snmpTargetAddrTDomain = MibTableColumn(snmpTargetAddrEntry.name + (2,)).setColumnInitializer(MibVariable((), TDomain()).setAccess('readcreate'))
+snmpTargetAddrTDomain = MibTableColumn(snmpTargetAddrEntry.name + (2,)).setColumnInitializer(MibVariable((), TDomain()).setMaxAccess('readcreate'))
 
-snmpTargetAddrTAddress = MibTableColumn(snmpTargetAddrEntry.name + (3,)).setColumnInitializer(MibVariable((), TAddress()).setAccess('readcreate'))
+snmpTargetAddrTAddress = MibTableColumn(snmpTargetAddrEntry.name + (3,)).setColumnInitializer(MibVariable((), TAddress()).setMaxAccess('readcreate'))
 
-snmpTargetAddrTimeout = MibTableColumn(snmpTargetAddrEntry.name + (4,)).setColumnInitializer(MibVariable((), TimeInterval(1500)).setAccess('readcreate'))
+snmpTargetAddrTimeout = MibTableColumn(snmpTargetAddrEntry.name + (4,)).setColumnInitializer(MibVariable((), TimeInterval(1500)).setMaxAccess('readcreate'))
 
-snmpTargetAddrRetryCount = MibTableColumn(snmpTargetAddrEntry.name + (5,)).setColumnInitializer(MibVariable((), Integer32(3).addConstraints(subtypes.ValueRangeConstraint(0, 255))).setAccess('readcreate'))
+snmpTargetAddrRetryCount = MibTableColumn(snmpTargetAddrEntry.name + (5,)).setColumnInitializer(MibVariable((), Integer32(3).addConstraints(subtypes.ValueRangeConstraint(0, 255))).setMaxAccess('readcreate'))
 
-snmpTargetAddrTagList = MibTableColumn(snmpTargetAddrEntry.name + (6,)).setColumnInitializer(MibVariable((), SnmpTagList("")).setAccess('readcreate'))
+snmpTargetAddrTagList = MibTableColumn(snmpTargetAddrEntry.name + (6,)).setColumnInitializer(MibVariable((), SnmpTagList("")).setMaxAccess('readcreate'))
 
-snmpTargetAddrParams = MibTableColumn(snmpTargetAddrEntry.name + (7,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueSizeConstraint(1, 32))).setAccess('readcreate'))
+snmpTargetAddrParams = MibTableColumn(snmpTargetAddrEntry.name + (7,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueSizeConstraint(1, 32))).setMaxAccess('readcreate'))
 
-snmpTargetAddrStorageType = MibTableColumn(snmpTargetAddrEntry.name + (8,)).setColumnInitializer(MibVariable((), StorageType(3)).setAccess('readcreate'))
+snmpTargetAddrStorageType = MibTableColumn(snmpTargetAddrEntry.name + (8,)).setColumnInitializer(MibVariable((), StorageType(3)).setMaxAccess('readcreate'))
 
-snmpTargetAddrRowStatus = MibTableColumn(snmpTargetAddrEntry.name + (9,)).setColumnInitializer(MibVariable((), RowStatus()).setAccess('readcreate'))
+snmpTargetAddrRowStatus = MibTableColumn(snmpTargetAddrEntry.name + (9,)).setColumnInitializer(MibVariable((), RowStatus()).setMaxAccess('readcreate'))
 
 # snmpTargetParamsTable
 
@@ -76,26 +76,26 @@ snmpTargetParamsTable = MibTable(snmpTargetObjects.name + (3,))
 
 snmpTargetParamsEntry = MibTableRow(snmpTargetParamsTable.name + (1,)).setIndexNames((1, modName, 'snmpTargetParamsName'))
                                        
-snmpTargetParamsName = MibTableColumn(snmpTargetParamsEntry.name + (1,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueSizeConstraint(1, 32))).setAccess('noaccess'))
+snmpTargetParamsName = MibTableColumn(snmpTargetParamsEntry.name + (1,)).setColumnInitializer(MibVariable((), SnmpAdminString().addConstraints(subtypes.ValueSizeConstraint(1, 32))).setMaxAccess('noaccess'))
 
-snmpTargetParamsMPModel = MibTableColumn(snmpTargetParamsEntry.name + (2,)).setColumnInitializer(MibVariable((), SnmpMessageProcessingModel()).setAccess('readcreate'))
+snmpTargetParamsMPModel = MibTableColumn(snmpTargetParamsEntry.name + (2,)).setColumnInitializer(MibVariable((), SnmpMessageProcessingModel()).setMaxAccess('readcreate'))
 
-snmpTargetParamsSecurityModel = MibTableColumn(snmpTargetParamsEntry.name + (3,)).setColumnInitializer(MibVariable((), SnmpSecurityModel().addConstraints(subtypes.ValueRangeConstraint(0, 2147483647))).setAccess('readcreate'))
+snmpTargetParamsSecurityModel = MibTableColumn(snmpTargetParamsEntry.name + (3,)).setColumnInitializer(MibVariable((), SnmpSecurityModel().addConstraints(subtypes.ValueRangeConstraint(0, 2147483647))).setMaxAccess('readcreate'))
 
-snmpTargetParamsSecurityName = MibTableColumn(snmpTargetParamsEntry.name + (4,)).setColumnInitializer(MibVariable((), SnmpAdminString()).setAccess('readcreate'))
+snmpTargetParamsSecurityName = MibTableColumn(snmpTargetParamsEntry.name + (4,)).setColumnInitializer(MibVariable((), SnmpAdminString()).setMaxAccess('readcreate'))
 
-snmpTargetParamsSecurityLevel = MibTableColumn(snmpTargetParamsEntry.name + (5,)).setColumnInitializer(MibVariable((), SnmpSecurityLevel()).setAccess('readcreate'))
+snmpTargetParamsSecurityLevel = MibTableColumn(snmpTargetParamsEntry.name + (5,)).setColumnInitializer(MibVariable((), SnmpSecurityLevel()).setMaxAccess('readcreate'))
 
-snmpTargetParamsStorageType = MibTableColumn(snmpTargetParamsEntry.name + (6,)).setColumnInitializer(MibVariable((), StorageType(3)).setAccess('readcreate'))
+snmpTargetParamsStorageType = MibTableColumn(snmpTargetParamsEntry.name + (6,)).setColumnInitializer(MibVariable((), StorageType(3)).setMaxAccess('readcreate'))
 
-snmpTargetParamsRowStatus = MibTableColumn(snmpTargetParamsEntry.name + (7,)).setColumnInitializer(MibVariable((), RowStatus()).setAccess('readcreate'))
+snmpTargetParamsRowStatus = MibTableColumn(snmpTargetParamsEntry.name + (7,)).setColumnInitializer(MibVariable((), RowStatus()).setMaxAccess('readcreate'))
 
 snmpUnavailableContexts = MibVariable(
     snmpTargetObjects.name + (4,), Counter32()
-    ).setAccess('readonly')
+    ).setMaxAccess('readonly')
 snmpUnknownContexts = MibVariable(
     snmpTargetObjects.name + (5,), Counter32()
-    ).setAccess('readonly')
+    ).setMaxAccess('readonly')
 
 mibBuilder.exportSymbols(
     modName, snmpTargetMIB=snmpTargetMIB, snmpTargetObjects=snmpTargetObjects,
