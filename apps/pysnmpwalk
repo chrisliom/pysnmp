@@ -23,11 +23,10 @@ snmpProto = v1
 snmpTrans = role
 
 # Initialize help messages
-appUsage = '[ -h ] [ -v <version> ] [ -R ] [ -C <p|i|c> ]'
+appUsage = '[ -h ] [ -v <version> ] [ -C <p|i|c> ]'
 appOpts =           ' -h             print this usage note.\n'
 appOpts = appOpts + ' -v <version>   SNMP version to use [%s].\n' % \
           split(snmpProto.__name__, '.')[-1]
-appOpts = appOpts + ' -R             report variables types on output.\n'
 appOpts = appOpts + ' -C <p|i|c>     application specific options\n'
 appOpts = appOpts + '                p:  print the number of variables found\n'
 appOpts = appOpts + '                i:  include given OID in search range\n'
@@ -44,7 +43,7 @@ options = 'Application options:\n' + \
 usage = usage + options
 
 # Default options
-reportTypeFlag = prtNumFlag = inclOidFlag = None
+prtNumFlag = inclOidFlag = None
 chkIncOidFlag = 1
 
 # Parse app options
@@ -63,10 +62,6 @@ while idx < len(argv):
                              (argv[idx+1], usage))
                 exit(-1)
             idx = idx + 2
-            continue
-        if argv[idx] == '-R':
-            reportTypeFlag = 1
-            idx = idx + 1
             continue
         if argv[idx] == '-C':
             for c in list(argv[idx+1]):
@@ -104,7 +99,7 @@ if len(newArgv):
     exit(-1)
 
 # Store tables headers
-headVars = map(lambda x: x[0], \
+headVars = map(lambda x: x[0].get(), \
                getNextReq.apiAlphaGetPdu().apiAlphaGetVarBind())
 
 # A counter for printed vars
@@ -185,14 +180,9 @@ while 1:
 
     # Print out results
     for (oid, val) in vars:
-        print oid, ' ---> ',
-        if reportTypeFlag:
-            print val
-        else:
-            print repr(val.getTerminal().get())
-
+        print oid.get(), '=', val
         prtOidCount = prtOidCount + 1
-    
+   
     # Update request ID
     req.apiAlphaGetPdu().apiAlphaGetRequestId().inc(1)
 
