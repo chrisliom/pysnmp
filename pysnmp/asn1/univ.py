@@ -1,10 +1,8 @@
 """ASN.1 "universal" data types"""
-import string
-from string import join, split, atoi, atol
+from string import join, split, atoi, atol, atoi_error, atol_error
 from operator import getslice
 from types import IntType, LongType, StringType, NoneType, FloatType,  \
      TupleType, ListType, SliceType
-from exceptions import StandardError, TypeError
 from pysnmp.asn1 import base, tags, subtypes, namedval, error
 
 __all__ = [
@@ -120,12 +118,12 @@ class Integer(base.AbstractSimpleAsn1Item):
 
     __rmod__ = __mod__
 
-    def __pow__(self, value, modulo):
+    def __pow__(self, value, modulo=None):
         if not isinstance(value, self.__class__):
             value = self.componentFactoryBorrow(value)
         return self.__class__(pow(self.get(), value.get(), modulo))
 
-    def __rpow__(self, value, modulo):
+    def __rpow__(self, value, modulo=None):
         if not isinstance(value, self.__class__):
             value = self.componentFactoryBorrow(value)
         return self.__class__(pow(value.get(), self.get(), modulo))
@@ -203,7 +201,7 @@ class Integer(base.AbstractSimpleAsn1Item):
         self.set(self.get() % value.get())
         return self
 
-    def __ipow__(self, value, modulo):
+    def __ipow__(self, value, modulo=None):
         if not isinstance(value, self.__class__):
             value = self.componentFactoryBorrow(value)
         self.set(pow(self.get(), value.get(), modulo))
@@ -266,7 +264,7 @@ class Integer(base.AbstractSimpleAsn1Item):
         return self
 
     def clone(self, value=None):
-        myClone = base.AbstractSimpleAsn1Item.clone(self)
+        myClone = base.AbstractSimpleAsn1Item.clone(self, value)
         myClone.namedValues = self.namedValues
         return myClone
 
@@ -347,7 +345,7 @@ class ObjectIdentifier(base.AbstractSimpleAsn1Item):
         def __getslice__(self, i, j):
             return self[max(0, i):max(0, j):]
 
-    def index(self, suboid): return val.index(self.rawAsn1Value)
+    def index(self, suboid): return self.rawAsn1Value.index(suboid)
 
     def isaprefix(self, other):
         """
@@ -369,7 +367,8 @@ class ObjectIdentifier(base.AbstractSimpleAsn1Item):
 
             # Compare oid'es
             if self.rawAsn1Value[:length] == other.rawAsn1Value[:length]:
-                return not None
+                return 1
+        return 0
 
     def match(self, subOids, offset=None):
         """Compare OIDs by numeric values"""
@@ -419,10 +418,10 @@ class ObjectIdentifier(base.AbstractSimpleAsn1Item):
         for element in filter(None, split(symbolicOid, '.')):
             try:
                 numericOid = numericOid + (atoi(element, 0), )
-            except string.atoi_error:
+            except atoi_error:
                 try:
                     numericOid = numericOid + (atol(element, 0), )
-                except string.atol_error, why:                        
+                except atol_error, why:                        
                     raise error.BadArgumentError(
                         'Malformed Object ID %s at %s: %s' %
                         (str(symbolicOid), self.__class__.__name__, why)
@@ -582,8 +581,6 @@ class Choice(base.AbstractMappingAsn1Item):
 
 class SequenceOf(base.AbstractSequenceAsn1Item):
     tagSet = base.AbstractSequenceAsn1Item.tagSet.clone(tagId=0x10)
-    protoComponent = None
-    initialValue = []
 
 class SetOf(SequenceOf):
     tagSet = SequenceOf.tagSet.clone(tagId=0x11)
