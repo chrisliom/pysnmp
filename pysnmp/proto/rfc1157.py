@@ -22,7 +22,7 @@ class Community(univ.OctetString):
 
 class InitialRequestIdMixIn:
     # Singular source of req IDs
-    globalRequestId = 1000 - long(time() / 100 % 1 * 1000)    
+    globalRequestId = 1000 - long(((time() / 100) % 1) * 1000)
     def initialValue(self):
         try:
             self.set(InitialRequestIdMixIn.globalRequestId)
