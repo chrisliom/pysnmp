@@ -56,10 +56,6 @@ class MsgAndPduDispatcher:
             )
                           
         # Versions to subsystems mapping
-        {
-            rfc2576.snmpV1MessageProcessingModelId: 1,
-#            rfc2576.snmpV2cMessageProcessingModelId: 2
-        }
         self.messageProcessingSubsystems = {
             rfc2576.snmpV1MessageProcessingModelId:
             rfc2576.SnmpV1MessageProcessingModel(self.mibInstrController),
@@ -199,7 +195,6 @@ class MsgAndPduDispatcher:
             raise error.BadArgumentError(
                 'Unknown messageProcessingModel: %s' % messageProcessingModel
                 )
-
         mpInParams = {}
         mpInParams.update(kwargs)
         
@@ -215,8 +210,8 @@ class MsgAndPduDispatcher:
                 mpHdl.prepareOutgoingMessage, (), mpInParams
                 )
         except PySnmpError:
-            if mpInParams.has_key('statePduHandle'):
-                self.__cachePop(mpInParams['statePduHandle'])
+            if mpInParams.has_key('sendPduHandle'):
+                self.__cachePop(mpInParams['sendPduHandle'])
             raise
         
         # 4.1.1.6
@@ -235,7 +230,7 @@ class MsgAndPduDispatcher:
             sendPduHandle=mpInParams['sendPduHandle']
             )
 
-        return mpOutParams.get('sendPduHandle')
+        return mpInParams['sendPduHandle']
 
     # 4.1.2.1
     def returnResponsePdu(self, **kwargs):
