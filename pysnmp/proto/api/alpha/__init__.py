@@ -10,8 +10,10 @@ protoVersions = { protoVersionId1: v1, protoVersionId2c: v2c }
 
 class MetaMessage(v1.Choice):
     """A selection of SNMP protocol Messages"""
-    protoComponents = { protoVersionId1: v1.Message(),
-                        protoVersionId2c: v2c.Message() }
+    protoComponents = {
+        protoVersionId1: v1.Message(),
+        protoVersionId2c: v2c.Message()
+        }
 
 # PDU types
 getRequestPduType = pdutypes.GetRequestPduType()

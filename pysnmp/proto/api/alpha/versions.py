@@ -19,14 +19,16 @@ class ProtoVersionIdBase:
 class ProtoVersionId1(ProtoVersionIdBase, ProtoVersionId1MixIn): pass
 class ProtoVersionId2c(ProtoVersionIdBase, ProtoVersionId2cMixIn): pass
 
-mixInComps = [ (rfc1155, ProtoVersionId1MixIn),
-               (rfc1157, ProtoVersionId1MixIn),
-               (rfc1902, ProtoVersionId2cMixIn),
-               (rfc1905, ProtoVersionId2cMixIn) ]
+mixInComps = [
+    (rfc1155, ProtoVersionId1MixIn),
+    (rfc1157, ProtoVersionId1MixIn),
+    (rfc1902, ProtoVersionId2cMixIn),
+    (rfc1905, ProtoVersionId2cMixIn)
+    ]
 
-for (baseModule, mixIn) in mixInComps:
-    for baseClass in map(lambda x, y=baseModule: getattr(y, x),
-                         baseModule.__all__):
+for baseModule, mixIn in mixInComps:
+    for baseClass in map(
+        lambda x, y=baseModule: getattr(y, x), baseModule.__all__
+        ):
         if mixIn not in baseClass.__bases__:
             baseClass.__bases__ = (mixIn, ) + baseClass.__bases__
-            

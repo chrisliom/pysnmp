@@ -160,6 +160,6 @@ mixInComps = [ (rfc1905.VarBind, VarBindMixIn),
                (rfc1905.SnmpV2TrapPdu, SnmpV2TrapPduMixIn),
                (rfc1905.Message, MessageMixIn) ]
 
-for (baseClass, mixIn) in mixInComps:
+for baseClass, mixIn in mixInComps:
     if mixIn not in baseClass.__bases__:
         baseClass.__bases__ = (mixIn, ) + baseClass.__bases__
