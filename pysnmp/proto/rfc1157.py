@@ -8,7 +8,7 @@
 __all__ = [ 'Version', 'Community', 'RequestId', 'ErrorStatus', 'ErrorIndex',\
             'VarBind', 'VarBindList', 'GetRequestPdu', 'GetNextRequestPdu',\
             'GetResponsePdu', 'SetRequestPdu', 'Enterprise', 'AgentAddr',\
-            'GenericTrap', 'SpecificTrap', 'TimeStamp', 'TrapPdu', 'Pdu',\
+            'GenericTrap', 'SpecificTrap', 'TimeStamp', 'TrapPdu', 'Pdus',\
             'Message' ]
 
 from time import time
@@ -126,9 +126,7 @@ class Enterprise(rfc1155.ObjectIdentifier):
 class AgentAddr(rfc1155.NetworkAddress):
     """Trap PDU agent address
     """
-    class IpAddress(rfc1155.IpAddress): pass
-    choiceComponents = [ IpAddress ]
-    initialComponent = choiceComponents[0]
+    pass
 
 class GenericTrap(rfc1155.Integer):
     """Trap PDU generic trap
