@@ -1,23 +1,25 @@
 # SNMP v1 & v2c security models implementation
 from pysnmp.proto.secmod import base, error
-from pysnmp.proto import rfc1157, rfc3411
+from pysnmp.proto import rfc1157, rfc1905, rfc3411
 from pysnmp.smi.error import NoSuchInstanceError
 
 __all__ = [ 'SnmpV1SecurityModel', 'SnmpV2cSecurityModel' ]
 
 class SnmpV1SecurityModel(base.AbstractSecurityModel):
     # Map PDU to PDU key names at PDUS choice
-    __pduMap = {
+    _pduMap = {
+        # SNMP v1
         rfc1157.GetRequestPdu.tagSet: 'get_request',
         rfc1157.GetNextRequestPdu.tagSet: 'get_next_request',
         rfc1157.GetResponsePdu.tagSet: 'get_response',
         rfc1157.SetRequestPdu.tagSet: 'set_request',
-        rfc1157.TrapPdu.tagSet: 'trap'
+        rfc1157.TrapPdu.tagSet: 'trap',
         }
-        
+
+    _protoMsg = rfc1157.Message
     def __init__(self, mibInstrController=None):
         base.AbstractSecurityModel.__init__(self, mibInstrController)
-        self.__msg = rfc1157.Message()
+        self.__msg = self._protoMsg()
         
     # According to rfc2576, community name <-> contextEngineID/contextName
     # mapping is up to MP module for notifications but belongs to secmod
@@ -64,7 +66,7 @@ class SnmpV1SecurityModel(base.AbstractSecurityModel):
             communityName = mibNode.syntax.get()
             self.__msg['community'].set(communityName)
             transportDomain, transportAddress, pdu = kwargs['scopedPDU']
-            self.__msg['pdu'][self.__pduMap[pdu.tagSet]] = pdu
+            self.__msg['pdu'][self._pduMap[pdu.tagSet]] = pdu
             return {
                 'securityParameters': communityName,
                 'wholeMsg': self.__msg.berEncode()
@@ -79,7 +81,7 @@ class SnmpV1SecurityModel(base.AbstractSecurityModel):
         communityName = securityParameters
         self.__msg['community'].set(communityName)
         transportDomain, transportAddress, pdu = kwargs['scopedPDU']
-        self.__msg['pdu'][self.__pduMap[pdu.tagSet]] = pdu
+        self.__msg['pdu'][self._pduMap[pdu.tagSet]] = pdu
         return {
             'securityParameters': securityParameters,
             'wholeMsg': self.__msg.berEncode()
@@ -149,8 +151,20 @@ class SnmpV1SecurityModel(base.AbstractSecurityModel):
             'securityStateReference': communityName.syntax.get()
             }
     
-class SnmpV2cSecurityModel(SnmpV1SecurityModel): pass
-
+class SnmpV2cSecurityModel(SnmpV1SecurityModel):
+    _pduMap = {
+        # SNMP v2c
+        rfc1905.GetRequestPdu.tagSet: 'get_request',
+        rfc1905.GetNextRequestPdu.tagSet: 'get_next_request',
+        rfc1905.GetBulkRequestPdu.tagSet: 'get_bulk_request',
+        rfc1905.ResponsePdu.tagSet: 'response',
+        rfc1905.SetRequestPdu.tagSet: 'set_request',
+        rfc1905.InformRequestPdu.tagSet: 'inform_request',
+        rfc1905.SnmpV2TrapPdu.tagSet: 'snmpV2_trap',
+        rfc1905.ReportPdu.tagSet: 'report'
+        }
+    _protoMsg = rfc1905.Message
+    
 if __name__ == '__main__':
     from pysnmp.proto import rfc1157
     from pysnmp.smi.objects import module

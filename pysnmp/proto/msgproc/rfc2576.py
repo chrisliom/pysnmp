@@ -1,6 +1,6 @@
 # SNMP v1 & v2c message processing models implementation
 from pysnmp.proto.msgproc.base import AbstractMessageProcessingModel
-from pysnmp.proto.secmod.rfc2576 import SnmpV1SecurityModel
+from pysnmp.proto.secmod.rfc2576 import SnmpV1SecurityModel, SnmpV2cSecurityModel
 from pysnmp.proto import rfc1157, rfc1905, rfc3411, error
 import pysnmp.asn1.encoding.ber.error, pysnmp.asn1.error
 
@@ -30,11 +30,12 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
     defaultSecurityModel = 1
     defaultSecurityLevel = 'noAuthNoPriv'
     defaultPduVersion = 0
+    defaultSecurityModule = SnmpV1SecurityModel
     
     # Message processing subsystem for SNMP v1
     def __init__(self, mibInstrController=None):
         AbstractMessageProcessingModel.__init__(self, mibInstrController)
-        self.securityModel = SnmpV1SecurityModel(mibInstrController) # XXX multiple
+        self.securityModel = self.defaultSecurityModule(mibInstrController)
 
     # rfc3412: 7.1
     def __prepareResponseOrOutgoingMessage(self, **kwargs):
@@ -267,8 +268,11 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
         
 snmpV2cMessageProcessingModelId = rfc1905.Version().get()
 
-class SnmpV2cMessageProcessingModel(SnmpV1MessageProcessingModel): pass
-
+class SnmpV2cMessageProcessingModel(SnmpV1MessageProcessingModel):
+    defaultMessageProcessingModel = 1
+    defaultPduVersion = 1
+    defaultSecurityModule = SnmpV2cSecurityModel
+    
 if __name__ == '__main__':
     from pysnmp.smi.objects import module
     from pysnmp.proto import rfc1157
