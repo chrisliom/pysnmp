@@ -20,11 +20,11 @@ class AbstractApplication:
 
     def processPdu(self, dsp, **kwargs):
         raise error.NotImplementedError(
-            'App %r doesn\'t accept request PDUs' % (self)
+            'App %s doesn\'t accept request PDUs' % (self)
             )
     def processResponsePdu(self, dsp, **kwargs):
         raise error.NotImplementedError(
-            'App %r doesn\'t accept response PDUs' % (self)
+            'App %s doesn\'t accept response PDUs' % (self)
             )
 
 class MsgAndPduDispatcher:
@@ -113,7 +113,7 @@ class MsgAndPduDispatcher:
     def __cacheUpdate(self, index, **kwargs):
         if not self.__cacheRepository.has_key(index):
             raise error.BadArgumentError(
-                'Cache miss on update for %r' % kwargs
+                'Cache miss on update for %s' % kwargs
                 )
         self.__cacheRepository[index].update(kwargs)
             
@@ -281,7 +281,7 @@ class MsgAndPduDispatcher:
             snmpInAsn1ParseErrs, = self.mibInstrController.mibBuilder.importSymbols('SNMPv2-MIB', 'snmpInAsn1ParseErrs')
             snmpInAsn1ParseErrs.syntax.inc(1)
             raise MessageProcessingError(
-                'Message (ASN.1) parse error at %r' % self
+                'Message (ASN.1) parse error at %s' % self
                 )            
         messageProcessingModel = self.__msgDemuxer['version'].get()
         mpHandler = self.messageProcessingSubsystems.get(
@@ -293,7 +293,7 @@ class MsgAndPduDispatcher:
                 )
             snmpInBadVersions.syntax.inc(1)
             raise MessageProcessingError(
-                'Unsupported MP version %s at %r' %
+                'Unsupported MP version %s at %s' %
                 (messageProcessingModel, self)
                 )
 
