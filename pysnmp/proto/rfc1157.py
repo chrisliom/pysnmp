@@ -156,6 +156,3 @@ class Message(univ.Sequence):
         'pdu': Pdus()
         }
     protoSequence = ( 'version', 'community', 'pdu' )
-
-
-    
