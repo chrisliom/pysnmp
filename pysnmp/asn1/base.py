@@ -43,6 +43,7 @@ class Asn1ItemBase(Asn1Item):
     allowedTypes = ()
 
     # A list of subtypes.Constraint instances for checking values
+    # initial XXX
     subtypeConstraints = ()
 
     def _buildExplicitTags(self):
@@ -121,6 +122,11 @@ class Asn1ItemBase(Asn1Item):
                     return
             return 1
 
+    def addConstraints(self, *constraints):
+        """Add more ASN1 subtype constraints to this object"""
+        self.subtypeConstraints = self.subtypeConstraints + constraints
+        return self
+        
     def clone(self):
         """Returns a new instance of this class with ASN1 subtype-sensitive
            attributes inherited from this class instance
@@ -308,7 +314,7 @@ class AbstractSequenceAsn1Item(StructuredAsn1ItemBase):
     def componentFactoryBorrow(self):
         if self.protoComponent is None:
             raise error.BadArgumentError(
-                'No proto component specified at %r' % self.__class__
+                'No proto component specified at %s' % self.__class__
             )
         if not hasattr(self, '_componentCache'):
             self._componentCache = {}
@@ -324,7 +330,7 @@ class AbstractSequenceAsn1Item(StructuredAsn1ItemBase):
     def componentFactoryReturn(self, *vals):
         if self.protoComponent is None:
             raise error.BadArgumentError(
-                'No proto component specified at %r' % self.__class__
+                'No proto component specified at %s' % self.__class__
             )
         if not hasattr(self, '_componentCache'):
             self._componentCache = {}
