@@ -66,7 +66,8 @@ class MibInstrumController:
                     continue
                 if symObj is mibTree:
                     continue
-                if not isinstance(symObj, (MibTree, MibVariable)):
+                if not isinstance(symObj, MibTree) and \
+                       not isinstance(symObj, MibVariable):
                     continue                
                 if isinstance(symObj, MibTableRow):
                     rows[symObj.name] = symObj

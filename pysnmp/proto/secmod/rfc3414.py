@@ -111,10 +111,11 @@ class UserBasedSecurityModule:
 
         # 3.1.2
         if securityLevel == 'AuthPriv':
-            if isinstance(usmUserAuthProtocol, \
-                          pysnmp.smi.rfc3414.UsmNoAuthProtocol) or \
-                          isinstance(usmUserPrivProtocol, \
-                                     pysnmp.smi.rfc3414.UsmNoPrivProtocol):
+            if isinstance(
+                usmUserAuthProtocol, pysnmp.smi.rfc3414.UsmNoAuthProtocol
+                ) or isinstance(
+                usmUserPrivProtocol, pysnmp.smi.rfc3414.UsmNoPrivProtocol
+                ):
                 return ('unsupportedSecurityLevel', None)
 
         # 3.1.3
@@ -243,10 +244,11 @@ class UserBasedSecurityModule:
 
         # 3.2.5
         if securityLevel == 'AuthPriv' and  \
-           isinstance(usmUserAuthProtocol, \
-                      pysnmp.smi.rfc3414.UsmNoAuthProtocol) or \
-                      isinstance(usmUserPrivProtocol, \
-                                 pysnmp.smi.rfc3414.UsmNoPrivProtocol):
+           isinstance(
+            usmUserAuthProtocol, pysnmp.smi.rfc3414.UsmNoAuthProtocol
+            ) or isinstance(
+            usmUserPrivProtocol, pysnmp.smi.rfc3414.UsmNoPrivProtocol
+            ):
                 return ('unsupportedSecurityLevel', None)
 
         

@@ -55,9 +55,9 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
         snmpEngineID = snmpEngineID.syntax.get()
 
         # rfc3412: 7.1.1.a
-        if isinstance(pdu, (rfc3411.ReadClassMixIn,
-                            rfc3411.WriteClassMixIn,
-                            rfc3411.NotificationClassMixIn)):
+        if isinstance(pdu, rfc3411.ReadClassMixIn) or \
+               isinstance(pdu, rfc3411.WriteClassMixIn) or \
+               isinstance(pdu, rfc3411.NotificationClassMixIn):
             # rfc3412: 7.1.1b
             if pdu.has_key('request_id'):
                 smInParams['msgID'] = pdu['request_id'].get()
@@ -119,8 +119,8 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
             smInParams['globalData'] = { 'msgID': 0 } # XXX a workaround?
 
         # rfc3412: 7.1.8
-        if isinstance(pdu, (rfc3411.ResponseClassMixIn,
-                            rfc3411.InternalClassMixIn)):
+        if isinstance(pdu, rfc3411.ResponseClassMixIn) or \
+               isinstance(pdu, rfc3411.InternalClassMixIn):
             smInParams['securityEngineId'] = snmpEngineID
 
             # rfc3412: 7.1.8.a
@@ -131,11 +131,11 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
             # rfc3412: 7.1.8.b
             return smOutParams
         # rfc3412: 7.1.9
-        elif isinstance(pdu, (rfc3411.ReadClassMixIn,
-                              rfc3411.WriteClassMixIn,
-                              rfc3411.NotificationClassMixIn)):
+        elif isinstance(pdu, rfc3411.ReadClassMixIn) or \
+             isinstance(pdu, rfc3411.WriteClassMixIn) or \
+             isinstance(pdu, rfc3411.NotificationClassMixIn):
             # rfc3412: 7.1.9.a
-            if isinstance(pdu, (rfc3411.UnconfirmedClassMixIn)):
+            if isinstance(pdu, rfc3411.UnconfirmedClassMixIn):
                 smInParams['securityEngineID'] = snmpEngineID
             else:
                 smInParams['securityEngineID'] = (
@@ -149,7 +149,7 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
                 )
             
             # rfc3412: 7.1.9.c
-            if isinstance(pdu, (rfc3411.ConfirmedClassMixIn)):
+            if isinstance(pdu, rfc3411.ConfirmedClassMixIn):
                 # XXX rfc bug? why stateReference should be created?
                 self._cachePushByMsgId(
                     smInParams['msgID'],
