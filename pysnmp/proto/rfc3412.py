@@ -1,5 +1,5 @@
 """SNMP v3 Message Processing and Dispatching (RFC3412)"""
-from pysnmp.smi import builder, control
+from pysnmp.smi import builder, instrum
 from pysnmp.smi.error import NoSuchInstanceError
 from pysnmp.proto import error
 from pysnmp.proto.msgproc import rfc2576, demux
@@ -31,7 +31,7 @@ class MsgAndPduDispatcher:
     """SNMP engine PDU & message dispatcher. Exchanges SNMP PDU's with
        applications and serialized messages with transport level.
     """
-    def __init__(self, transportDispatcher=None, mibInstrController=None):
+    def __init__(self, transportDispatcher=None, mibInstrumController=None):
         self.transportDispatcher = None
 
         if transportDispatcher is None:
@@ -43,14 +43,14 @@ class MsgAndPduDispatcher:
         else:
             self.registerTransportDispatcher(transportDispatcher)
 
-        if mibInstrController is None:
-            self.mibInstrController = control.MibInstrumentationController(
+        if mibInstrumController is None:
+            self.mibInstrumController = instrum.MibInstrumController(
                 builder.MibBuilder()
                 )
         else:
-            self.mibInstrController = mibInstrController
+            self.mibInstrumController = mibInstrumController
             
-        self.mibInstrController.mibBuilder.loadModules(
+        self.mibInstrumController.mibBuilder.loadModules(
             'SNMP-MPD-MIB', 'SNMP-COMMUNITY-MIB', 'SNMP-TARGET-MIB',
             'SNMP-USER-BASED-SM-MIB'
             )
@@ -58,9 +58,9 @@ class MsgAndPduDispatcher:
         # Versions to subsystems mapping
         self.messageProcessingSubsystems = {
             rfc2576.snmpV1MessageProcessingModelId:
-            rfc2576.SnmpV1MessageProcessingModel(self.mibInstrController),
+            rfc2576.SnmpV1MessageProcessingModel(self.mibInstrumController),
             rfc2576.snmpV2cMessageProcessingModelId:
-            rfc2576.SnmpV2cMessageProcessingModel(self.mibInstrController),
+            rfc2576.SnmpV2cMessageProcessingModel(self.mibInstrumController),
             }
 
         self.__msgDemuxer = demux.SnmpMsgDemuxer()
@@ -138,7 +138,7 @@ class MsgAndPduDispatcher:
         contextEngineId = app.contextEngineId
         if contextEngineId is None:
             # Default to local snmpEngineId
-            contextEngineId,= self.mibInstrController.mibBuilder.importSymbols(
+            contextEngineId,= self.mibInstrumController.mibBuilder.importSymbols(
                 'SNMP-FRAMEWORK-MIB', 'snmpEngineID'
                 )
             contextEngineId = contextEngineId.syntax.get()
@@ -163,7 +163,7 @@ class MsgAndPduDispatcher:
         contextEngineId = app.contextEngineId
         if contextEngineId is None:
             # Default to local snmpEngineId
-            contextEngineId, = self.mibInstrController.mibBuilder.importSymbols(
+            contextEngineId, = self.mibInstrumController.mibBuilder.importSymbols(
                 'SNMP-FRAMEWORK-MIB', 'snmpEngineID'
                 ).syntax.get()
 
@@ -273,7 +273,7 @@ class MsgAndPduDispatcher:
         ):
         """Message dispatcher -- de-serialize message into PDU"""
         # 4.2.1.1
-        snmpInPkts, = self.mibInstrController.mibBuilder.importSymbols(
+        snmpInPkts, = self.mibInstrumController.mibBuilder.importSymbols(
             'SNMPv2-MIB', 'snmpInPkts'
             )
         snmpInPkts.syntax.inc(1)
@@ -282,7 +282,7 @@ class MsgAndPduDispatcher:
         try:
             self.__msgDemuxer.decodeItem(wholeMsg)
         except PySnmpError:
-            snmpInAsn1ParseErrs, = self.mibInstrController.mibBuilder.importSymbols('SNMPv2-MIB', 'snmpInAsn1ParseErrs')
+            snmpInAsn1ParseErrs, = self.mibInstrumController.mibBuilder.importSymbols('SNMPv2-MIB', 'snmpInAsn1ParseErrs')
             snmpInAsn1ParseErrs.syntax.inc(1)
             raise MessageProcessingError(
                 'Message (ASN.1) parse error at %s' % self
@@ -292,7 +292,7 @@ class MsgAndPduDispatcher:
             messageProcessingModel
             )
         if mpHandler is None:
-            snmpInBadVersions, = self.mibInstrController.mibBuilder.importSymbols(
+            snmpInBadVersions, = self.mibInstrumController.mibBuilder.importSymbols(
                 'SNMPv2-MIB', 'snmpInBadVersions'
                 )
             snmpInBadVersions.syntax.inc(1)
@@ -324,7 +324,7 @@ class MsgAndPduDispatcher:
             # 4.2.2.1.2
             if app is None:
                 # 4.2.2.1.2.a
-                snmpUnknownPDUHandlers, = self.mibInstrController.mibBuilder.importSymbols('SNMP-MPD-MIB', 'snmpUnknownPDUHandlers')
+                snmpUnknownPDUHandlers, = self.mibInstrumController.mibBuilder.importSymbols('SNMP-MPD-MIB', 'snmpUnknownPDUHandlers')
                 snmpUnknownPDUHandlers.syntax.inc(1)
 
                 # 4.2.2.1.2.b                
@@ -364,7 +364,7 @@ class MsgAndPduDispatcher:
 
             # 4.2.2.2.2
             if cachedParams is None:
-                snmpUnknownPDUHandlers, = self.mibInstrController.mibBuilder.importSymbols('SNMP-MPD-MIB', 'snmpUnknownPDUHandlers')
+                snmpUnknownPDUHandlers, = self.mibInstrumController.mibBuilder.importSymbols('SNMP-MPD-MIB', 'snmpUnknownPDUHandlers')
                 snmpUnknownPDUHandlers.syntax.inc(1)
                 return
 
@@ -391,7 +391,7 @@ class MsgAndPduDispatcher:
                 snmpTargetAddrTAddress, \
                 snmpTargetAddrTDomain, \
                 snmpTargetAddrRetryCount, \
-                snmpTargetAddrTimeout = self.mibInstrController.mibBuilder.importSymbols(
+                snmpTargetAddrTimeout = self.mibInstrumController.mibBuilder.importSymbols(
                     'SNMP-TARGET-MIB',
                     'snmpTargetAddrTAddress',
                     'snmpTargetAddrTDomain',
@@ -492,10 +492,10 @@ if __name__ == '__main__':
     
     dsp = MsgAndPduDispatcher(transportDispatcher=tspDsp)
 
-    snmpCommunityEntry, = dsp.mibInstrController.mibBuilder.importSymbols(
+    snmpCommunityEntry, = dsp.mibInstrumController.mibBuilder.importSymbols(
         'SNMP-COMMUNITY-MIB', 'snmpCommunityEntry'
         )
-    dsp.mibInstrController.writeVars(
+    dsp.mibInstrumController.writeVars(
         (snmpCommunityEntry.getInstNameByIndex(2, 'mynms'), 'mycomm'),
         (snmpCommunityEntry.getInstNameByIndex(3, 'mynms'), 'mynmsname'),
         # XXX register ContextEngineIds

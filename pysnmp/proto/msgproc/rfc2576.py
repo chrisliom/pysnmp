@@ -33,9 +33,9 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
     defaultSecurityModule = SnmpV1SecurityModel
     
     # Message processing subsystem for SNMP v1
-    def __init__(self, mibInstrController=None):
-        AbstractMessageProcessingModel.__init__(self, mibInstrController)
-        self.securityModel = self.defaultSecurityModule(mibInstrController)
+    def __init__(self, mibInstrumController=None):
+        AbstractMessageProcessingModel.__init__(self, mibInstrumController)
+        self.securityModel = self.defaultSecurityModule(mibInstrumController)
 
     # rfc3412: 7.1
     def __prepareResponseOrOutgoingMessage(self, **kwargs):
@@ -49,7 +49,7 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
 
         smInParams.update(kwargs)
 
-        snmpEngineID, = self.mibInstrController.mibBuilder.importSymbols(
+        snmpEngineID, = self.mibInstrumController.mibBuilder.importSymbols(
             'SNMP-FRAMEWORK-MIB', 'snmpEngineID'
             )
         snmpEngineID = snmpEngineID.syntax.get()
@@ -236,7 +236,7 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
         # rfc3412: 7.2.13
         if isinstance(pdu, rfc3411.ConfirmedClassMixIn):
             # rfc3412: 7.2.13a
-            snmpEngineID, = self.mibInstrController.mibBuilder.importSymbols(
+            snmpEngineID, = self.mibInstrumController.mibBuilder.importSymbols(
                 'SNMP-FRAMEWORK-MIB', 'snmpEngineID'
                 )
             if smOutParams['securityEngineID'] != snmpEngineID.syntax:

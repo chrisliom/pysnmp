@@ -2,8 +2,8 @@ from pysnmp.proto.msgproc import error
 
 class AbstractMessageProcessingModel:
     __stateReference = 0L
-    def __init__(self, mibInstrController=None):
-        self.mibInstrController = mibInstrController
+    def __init__(self, mibInstrumController=None):
+        self.mibInstrumController = mibInstrumController
         self.__msgIdIndex = {}
         self.__stateReferenceIndex = {}
         # Message expiration mechanics

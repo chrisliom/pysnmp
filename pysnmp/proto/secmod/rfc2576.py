@@ -17,8 +17,8 @@ class SnmpV1SecurityModel(base.AbstractSecurityModel):
         }
 
     _protoMsg = rfc1157.Message
-    def __init__(self, mibInstrController=None):
-        base.AbstractSecurityModel.__init__(self, mibInstrController)
+    def __init__(self, mibInstrumController=None):
+        base.AbstractSecurityModel.__init__(self, mibInstrumController)
         self.__msg = self._protoMsg()
         
     # According to rfc2576, community name <-> contextEngineID/contextName
@@ -32,7 +32,7 @@ class SnmpV1SecurityModel(base.AbstractSecurityModel):
         snmpCommunityName, \
         snmpCommunitySecurityName, \
         snmpCommunityContextEngineID, \
-        snmpCommunityContextName = self.mibInstrController.mibBuilder.importSymbols(
+        snmpCommunityContextName = self.mibInstrumController.mibBuilder.importSymbols(
             'SNMP-COMMUNITY-MIB',
             'snmpCommunityName',
             'snmpCommunitySecurityName',
@@ -99,10 +99,11 @@ class SnmpV1SecurityModel(base.AbstractSecurityModel):
         # the reason why it wouldn't be better done at SM
         communityName = self.__msg['community']
 
-        snmpCommunityName, \
-        snmpCommunitySecurityName, \
-        snmpCommunityContextEngineID, \
-        snmpCommunityContextName = self.mibInstrController.mibBuilder.importSymbols(
+        ( snmpCommunityName,
+          snmpCommunitySecurityName,
+          snmpCommunityContextEngineID,
+          snmpCommunityContextName ) = \
+          self.mibInstrumController.mibBuilder.importSymbols(
             'SNMP-COMMUNITY-MIB',
             'snmpCommunityName',
             'snmpCommunitySecurityName',
@@ -137,7 +138,7 @@ class SnmpV1SecurityModel(base.AbstractSecurityModel):
         contextName = snmpCommunityContextName.getNode(
             snmpCommunityContextName.name + instId
             )
-        snmpEngineID, = self.mibInstrController.mibBuilder.importSymbols(
+        snmpEngineID, = self.mibInstrumController.mibBuilder.importSymbols(
             'SNMP-FRAMEWORK-MIB', 'snmpEngineID'
             )
         return {
