@@ -13,6 +13,9 @@ class NoSuchInstanceError(MibVariableError): pass
 class InconsistentValueError(MibVariableError): pass
 class WrongValueError(MibVariableError): pass
 class NoAccessError(MibVariableError): pass
+class ReadOnlyError(NoAccessError): pass
+class NotWritableError(NoAccessError): pass
+class NoCreationError(NoAccessError): pass
 # Row management
 class RowCreationWanted(MibVariableError): pass
 class RowDestructionWanted(MibVariableError): pass
