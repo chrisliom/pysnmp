@@ -1,4 +1,4 @@
-from string import split
+from string import split, digits
 from pysnmp.smi import error
 from pysnmp.asn1 import subtypes
 
@@ -13,14 +13,18 @@ class TextualConvention:
     description = ''
     reference = ''
     bits = ()
+    __integer = Integer()
+    __octetString = OctetString()
+    __objectIdentifier = ObjectIdentifier()
     def getDisplayHint(self): return self.displayHint
     def getStatus(self): return self.status
     def getDescription(self): return self.description
     def getReference(self): return self.reference
 
-    def prettyGet(self):
+    def prettyGet(self, value):
         """Implements DISPLAY-HINT evaluation"""
-        if self.displayHint and isinstance(self, Integer):
+        if self.displayHint and self.__integer.isSubtype(value):
+            value = value.get()
             t, f = apply(lambda t, f=0: (t, f), split(self.displayHint, '-'))
             if t == 'x':
                 return '0x%x' % value
@@ -43,7 +47,7 @@ class TextualConvention:
                 raise error.SmiError(
                     'Unsupported numeric type spec at %r: %s' % (self, t)
                     )
-        elif self.displayHint and isinstance(self, OctetString):
+        elif self.displayHint and self.__octetString.isSubtype(value):
             r = ''
             if isinstance(value, OctetString):
                 v = value.get()
@@ -132,15 +136,18 @@ class TextualConvention:
 #                     'Unparsed display hint left at %r: %s' % (self, d)
 #                     )                    
             return r
-        elif self.bits:
-            try:
-                return self.bits[self.get()]
-            except StandardError, why:
-                raise error.SmiError(
-                    'Enumeratin resolution failure for %r: %s' % (self, why)
-                    )
+        elif self.displayHint and self.__objectIdentifier.isSubtype(value):
+            return str(value)
         else:
-            return str(self.get())
+            return str(value.get())
+
+#         elif self.bits:
+#             try:
+#                 return self.bits[value.get()]
+#             except StandardError, why:
+#                 raise error.SmiError(
+#                     'Enumeratin resolution failure for %r: %s' % (self, why)
+#                     )
 
     def prettySet(self, value):
         # XXX
