@@ -1,7 +1,7 @@
 #!/usr/local/bin/python -O
 """
-   Retrieve next lexicographically greater Object IDs starting from user
-   specifed SNMP Object ID from arbitrary SNMP agent.
+   Retrieve a subtree of lexicographically greater Object IDs starting from
+   user specifed SNMP Object ID till from arbitrary SNMP agent.
 
    Since MIB parser is not yet implemented in Python, this script takes and
    reports Object IDs in dotted numeric representation only.
@@ -45,7 +45,7 @@ try:
         if opt[0] == '-h' or opt[0] == '--help':
             print usage
             sys.exit(0)
-            
+        
         if opt[0] == '-p' or opt[0] == '--port':
             port = int(opt[1])
 
@@ -77,15 +77,19 @@ client.retries = retries
 # Create a SNMP request&response objects from protocol version
 # specific module.
 try:
-    req = eval('v' + version).GETNEXTREQUEST()
+    req = eval('v' + version).GETREQUEST()    
+    nextReq = eval('v' + version).GETNEXTREQUEST()
     rsp = eval('v' + version).GETRESPONSE()
 
 except (NameError, AttributeError):
     print 'Unsupported SNMP protocol version: %s\n%s' % (version, usage)
     sys.exit(-1)
 
+# Store tables headers
+head_oids = args[2:]
+
 # BER encode initial SNMP Object IDs to query
-encoded_oids = map(asn1.OBJECTID().encode, args[2:])
+encoded_oids = map(asn1.OBJECTID().encode, head_oids)
 
 # Traverse agent MIB
 while 1:
@@ -112,21 +116,42 @@ while 1:
     if rsp['error_status']:
         # SNMP agent reports 'no such name' when walk is over
         if rsp['error_status'] == 2:
+            # Switch over to GETNEXT req on error
+            # XXX what if one of multiple vars fails?
+            if not (req is nextReq):
+                req = nextReq                
+                continue
             # One of the tables exceeded
-            for l in oids, vals:
+            for l in oids, vals, head_oids:
                 del l[rsp['error_index']-1]
-            if not oids:
-                sys.exit(0)
-                    
-        raise 'SNMP error #' + str(rsp['error_status']) + ' for OID #' \
-              + str(rsp['error_index'])
+        else:
+            raise 'SNMP error #' + str(rsp['error_status']) + ' for OID #' \
+                  + str(rsp['error_index'])
 
+    # Exclude completed OIDs
+    while 1:
+        for idx in range(len(head_oids)):
+            if not asn1.OBJECTID(head_oids[idx]).isaprefix(oids[idx]):
+                # One of the tables exceeded
+                for l in oids, vals, head_oids:
+                    del l[idx]
+                break
+        else:
+            break
+
+    if not head_oids:
+        sys.exit(0)
+        
     # Print out results
     for (oid, val) in map(None, oids, vals):
         print oid + ' ---> ' + str(val)
 
     # BER encode next SNMP Object IDs to query
     encoded_oids = map(asn1.OBJECTID().encode, oids)
-            
+
     # Update request object
     req['request_id'] = req['request_id'] + 1
+
+    # Switch over GETNEXT PDU for if not done
+    if not (req is nextReq):
+        req = nextReq
