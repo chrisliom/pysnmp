@@ -1,5 +1,4 @@
 """SNMP GET test"""
-from __future__ import nested_scopes
 from pysnmp.proto.api import alpha
 import base
 
@@ -16,7 +15,7 @@ class GetSetAppMixIn:
         return rspPdu
     
     def __testGetAndSet(self, reqPdu):
-        def cbFun(rspPdu):
+        def cbFun(rspPdu, self=self, reqPdu=reqPdu):
             if reqPdu.match(rspPdu):
                 varBinds = map(lambda x: x.apiAlphaGetOidVal(), \
                                rspPdu.apiAlphaGetVarBindList())

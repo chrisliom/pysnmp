@@ -1,5 +1,4 @@
 """SNMP GETNEXT/GETBULK tests"""
-from __future__ import nested_scopes
 from pysnmp.proto.api import alpha
 import base
 
@@ -34,7 +33,9 @@ class GetNextAppMixIn:
     
     def testGetNext(self):
         self.__EOM = 0
-        def cbFun(rspPdu):
+        reqPdu = self.snmpProto.GetNextRequestPdu()
+
+        def cbFun(rspPdu, self=self, reqPdu=reqPdu):
             if reqPdu.match(rspPdu):
                 self.__gotReply = 1
                 tblIndices =  apply(
@@ -55,7 +56,6 @@ class GetNextAppMixIn:
                 reqPdu.apiAlphaGetRequestId().inc(1)
                 return 1
 
-        reqPdu = self.snmpProto.GetNextRequestPdu()
         apply(reqPdu.apiAlphaSetVarBindList, \
               map(lambda (o, v): (o.get(), None), self.mgrOidVals))
         while not self.__EOM:
