@@ -1,3 +1,4 @@
+from string import join, split
 from pysnmp.smi.indices import OidOrderedDict
 from pysnmp.smi import error
 from pysnmp.proto import rfc1902
@@ -617,22 +618,24 @@ class MibTableRow(MibTree):
         if newSuffix:
             self.__manageColumns(action, newSuffix)
 
-    def registerAugmention(self, modName, symName):
-        if self.augmentingRows.has_key((modName, symName)):
-            raise error.SmiError(
-                'Row %r already augmented by %s::%s' % \
-                (self.name, modName, symName)
-                )
-        self.augmentingRows[(modName, symName)] = 1
+    def registerAugmentions(self, *names):
+        for modName, symName in names:
+            if self.augmentingRows.has_key((modName, symName)):
+                raise error.SmiError(
+                    'Row %r already augmented by %s::%s' % \
+                    (self.name, modName, symName)
+                    )
+            self.augmentingRows[(modName, symName)] = 1
+        return self
         
     def setIndexNames(self, *names):
-        self.indexNames = names
-# XXX
-#         for impliedFlag, mibMod, symName in self.indexNames:
-#             mibObj, = mibBuilder.importSymbols(mibMod, symName)
-#             if mibObj.name == self.name:
-#                 continue
-#             mibObj.registerAugmention(self.name)
+        for name in names:
+            if name in self.indexNames:
+                raise error.SmiError(
+                    'Index %s already set to row %s' % (
+                    name, self
+                    ))
+            self.indexNames = self.indexNames + (name,)
         return self
 
     def getIndexNames(self):
@@ -739,9 +742,10 @@ mibBuilder.exportSymbols(
     modName, Integer32=Integer32, IpAddress=IpAddress,
     Counter32=Counter32,    Gauge32=Gauge32, Unsigned32=Unsigned32,
     TimeTicks=TimeTicks, Opaque=Opaque, Counter64=Counter64,
-    ExtUTCTime=ExtUTCTime, ModuleIdentity=ModuleIdentity,
-    ObjectIdentity=ObjectIdentity, NotificationType=NotificationType,
-    MibVariable=MibVariable, MibIdentifier=MibIdentifier, MibTree=MibTree,
+    ExtUTCTime=ExtUTCTime, MibNodeBase=MibNodeBase,
+    ModuleIdentity=ModuleIdentity, ObjectIdentity=ObjectIdentity,
+    NotificationType=NotificationType, MibVariable=MibVariable,
+    MibIdentifier=MibIdentifier, MibTree=MibTree,
     MibTableColumn=MibTableColumn, MibTableRow=MibTableRow,
     MibTable=MibTable, zeroDotZero=zeroDotZero,
     iso=iso, org=org, dod=dod, internet=internet,
