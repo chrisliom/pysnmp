@@ -55,7 +55,7 @@ if len(args) > 1:
     community = args[1]
     
 # Create SNMP agent object
-server = role.agent((iface, port))
+server = role.agent([(iface, port)])
 
 # Listen for SNMP messages from remote SNMP managers
 while 1:
