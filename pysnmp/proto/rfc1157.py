@@ -7,8 +7,7 @@ __all__ = [ 'Version', 'Community', 'RequestId', 'ErrorStatus', 'ErrorIndex',\
             'Message' ]
 
 from time import time
-from pysnmp.asn1.base import tagClasses
-from pysnmp.asn1 import subtypes
+from pysnmp.asn1 import tags, subtypes
 from pysnmp.proto import rfc1155, error
 import pysnmp.asn1.error
 
@@ -61,8 +60,9 @@ class VarBindList(rfc1155.SequenceOf):
     protoComponent = VarBind()
     
 class RequestPdu(rfc1155.Sequence):
-    tagClass = (tagClasses['CONTEXT'], )
-
+    tagSet = rfc1155.Sequence.tagSet.clone(
+        tagClass=tags.tagClassContext
+        )
     # PDU structure
     protoComponents = { 'request_id': RequestId(),
                         'error_status': ErrorStatus(),
@@ -72,16 +72,16 @@ class RequestPdu(rfc1155.Sequence):
                       'variable_bindings' )
 
 class GetRequestPdu(RequestPdu):
-    tagId = (0x00, )
+    tagSet = RequestPdu.tagSet.clone(tagId=0x00)
 
 class GetNextRequestPdu(RequestPdu):
-    tagId = (0x01, )
+    tagSet = RequestPdu.tagSet.clone(tagId=0x01)
 
 class GetResponsePdu(RequestPdu):
-    tagId = (0x02, )
+    tagSet = RequestPdu.tagSet.clone(tagId=0x02)
 
 class SetRequestPdu(RequestPdu):
-    tagId = (0x03, )
+    tagSet = RequestPdu.tagSet.clone(tagId=0x03)
 
 # Trap stuff
 
@@ -109,9 +109,9 @@ class TimeStamp(rfc1155.TimeTicks):
         rfc1155.TimeTicks.__init__(self, value)
 
 class TrapPdu(rfc1155.Sequence):
-    tagClass = (tagClasses['CONTEXT'], )
-    tagId = (0x04, )
-
+    tagSet = rfc1155.Sequence.tagSet.clone(
+        tagClass=tags.tagClassContext, tagId=0x04
+        )
     # PDU structure
     protoComponents = { 'enterprise': Enterprise(),
                         'agent_addr': AgentAddr(),

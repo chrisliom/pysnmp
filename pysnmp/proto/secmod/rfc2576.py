@@ -8,11 +8,11 @@ __all__ = [ 'SnmpV1SecurityModel', 'SnmpV2cSecurityModel' ]
 class SnmpV1SecurityModel(base.AbstractSecurityModel):
     # Map PDU to PDU key names at PDUS choice
     __pduMap = {
-        rfc1157.GetRequestPdu.tagId: 'get_request',
-        rfc1157.GetNextRequestPdu.tagId: 'get_next_request',
-        rfc1157.GetResponsePdu.tagId: 'get_response',
-        rfc1157.SetRequestPdu.tagId: 'set_request',
-        rfc1157.TrapPdu.tagId: 'trap'
+        rfc1157.GetRequestPdu.tagSet: 'get_request',
+        rfc1157.GetNextRequestPdu.tagSet: 'get_next_request',
+        rfc1157.GetResponsePdu.tagSet: 'get_response',
+        rfc1157.SetRequestPdu.tagSet: 'set_request',
+        rfc1157.TrapPdu.tagSet: 'trap'
         }
         
     def __init__(self, mibInstrController=None):
@@ -64,7 +64,7 @@ class SnmpV1SecurityModel(base.AbstractSecurityModel):
             communityName = mibNode.syntax.get()
             self.__msg['community'].set(communityName)
             transportDomain, transportAddress, pdu = kwargs['scopedPDU']
-            self.__msg['pdu'][self.__pduMap[pdu.tagId]] = pdu
+            self.__msg['pdu'][self.__pduMap[pdu.tagSet]] = pdu
             return {
                 'securityParameters': communityName,
                 'wholeMsg': self.__msg.berEncode()
@@ -79,7 +79,7 @@ class SnmpV1SecurityModel(base.AbstractSecurityModel):
         communityName = securityParameters
         self.__msg['community'].set(communityName)
         transportDomain, transportAddress, pdu = kwargs['scopedPDU']
-        self.__msg['pdu'][self.__pduMap[pdu.tagId]] = pdu
+        self.__msg['pdu'][self.__pduMap[pdu.tagSet]] = pdu
         return {
             'securityParameters': securityParameters,
             'wholeMsg': self.__msg.berEncode()

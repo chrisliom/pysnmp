@@ -1,7 +1,6 @@
 """Base classes for BER codecs"""
 from types import StringType
 from string import join
-from pysnmp.asn1.base import tagCategories
 from pysnmp.asn1.encoding.ber import error
 
 codecId = 'BER'
@@ -25,25 +24,7 @@ class AbstractBerCodec:
 
     def encode(self, client):
         oStream = self.encodeValue(client)
-        ### all this should be pre-calculated!
-        if client.tagCategory == tagCategories['IMPLICIT']:
-            taggingSequence = (
-                client.tagClass[0] | client.tagFormat[0] | client.tagId[0],
-            )
-        elif client.tagCategory == tagCategories['UNTAGGED']:
-            taggingSequence = ()
-        elif client.tagCategory == tagCategories['EXPLICIT']:
-            return map(lambda x, y, z: x|y|z, client.tagClass, \
-                       client.tagFormat, client.tagId)            
-        else:
-            raise error.BadArgumentError(
-                'Unsupported tagCategory (%d) at %s for %s' %
-                (client.tagCategory, self.__class__.__name__,
-                 client.__class__.__name__,)
-            )
-        idx = len(taggingSequence)
-        while idx:
-            idx = idx - 1
+        for tag in client.tagSet.getTaggingSequence():
             # Encode length
             length = len(oStream)
             if length < 0x80:
@@ -64,31 +45,14 @@ class AbstractBerCodec:
                     'Too large length %d at %s' %
                     (length, self.__class__.__name__)
                 )
-            oStream = chr(taggingSequence[idx]) + berLength + oStream
+            oStream = chr(tag) + berLength + oStream
         return oStream
     
     def decode(self, client, oStream):
         ### all this should be pre-calculated!
         restOfStream = None
-        if client.tagCategory == tagCategories['IMPLICIT']:
-            taggingSequence = (
-                chr(
-                client.tagClass[0] | client.tagFormat[0] | client.tagId[0]
-                ),
-            )
-        elif client.tagCategory == tagCategories['UNTAGGED']:
-            taggingSequence = ()
-        elif client.tagCategory == tagCategories['EXPLICIT']:
-            return map(lambda x, y, z: chr(x|y|z), client.tagClass, \
-                       client.tagFormat, client.tagId)            
-        else:
-            raise error.BadArgumentError(
-                'Unsupported tagCategory (%d) at %s for %s' %
-                (client.tagCategory, self.__class__.__name__,
-                 client.__class__.__name__,)
-            )
-        # 'EXPLICITly' tagged types may produce a sequence of tags
-        for tag in taggingSequence:
+        for tag in client.tagSet.getTaggingSequence():
+            tag = chr(tag)
             # Decode BER tag
             if len(oStream) < 2:
                 raise error.UnderRunError(

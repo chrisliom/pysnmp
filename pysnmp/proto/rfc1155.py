@@ -8,8 +8,7 @@ __all__ = [ 'Integer', 'OctetString', 'Null', 'ObjectIdentifier', \
 
 from string import split, atoi, atoi_error
 from types import StringType
-from pysnmp.asn1.base import tagClasses
-from pysnmp.asn1 import univ, subtypes
+from pysnmp.asn1 import univ, tags, subtypes
 import pysnmp.asn1.encoding.ber
 from pysnmp.proto import error
 
@@ -23,9 +22,9 @@ class ObjectIdentifier(univ.ObjectIdentifier): pass
 # ApplicationSyntax
 
 class IpAddress(univ.OctetString):
-    tagClass = (tagClasses['APPLICATION'], )
-    tagId = (0x00, )
-
+    tagSet = univ.OctetString.tagSet.clone(
+        tagClass=tags.tagClassApplication, tagId=0x00
+        )
     # Subtyping -- size constraint
     subtypeConstraints = ( subtypes.ValueSizeConstraint(4, 4), )
     initialValue = '\000\000\000\000'
@@ -68,29 +67,30 @@ class IpAddress(univ.OctetString):
         else: return value
 
 class Counter(univ.Integer):
-    tagClass = (tagClasses['APPLICATION'], )
-    tagId = (0x01, )
-
+    tagSet = univ.Integer.tagSet.clone(
+        tagClass=tags.tagClassApplication, tagId=0x01
+        )
     # Subtyping -- value range constraint
     subtypeConstraints = ( subtypes.ValueRangeConstraint(0, 4294967295L), )
 
 class Gauge(univ.Integer):
-    tagClass = (tagClasses['APPLICATION'], )
-    tagId = (0x02, )
-
+    tagSet = univ.Integer.tagSet.clone(
+        tagClass=tags.tagClassApplication, tagId=0x02
+        )
     # Subtyping -- value range constraint
     subtypeConstraints = ( subtypes.ValueRangeConstraint(0, 4294967295L), )
 
 class TimeTicks(univ.Integer):
-    tagClass = (tagClasses['APPLICATION'], )
-    tagId = (0x03, )
-
+    tagSet = univ.Integer.tagSet.clone(
+        tagClass=tags.tagClassApplication, tagId=0x03
+        )
     # Subtyping -- value range constraint
     subtypeConstraints = ( subtypes.ValueRangeConstraint(0, 4294967295L), )
 
 class Opaque(univ.OctetString):
-    tagClass = (tagClasses['APPLICATION'], )
-    tagId = (0x04, )
+    tagSet = univ.OctetString.tagSet.clone(
+        tagClass=tags.tagClassApplication, tagId=0x04
+        )
 
 class Sequence(univ.Sequence): pass
 class SequenceOf(univ.SequenceOf): pass

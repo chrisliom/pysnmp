@@ -196,7 +196,7 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
             'contextName': contextName,
             'pduVersion': self.defaultPduVersion,
             'PDU': pdu,
-            'pduType': pdu.tagId,
+            'pduType': pdu.tagSet,
             'maxSizeResponseScopedPDU':smOutParams['maxSizeResponseScopedPDU'],
             'stateReference': smOutParams['securityStateReference']
             }
@@ -265,7 +265,7 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
         if isinstance(pdu, rfc3411.UnconfirmedClassMixIn):
             return mpOutParams
         
-snmpV2cMessageProcessingModelId = rfc1905.Version()
+snmpV2cMessageProcessingModelId = rfc1905.Version().get()
 
 class SnmpV2cMessageProcessingModel(SnmpV1MessageProcessingModel): pass
 

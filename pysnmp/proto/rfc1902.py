@@ -7,7 +7,6 @@ __all__ = [ 'Integer', 'Integer32', 'OctetString', 'BitString', 'Null', \
             'ApplicationSyntax', 'ObjectSyntax' ]
 
 from pysnmp.proto import rfc1155, error
-from pysnmp.asn1.base import tagCategories
 from pysnmp.asn1 import univ, subtypes
 
 # SimpleSyntax
@@ -38,7 +37,7 @@ class TimeTicks(rfc1155.TimeTicks): pass
 class Opaque(rfc1155.Opaque): pass
 
 class Counter64(rfc1155.Counter):
-    tagId = (0x06, )
+    tagSet = rfc1155.Counter.tagSet.clone(tagId=0x06)
 
     # Subtyping -- value range constraint
     subtypeConstraints = (

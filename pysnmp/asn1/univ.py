@@ -9,14 +9,14 @@ from operator import getslice
 from types import IntType, LongType, StringType, NoneType, FloatType,  \
      TupleType, ListType, SliceType
 from exceptions import StandardError, TypeError
-from pysnmp.asn1 import base, subtypes, error
+from pysnmp.asn1 import base, tags, subtypes, error
 
 #
 # "Simple" ASN.1 types implementation
 #
 
 class Boolean(base.AbstractSimpleAsn1Item):
-    tagId = (0x01, )
+    tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x01)
     allowedTypes = ( IntType, LongType )
     subtypeConstraints = ( subtypes.SingleValueConstraint(0, 1), )
     initialValue = 0
@@ -63,7 +63,7 @@ class Boolean(base.AbstractSimpleAsn1Item):
         return self
 
 class Integer(base.AbstractSimpleAsn1Item):
-    tagId = (0x02, )
+    tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x02)
     allowedTypes = ( IntType, LongType )
     initialValue = 0
     
@@ -236,12 +236,12 @@ class Integer(base.AbstractSimpleAsn1Item):
     def __float__(self): return float(self.get())    
 
 class BitString(base.AbstractSimpleAsn1Item):
-    tagId = (0x03, )
+    tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x03)
     allowedTypes = ( StringType, )
     initialValue = ''
 
 class OctetString(base.AbstractSimpleAsn1Item):
-    tagId = (0x04, )
+    tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x04)
     allowedTypes = ( StringType, )
     initialValue = ''
     
@@ -259,7 +259,7 @@ class OctetString(base.AbstractSimpleAsn1Item):
         return self.__class__(val)
 
     def __radd__(self, other):
-        val = list(self.componentFactoryBorrow(other)) + self.rawAsn1Value
+        val = self.componentFactoryBorrow(other) + self.rawAsn1Value
         return self.__class__(val) 
 
     def __mul__(self, value): return self.__class__(self.get() * value)
@@ -272,7 +272,7 @@ class OctetString(base.AbstractSimpleAsn1Item):
             return self[max(0, i):max(0, j):]
 
 class Null(base.AbstractSimpleAsn1Item):
-    tagId = (0x05, )
+    tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x05)
     allowedTypes = ( IntType, LongType, StringType, NoneType )
     subtypeConstraints = ( subtypes.SingleValueConstraint(0, 0L, '', None), )
     initialValue = 0
@@ -282,7 +282,7 @@ class Null(base.AbstractSimpleAsn1Item):
         else: return 0
 
 class ObjectIdentifier(base.AbstractSimpleAsn1Item):
-    tagId = (0x06, )
+    tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x06)
     allowedTypes = ( StringType, TupleType, ListType )
     initialValue = ()
     
@@ -435,19 +435,19 @@ class ObjectIdentifier(base.AbstractSimpleAsn1Item):
         return self.num2str(value)
 
 class Real(base.AbstractSimpleAsn1Item):
-    tagId = (0x09, )
+    tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x09)
     allowedTypes = ( IntType, LongType, FloatType )
     initialValue = 0.0
 
 class Enumerated(base.AbstractSimpleAsn1Item):
-    tagId = (0x10, )
+    tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x10)
     allowedTypes = ( IntType, LongType )
     initialValue = 0
 
 # "Structured" ASN.1 types implementation
 
 class Set(base.AbstractMappingAsn1Item):
-    tagId = (0x11, )
+    tagSet = base.AbstractMappingAsn1Item.tagSet.clone(tagId=0x11)
     protoComponents = {}
 
     def __init__(self, **kwargs):
@@ -475,7 +475,7 @@ class Set(base.AbstractMappingAsn1Item):
             )
 
 class Sequence(Set):
-    tagId = (0x10, )
+    tagSet = Set.tagSet.clone(tagId=0x10)
     protoSequence = ()
 
     # Provisions for ordered dictionary
@@ -486,8 +486,9 @@ class Sequence(Set):
         return map(lambda k, v=self._components: (k, v[k]), self.protoSequence)
 
 class Choice(base.AbstractMappingAsn1Item):
-    # Untagged type
-    tagCategory = base.tagCategories['UNTAGGED']
+    tagSet = base.AbstractMappingAsn1Item.tagSet.clone(
+        tagCategory=tags.tagCategoryUntagged
+        )
     protoComponents = {}
     initialComponentKey = None
     
@@ -539,9 +540,9 @@ class Choice(base.AbstractMappingAsn1Item):
             del self._components[key]
 
 class SequenceOf(base.AbstractSequenceAsn1Item):
-    tagId = (0x10, )
+    tagSet = base.AbstractSequenceAsn1Item.tagSet.clone(tagId=0x10)
     protoComponent = None
     initialValue = []
 
 class SetOf(SequenceOf):
-    tagId = (0x11, )
+    tagSet = SequenceOf.tagSet.clone(tagId=0x11)

@@ -41,9 +41,8 @@ class CachingCodecDecorator(CodecDecorator):
         if codecId is None:
             codecId = self.defaultCodec
 
-        # Hash object (not __hash__ for performance reasons)
-        newHash = hash((self.rawAsn1Value, self.tagClass, self.tagFormat,
-                        self.tagId, self.tagCategory))
+        # Hash object
+        newHash = hash((self.rawAsn1Value, self.tagSet))
         
         # Cache lookup
         encoderCache = getattr(self, '_encoderCache', None)

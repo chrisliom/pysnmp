@@ -8,8 +8,7 @@ __all__ = [ 'Version', 'Community', 'RequestId', 'NoSuchObject', \
             'SnmpV2TrapPdu', 'ReportPdu', 'Pdus', 'Message' ]
 
 from time import time
-from pysnmp.asn1.base import tagClasses
-from pysnmp.asn1 import subtypes
+from pysnmp.asn1 import tags, subtypes
 from pysnmp.proto import rfc1902
 from pysnmp.proto.rfc1157 import InitialRequestIdMixIn
 import pysnmp.asn1.error
@@ -54,19 +53,22 @@ class ErrorStatus(rfc1902.Integer):
                                 self.pduErrors[self.get()])
     
 class ErrorIndex(rfc1902.Integer):
-    subtypeConstraints = ( subtypes.ValueRangeConstraint(0, max_bindings), )
+    subtypeConstraints = ( subtypes.ValueRangeConstraint(0, max_bindings.get()), )
 
 class NoSuchObject(rfc1902.Null):
-    tagClass = (tagClasses['CONTEXT'], )
-    tagId = (0x00, )
+    tagSet = rfc1902.Null.tagSet.clone(
+        tagClass=tags.tagClassContext, tagId=0x00
+        )
 
 class NoSuchInstance(rfc1902.Null):
-    tagClass = (tagClasses['CONTEXT'], )
-    tagId = (0x01, )
+    tagSet = rfc1902.Null.tagSet.clone(
+        tagClass=tags.tagClassContext, tagId=0x01
+        )
 
 class EndOfMibView(rfc1902.Null):
-    tagClass = (tagClasses['CONTEXT'], )
-    tagId = (0x02, )
+    tagSet = rfc1902.Null.tagSet.clone(
+        tagClass=tags.tagClassContext, tagId=0x02
+        )
 
 class BindValue(rfc1902.Choice):
     protoComponents = { 'value': rfc1902.ObjectSyntax(),
@@ -84,12 +86,13 @@ class VarBind(rfc1902.Sequence):
 
 class VarBindList(rfc1902.SequenceOf):
     protoComponent = VarBind()
-    subtypeConstraints = ( subtypes.ValueSizeConstraint(0, max_bindings), )
+    subtypeConstraints = ( subtypes.ValueSizeConstraint(0, max_bindings.get()), )
 
 # Base class for a non-bulk PDU
 class Pdu(rfc1902.Sequence):
-    tagClass = (tagClasses['CONTEXT'], )
-
+    tagSet = rfc1902.Sequence.tagSet.clone(
+        tagClass=tags.tagClassContext
+        )
     # PDU structure
     protoComponents = { 'request_id': RequestId(),
                         'error_status': ErrorStatus(),
@@ -99,16 +102,17 @@ class Pdu(rfc1902.Sequence):
                       'error_index', 'variable_bindings' )
     
 class NonRepeaters(rfc1902.Integer):
-    subtypeConstraints = ( subtypes.ValueRangeConstraint(0, max_bindings), )
+    subtypeConstraints = ( subtypes.ValueRangeConstraint(0, max_bindings.get()), )
 
 class MaxRepetitions(rfc1902.Integer):
-    subtypeConstraints = ( subtypes.ValueRangeConstraint(0, max_bindings), )
+    subtypeConstraints = ( subtypes.ValueRangeConstraint(0, max_bindings.get()), )
     initialValue = 255
 
 # Base class for bulk PDU
 class BulkPdu(rfc1902.Sequence):
-    tagClass = (tagClasses['CONTEXT'], )
-
+    tagSet = rfc1902.Sequence.tagSet.clone(
+        tagClass=tags.tagClassContext
+        )
     # PDU structure
     protoComponents = { 'request_id': RequestId(),
                         'non_repeaters': NonRepeaters(),
@@ -118,31 +122,31 @@ class BulkPdu(rfc1902.Sequence):
                       'max_repetitions', 'variable_bindings' )
 
 class GetRequestPdu(Pdu):
-    tagId = (0x00, )
+    tagSet = Pdu.tagSet.clone(tagId=0x00)
 
 class GetNextRequestPdu(Pdu):
-    tagId = (0x01, )
+    tagSet = Pdu.tagSet.clone(tagId=0x01)
 
 class ResponsePdu(Pdu):
-    tagId = (0x02, )
+    tagSet = Pdu.tagSet.clone(tagId=0x02)
 
 class SetRequestPdu(Pdu):
-    tagId = (0x03, )
+    tagSet = Pdu.tagSet.clone(tagId=0x03)
 
 class GetBulkRequestPdu(BulkPdu):
-    tagId = (0x05, )
+    tagSet = BulkPdu.tagSet.clone(tagId=0x05)
 
 class InformRequestPdu(Pdu):
-    tagId = (0x06, )
+    tagSet = Pdu.tagSet.clone(tagId=0x06)
 
 class SnmpV2TrapPdu(Pdu):
-    tagId = (0x07, )
+    tagSet = Pdu.tagSet.clone(tagId=0x07)
 
 # XXX v1 compatible alias
 TrapPdu = SnmpV2TrapPdu
 
 class ReportPdu(Pdu):
-    tagId = (0x08, )
+    tagSet = Pdu.tagSet.clone(tagId=0x08)
 
 class Pdus(rfc1902.Choice):
     protoComponents = { 'get_request': GetRequestPdu(),

@@ -7,37 +7,17 @@ version_info_major, version_info_minor = version_info[:2]
 from operator import getslice, setslice, delslice
 from string import join
 from types import *
-from pysnmp.asn1 import subtypes, error
+from pysnmp.asn1 import tags, subtypes, error
 from pysnmp.error import PySnmpError
-
-# ASN.1 tagging
-
-tagClasses = { 
-    'UNIVERSAL'          : 0x00,
-    'APPLICATION'        : 0x40,
-    'CONTEXT'            : 0x80,
-    'PRIVATE'            : 0xC0
-    }
-
-tagFormats = {
-    'SIMPLE'             : 0x00,
-    'CONSTRUCTED'        : 0x20
-    }
-
-tagCategories = {
-    'IMPLICIT'           : 0x01,
-    'EXPLICIT'           : 0x02,
-    'UNTAGGED'           : 0x04
-    }
 
 class Asn1Item: pass
 
 class Asn1ItemBase(Asn1Item):
-    # ASN.1 tags
-    tagClass = (tagClasses['UNIVERSAL'], )
-    tagFormat = ()
-    tagId = ()
-    tagCategory = tagCategories['IMPLICIT']
+    # Set of tags for this ASN.1 type
+    tagSet = tags.TagSet(
+        tags.tagClassUniversal, tags.tagFormatSimple, 0,
+        tags.tagCategoryImplicit
+        )
     
     # Initializer type constraint
     allowedTypes = ()
@@ -45,41 +25,6 @@ class Asn1ItemBase(Asn1Item):
     # A list of subtypes.Constraint instances for checking values
     # initial XXX
     subtypeConstraints = ()
-
-    def _buildExplicitTags(self):
-        # EXPLICIT stands for "in addition to" when it comes to tagging
-        # Walk over base classes from top to bottom, build a sequence of
-        # tags used for explicit tagging
-        def walkOverBases(bases, tagCategory):            
-            for baseClass in bases:
-                if tagCategory != tagCategories['EXPLICIT']:
-                    continue
-                if type(baseClass) == TupleType:
-                    # Multiple inheritance encountered
-                    walkOverBases(baseClass, baseClass.tagCategory)
-                else:
-                    if not issubclass(baseClass, Asn1Item):
-                        continue
-                    # Make sure to skip duplicate class attrs
-                    tagClassId = id(baseClass.tagClass)
-                    tagFormatId = id(baseClass.tagFormat)
-                    tagIdId = id(baseClass.tagId)
-                    if seenTagClass.has_key(tagClassId) and \
-                       seenTagFormat.has_key(tagFormatId) and \
-                       seenTagId.has_key(tagIdId):
-                        continue
-                    seenTagClass[tagClassId] = seenTagFormat[tagFormatId] = \
-                                               seenTagId[tagIdId] = 1
-                    # Inherit tags
-                    self.tagClass = self.tagClass + baseClass.tagClass
-                    self.tagFormat = self.tagFormat + baseClass.tagFormat
-                    self.tagId = self.tagId + baseClass.tagId
-
-                    # Ascend upto bases
-                    walkOverBases(baseClass.__bases__, baseClass.tagCategory)
-
-        seenTagClass = {}; seenTagFormat = {}; seenTagId = {}
-        walkOverBases(self.__class__.__bases__, self.__class__.tagCategory)
 
     # Allowed types verification
     if version_info_major < 2 or version_info_major == 2 \
@@ -112,11 +57,10 @@ class Asn1ItemBase(Asn1Item):
 
     def isSubtype(self, other):
         """Returns true if the given instance is a ASN1 subtype of ourselves"""
-        if isinstance(other, Asn1ItemBase) and \
-           self.tagId == other.tagId and \
-           self.tagFormat == other.tagFormat and \
-           self.tagClass == other.tagClass and \
-           self.tagCategory == other.tagCategory:
+        if isinstance(other, Asn1ItemBase):
+            for t in other.tagSet:
+                if t not in self.tagSet:
+                    return
             for c in other.subtypeConstraints:
                 if c not in self.subtypeConstraints:
                     return
@@ -134,10 +78,7 @@ class Asn1ItemBase(Asn1Item):
         c = self.__class__()
 
         # Inherit tags
-        c.tagClass = self.tagClass
-        c.tagFormat = self.tagFormat
-        c.tagId = self.tagId
-        c.tagCategory = self.tagCategory
+        c.tagSet = self.tagSet.clone()
 
         # Inherit types
         c.allowedTypes = self.allowedTypes
@@ -150,13 +91,12 @@ class Asn1ItemBase(Asn1Item):
 # Base class for a simple ASN.1 object. Defines behaviour and
 # properties of various non-structured ASN.1 objects.        
 class AbstractSimpleAsn1Item(Asn1ItemBase):
-    tagFormat = (tagFormats['SIMPLE'], )
-    tagId = (0x00, )
+    tagSet = Asn1ItemBase.tagSet.clone(
+        tagFormat=tags.tagFormatSimple, tagId=0x00
+        )
     initialValue = None # no constraints checks
     
     def __init__(self, value=None):
-        if self.tagCategory == tagCategories['EXPLICIT']:
-            self._buildExplicitTags()
         if value is None:
             initialValue = self.initialValue            
             if callable(initialValue):
@@ -187,9 +127,10 @@ class AbstractSimpleAsn1Item(Asn1ItemBase):
                 return -1
         return cmp(self.rawAsn1Value, other.rawAsn1Value)
 
-    def __hash__(self):
-        return hash((self.rawAsn1Value, self.tagClass, self.tagFormat,
-                     self.tagId, self.tagCategory))
+    # XXX invalid?
+#    def __hash__(self):
+#        return hash((self.rawAsn1Value, self.tagClass, self.tagFormat,
+#                     self.tagId, self.tagCategory))
 
     def __nonzero__(self):
         if self.rawAsn1Value:
@@ -247,14 +188,14 @@ class AbstractSimpleAsn1Item(Asn1ItemBase):
     def getTerminal(self): return self
 
 class StructuredAsn1ItemBase(Asn1ItemBase):
-    tagFormat = (tagFormats['CONSTRUCTED'], )
+    tagSet = Asn1ItemBase.tagSet.clone(
+        tagFormat=tags.tagFormatConstructed
+        )
 
 class AbstractMappingAsn1Item(StructuredAsn1ItemBase):
     allowedTypes = ( Asn1Item, )
 
     def __init__(self):
-        if self.tagCategory == tagCategories['EXPLICIT']:
-            self._buildExplicitTags()
         self._components = {}
         
     def __repr__(self):
@@ -288,8 +229,6 @@ class AbstractMappingAsn1Item(StructuredAsn1ItemBase):
 
 class AbstractSequenceAsn1Item(StructuredAsn1ItemBase):
     def __init__(self, *args):
-        if self.tagCategory == tagCategories['EXPLICIT']:
-            self._buildExplicitTags()
         self._components = []
         if args:
             self.extend(args)

@@ -51,6 +51,10 @@ class MsgAndPduDispatcher:
             self.mibInstrController = mibInstrController
                           
         # Versions to subsystems mapping
+        {
+            rfc2576.snmpV1MessageProcessingModelId: 1,
+#            rfc2576.snmpV2cMessageProcessingModelId: 2
+        }
         self.messageProcessingSubsystems = {
             rfc2576.snmpV1MessageProcessingModelId:
             rfc2576.SnmpV1MessageProcessingModel(self.mibInstrController),
@@ -468,7 +472,7 @@ if __name__ == '__main__':
             raise "STOP"
 
     class AgentApplication(AbstractApplication):
-        pduTypes = ((rfc1157.Version().get(), rfc1157.GetRequestPdu().tagId),)
+        pduTypes = ((rfc1157.Version().get(), rfc1157.GetRequestPdu.tagSet),)
         def processPdu(self, dsp, **kwargs):
             print self, repr(kwargs)
 
