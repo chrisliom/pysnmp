@@ -64,7 +64,7 @@ class Boolean(base.AbstractSimpleAsn1Item):
 
 class Integer(base.AbstractSimpleAsn1Item):
     tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x02)
-    allowedTypes = ( IntType, LongType )
+    allowedTypes = ( IntType, LongType, StringType )
     initialValue = 0
     
     # Basic arithmetic ops
@@ -234,6 +234,19 @@ class Integer(base.AbstractSimpleAsn1Item):
     def __long__(self): return long(self.get())
 
     def __float__(self): return float(self.get())    
+
+    def _iconv(self, value):
+        if type(value) != StringType:
+            return value
+        try:
+            return atoi(value)
+        except:
+            try:
+                return atol(value)
+            except:
+                raise error.BadArgumentError(
+                    'Cant coerce %s into integer' % value
+                    )
 
 class BitString(base.AbstractSimpleAsn1Item):
     tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x03)
