@@ -33,6 +33,8 @@ class PduMixInBase:
 
     def apiAlphaGetTableIndices(self, rsp, *headerVars):
         varBindList = rsp.apiAlphaGetVarBindList()
+        if not varBindList:  # Shortcut for no-varbinds PDU
+            return [ [ -1 ] * len(headerVars) ]
         if len(varBindList) != len(headerVars):
             raise error.BadArgumentError(
                 'Unmatching table head & row size %s vs %s' %
