@@ -288,7 +288,8 @@ class BINDINGS(SNMPOBJECT):
     FILTER = { 'encoded_oids' :  ['OBJECTID'],
                'encoded_vals' :  ['NULL', 'INTEGER', 'OCTETSTRING',\
                                   'OBJECTID', 'IPADDRESS', 'COUNTER32',\
-                                  'UNSIGNED32', 'TIMETICKS', 'OPAQUE'] }
+                                  'UNSIGNED32', 'GAUGE32', 'TIMETICKS',\
+                                  'OPAQUE'] }
 
     def _filter(self, key, value):
         """

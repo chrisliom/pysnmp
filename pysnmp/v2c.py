@@ -143,8 +143,8 @@ class BINDINGS(BERHEADER, v1.BINDINGS):
     FILTER = { 'encoded_oids' :  ['OBJECTID'],
                'encoded_vals' :  ['NULL', 'INTEGER', 'OCTETSTRING',\
                                   'OBJECTID', 'IPADDRESS', 'COUNTER32',\
-                                  'UNSIGNED32', 'TIMETICKS', 'OPAQUE',\
-                                  'COUNTER64', 'noSuchObject', \
+                                  'UNSIGNED32', 'GAUGE32', 'TIMETICKS',\
+                                  'OPAQUE', 'COUNTER64', 'noSuchObject', \
                                   'noSuchInstance', 'endOfMibView'] }
 
 class RR_PDU(BERHEADER, v1.RR_PDU):
