@@ -12,12 +12,12 @@ import socket
 import role
 import v1, v2c
 
-class error(role.error):
+class Error(role.Error):
     """Base class for bulkrole module
     """
     pass
 
-class BadArgument(error):
+class BadArgument(Error):
     """Bad argument given
     """
     pass
