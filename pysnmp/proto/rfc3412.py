@@ -182,8 +182,8 @@ class MsgAndPduDispatcher:
         messageProcessingModel = kwargs.get(
             'messageProcessingModel', defaultMessageProcessingVersion
             )
-        mpHdl = self.messageProcessingSubsystems.get(messageProcessingModel)
-        if mpHdl is None:
+        mpHandler = self.messageProcessingSubsystems.get(messageProcessingModel)
+        if mpHandler is None:
             raise error.BadArgumentError(
                 'Unknown messageProcessingModel: %s' % messageProcessingModel
                 )
@@ -199,7 +199,7 @@ class MsgAndPduDispatcher:
         # 4.1.1.4 & 4.1.1.5
         try:
             mpOutParams = apply(
-                mpHdl.prepareOutgoingMessage, (), mpInParams
+                mpHandler.prepareOutgoingMessage, (), mpInParams
                 )
         except PySnmpError:
             if mpInParams.has_key('sendPduHandle'):
@@ -231,8 +231,8 @@ class MsgAndPduDispatcher:
         messageProcessingModel = kwargs.get(
             'messageProcessingModel', defaultMessageProcessingVersion
             )
-        mpHdl = self.messageProcessingSubsystems.get(messageProcessingModel)
-        if mpHdl is None:
+        mpHandler = self.messageProcessingSubsystems.get(messageProcessingModel)
+        if mpHandler is None:
             raise error.BadArgumentError(
                 'Unknown messageProcessingModel: %s' % messageProcessingModel
                 )
@@ -248,9 +248,12 @@ class MsgAndPduDispatcher:
             'messageProcessingModel': messageProcessingModel
             }
         mpInParams.update(kwargs)
-        mpOutParams = apply(
-            mpHdl.prepareResponseMessage, (), mpInParams
-            )
+        try:
+            mpOutParams = apply(
+                mpHandler.prepareResponseMessage, (), mpInParams
+                )
+        except error.ProtoError:
+            return
         
         # 4.1.2.4
         self.transportDispatcher.sendMessage(
@@ -272,13 +275,11 @@ class MsgAndPduDispatcher:
 
         # 4.2.1.2
         try:
-            self.__msgDemuxer.decodeItem(wholeMsg)
+            restOfMsg = self.__msgDemuxer.decodeItem(wholeMsg)
         except PySnmpError:
             snmpInAsn1ParseErrs, = self.mibInstrumController.mibBuilder.importSymbols('SNMPv2-MIB', 'snmpInAsn1ParseErrs')
             snmpInAsn1ParseErrs.syntax.inc(1)
-            raise MessageProcessingError(
-                'Message (ASN.1) parse error at %s' % self
-                )            
+            return ''  # n.b the whole buffer gets dropped
         messageProcessingModel = self.__msgDemuxer['version'].get()
         mpHandler = self.messageProcessingSubsystems.get(
             messageProcessingModel
@@ -288,19 +289,19 @@ class MsgAndPduDispatcher:
                 'SNMPv2-MIB', 'snmpInBadVersions'
                 )
             snmpInBadVersions.syntax.inc(1)
-            raise MessageProcessingError(
-                'Unsupported MP version %s at %s' %
-                (messageProcessingModel, self)
-                )
+            return restOfMsg
 
         # 4.2.1.3 -- no-op
 
         # 4.2.1.4
-        mpOutParams = mpHandler.prepareDataElements(
-            transportDomain=transportDomain,
-            transportAddress=transportAddress,
-            wholeMsg=wholeMsg
-            )        
+        try:
+            mpOutParams = mpHandler.prepareDataElements(
+                transportDomain=transportDomain,
+                transportAddress=transportAddress,
+                wholeMsg=wholeMsg
+                )
+        except error.ProtoError:
+            return restOfMsg        
 
         # 4.2.2
         if mpOutParams.get('sendPduHandle') is None:
@@ -331,11 +332,14 @@ class MsgAndPduDispatcher:
                     }
                 mpInParams.update(mpOutParams)
                 mpInParams['statusInformation'] = statusInformation
-                mpOutParams = apply(
-                    mpHandler.prepareResponseMessage, (), mpInParams
-                    )
-                if mpOutParams.get('result'):
-                    return
+                try:
+                    mpOutParams = apply(
+                        mpHandler.prepareResponseMessage, (), mpInParams
+                        )
+                except error.ProtoError:
+                    return restOfMsg
+                if mpOutParams.get('result'): # XXX need this?
+                    return restOfMsg
                 
                 # 4.2.2.1.2.c
                 try:
@@ -348,11 +352,11 @@ class MsgAndPduDispatcher:
                     pass
 
                 # 4.2.2.1.2.d
-                return
+                return restOfMsg
             else:
                 # 4.2.2.1.3
                 apply(app.processPdu, (self,), mpOutParams)
-                return
+                return restOfMsg
         else:
             # 4.2.2.2 (response)
             
@@ -363,7 +367,7 @@ class MsgAndPduDispatcher:
             if cachedParams is None:
                 snmpUnknownPDUHandlers, = self.mibInstrumController.mibBuilder.importSymbols('SNMP-MPD-MIB', 'snmpUnknownPDUHandlers')
                 snmpUnknownPDUHandlers.syntax.inc(1)
-                return
+                return restOfMsg
 
             # 4.2.2.2.3
             # no-op ? XXX
@@ -371,6 +375,8 @@ class MsgAndPduDispatcher:
             # 4.2.2.2.4
             apply(cachedParams['expectResponse'].processResponsePdu,
                   (self,), mpOutParams)
+
+            return restOfMsg
 
     # Cache expiration stuff
 
