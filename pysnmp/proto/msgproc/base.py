@@ -1,3 +1,4 @@
+# MP-specific cache management
 from pysnmp.proto.msgproc import error
 
 class AbstractMessageProcessingModel:
@@ -28,23 +29,28 @@ class AbstractMessageProcessingModel:
                 'Cache dup for stateReference=%s at %s' %
                 (stateReference, self)
                 )
-        self.__stateReferenceIndex[stateReference] = kwargs
+        expireAt = self.__expirationTimer+50
+        self.__stateReferenceIndex[stateReference] = ( kwargs, expireAt )
+
         # Schedule to expire
-        if self.__expirationQueue.has_key(self.__expirationTimer+50):
-            self.__expirationQueue[self.__expirationTimer+50].append(kwargs)
-        else:
-            self.__expirationQueue[self.__expirationTimer+50] = [ kwargs ]
+        if not self.__expirationQueue.has_key(expireAt):
+            self.__expirationQueue[expireAt] = {}
+        if not self.__expirationQueue[expireAt].has_key('stateReference'):
+            self.__expirationQueue[expireAt]['stateReference'] = {}
+        self.__expirationQueue[expireAt]['stateReference'][stateReference] = 1
         self.__expireCaches()
         
     def _cachePopByStateRef(self, stateReference):
-        cachedInfo = self.__stateReferenceIndex.get(stateReference)
-        if cachedInfo is None:
+        cacheInfo = self.__stateReferenceIndex.get(stateReference)
+        if cacheInfo is None:
             raise error.MessageProcessingModelError(
                 'Cache miss for stateReference=%s at %s' %
                 (stateReference, self)
                 )
         del self.__stateReferenceIndex[stateReference]
-        return cachedInfo
+        cacheEntry, expireAt = cacheInfo
+        del self.__expirationQueue[expireAt]['stateReference'][stateReference]
+        return cacheEntry
 
     # Client mode cache handling
 
@@ -53,25 +59,37 @@ class AbstractMessageProcessingModel:
             raise error.MessageProcessingModelError(
                 'Cache dup for msgId=%s at %s' % (msgId, self)
                 )
-        self.__msgIdIndex[msgId] = kwargs
+        expireAt = self.__expirationTimer+50
+        self.__msgIdIndex[msgId] = ( kwargs, expireAt )
+        
         # Schedule to expire
-        if self.__expirationQueue.has_key(self.__expirationTimer+50):
-            self.__expirationQueue[self.__expirationTimer+50].append(kwargs)
-        else:
-            self.__expirationQueue[self.__expirationTimer+50] = [ kwargs ]
+        if not self.__expirationQueue.has_key(expireAt):
+            self.__expirationQueue[expireAt] = {}
+        if not self.__expirationQueue[expireAt].has_key('msgId'):
+            self.__expirationQueue[expireAt]['msgId'] = {}
+        self.__expirationQueue[expireAt]['msgId'][msgId] = 1
         self.__expireCaches()
         
     def _cachePopByMsgId(self, msgId):
-        cachedInfo = self.__msgIdIndex.get(msgId)
-        if cachedInfo is None:
+        cacheInfo = self.__msgIdIndex.get(msgId)
+        if cacheInfo is None:
             raise error.MessageProcessingModelError(
                 'Cache miss for msgId=%s at %s' % (msgId, self)
                 )
         del self.__msgIdIndex[msgId]
-        return cachedInfo
+        cacheEntry, expireAt = cacheInfo
+        del self.__expirationQueue[expireAt]['msgId'][msgId]
+        return cacheEntry
 
     def __expireCaches(self):
         # Uses internal clock to expire pending messages
         if self.__expirationQueue.has_key(self.__expirationTimer):
+            cacheInfo = self.__expirationQueue[self.__expirationTimer]
+            if cacheInfo.has_key('stateReference'):
+                for stateReference in cacheInfo['stateReference']:
+                    del self.__stateReferenceIndex[stateReference]
+            if cacheInfo.has_key('msgId'):
+                for msgId in cacheInfo['msgId']:
+                    del self.__msgIdIndex[msgId]
             del self.__expirationQueue[self.__expirationTimer]
         self.__expirationTimer = self.__expirationTimer + 1
