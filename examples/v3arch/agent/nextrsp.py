@@ -1,40 +1,40 @@
 """Command Responder Application (GET PDU)"""
 from pysnmp.proto.rfc3412 import MsgAndPduDispatcher, AbstractApplication
-from pysnmp.proto.api import alpha
+from pysnmp.proto import omni
 from pysnmp.smi import error
 
 # PDU version to use
-versionId = alpha.protoVersionId1
-ver = alpha.protoVersions[versionId]
+versionId = omni.protoVersionId1
+ver = omni.protoVersions[versionId]
 
 class AgentApplication(AbstractApplication):
     pduTypes = (
-        (alpha.protoVersionId1, \
-         alpha.protoVersions[alpha.protoVersionId1].GetNextRequestPdu.tagSet),
-        (alpha.protoVersionId2c, \
-         alpha.protoVersions[alpha.protoVersionId2c].GetNextRequestPdu.tagSet),
+        (omni.protoVersionId1, \
+         omni.protoVersions[omni.protoVersionId1].GetNextRequestPdu.tagSet),
+        (omni.protoVersionId2c, \
+         omni.protoVersions[omni.protoVersionId2c].GetNextRequestPdu.tagSet),
         )
 
     def processPdu(self, msgAndPduDsp, **kwargs):
         # Make response PDU
         reqPdu = kwargs['PDU']
-        rspPdu = reqPdu.apiAlphaReply()
+        rspPdu = reqPdu.omniReply()
 
         # Pass read-next event to MIB instrumentation
         try:
             varBinds = apply(
                 msgAndPduDsp.mibInstrumController.readNextVars,
-                map(lambda x: x.apiAlphaGetOidVal(),
-                    reqPdu.apiAlphaGetVarBindList())
+                map(lambda x: x.omniGetOidVal(),
+                    reqPdu.omniGetVarBindList())
                 )
         except error.NoSuchInstanceError:
             # Out of MIB
-            rspPdu.apiAlphaSetEndOfMibIndices(1)
+            rspPdu.omniSetEndOfMibIndices(1)
         except error.SmiError:
-            rspPdu.apiAlphaSetErrorIndex(1)
-            rspPdu.apiAlphaSetErrorStatus('genError')
+            rspPdu.omniSetErrorIndex(1)
+            rspPdu.omniSetErrorStatus('genError')
         else:
-            apply(rspPdu.apiAlphaSetVarBindList, varBinds)
+            apply(rspPdu.omniSetVarBindList, varBinds)
                 
         # Send response
         msgAndPduDsp.returnResponsePdu(

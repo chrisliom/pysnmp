@@ -1,38 +1,38 @@
 """Command Responder Application (GET PDU)"""
 from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
 from pysnmp.carrier.asynsock.dgram.udp import UdpSocketTransport
-from pysnmp.proto.api import alpha
+from pysnmp.proto import omni
 
 def cbFun(tspDsp, transportDomain, transportAddress, wholeMsg):
-    metaReq = alpha.MetaMessage()
+    metaReq = omni.MetaMessage()
     while wholeMsg:
         wholeMsg = metaReq.decode(wholeMsg)
-        req = metaReq.apiAlphaGetCurrentComponent()
+        req = metaReq.omniGetCurrentComponent()
 
         # Build response from request object
-        rsp = req.apiAlphaReply()
+        rsp = req.omniReply()
 
         reportStr = '%s (version ID %s) from %s:%s: ' % (
-            req.apiAlphaGetPdu().apiAlphaGetPduType(),
-            req.apiAlphaGetProtoVersionId(),
+            req.omniGetPdu().omniGetPduType(),
+            req.omniGetProtoVersionId(),
             transportDomain, transportAddress
             )
     
         # Support only a single PDU type (but any proto version)
-        if req.apiAlphaGetPdu().apiAlphaGetPduType() == alpha.getRequestPduType:
+        if req.omniGetPdu().omniGetPduType() == omni.getRequestPduType:
             # Produce response var-binds
             varBinds = []
-            for varBind in req.apiAlphaGetPdu().apiAlphaGetVarBindList():
-                oid, val = varBind.apiAlphaGetOidVal()
-                version = val.apiAlphaGetProtoVersionId()
-                val = alpha.protoVersions[version].OctetString(
+            for varBind in req.omniGetPdu().omniGetVarBindList():
+                oid, val = varBind.omniGetOidVal()
+                version = val.omniGetProtoVersionId()
+                val = omni.protoVersions[version].OctetString(
                     '%s %s = %s' %  (reportStr, oid, val)
                     )
                 varBinds.append((oid, val))
-            apply(rsp.apiAlphaGetPdu().apiAlphaSetVarBindList, varBinds)
+            apply(rsp.omniGetPdu().omniSetVarBindList, varBinds)
         else:
             # Report unsupported request type
-            rsp.apiAlphaGetPdu().apiAlphaSetErrorStatus(5)
+            rsp.omniGetPdu().omniSetErrorStatus(5)
             print reportStr + 'unsupported request type'
 
     tspDsp.sendMessage(rsp.berEncode(), transportDomain, transportAddress)

@@ -1,33 +1,33 @@
 """Command Responder Application (GET PDU)"""
 from pysnmp.proto.rfc3412 import MsgAndPduDispatcher, AbstractApplication
-from pysnmp.proto.api import alpha
+from pysnmp.proto import omni
 
 # PDU version to use
-versionId = alpha.protoVersionId1
-ver = alpha.protoVersions[versionId]
+versionId = omni.protoVersionId1
+ver = omni.protoVersions[versionId]
 
 class AgentApplication(AbstractApplication):
     pduTypes = (
-        (alpha.protoVersionId1, \
-         alpha.protoVersions[alpha.protoVersionId1].GetRequestPdu.tagSet),
-        (alpha.protoVersionId2c, \
-         alpha.protoVersions[alpha.protoVersionId2c].GetRequestPdu.tagSet),
+        (omni.protoVersionId1, \
+         omni.protoVersions[omni.protoVersionId1].GetRequestPdu.tagSet),
+        (omni.protoVersionId2c, \
+         omni.protoVersions[omni.protoVersionId2c].GetRequestPdu.tagSet),
         )
 
     def processPdu(self, msgAndPduDsp, **kwargs):
         # Make response PDU
         reqPdu = kwargs['PDU']
-        rspPdu = reqPdu.apiAlphaReply()
+        rspPdu = reqPdu.omniReply()
 
         # Produce response var-binds
         varBinds = []
-        for varBind in reqPdu.apiAlphaGetVarBindList():
-            oid, val = varBind.apiAlphaGetOidVal()
-            val = alpha.protoVersions[kwargs['pduVersion']].OctetString(
+        for varBind in reqPdu.omniGetVarBindList():
+            oid, val = varBind.omniGetOidVal()
+            val = omni.protoVersions[kwargs['pduVersion']].OctetString(
                 'your value is %s' %  val
                 )
             varBinds.append((oid, val))
-        apply(rspPdu.apiAlphaSetVarBindList, varBinds)
+        apply(rspPdu.omniSetVarBindList, varBinds)
 
         # Send response
         msgAndPduDsp.returnResponsePdu(

@@ -1,10 +1,10 @@
 """Command Generator Application (GET)"""
 from pysnmp.proto.rfc3412 import MsgAndPduDispatcher
-from pysnmp.proto.api import alpha
+from pysnmp.proto import omni
 
 # PDU version to use
-versionId = alpha.protoVersionId1
-ver = alpha.protoVersions[versionId]
+versionId = omni.protoVersionId1
+ver = omni.protoVersions[versionId]
 
 msgAndPduDsp = MsgAndPduDispatcher()
 
@@ -24,9 +24,9 @@ msgAndPduDsp.mibInstrumController.writeVars(
 pdu = ver.TrapPdu()
 
 # Traps have quite different semantics among proto versions
-if pdu.apiAlphaGetProtoVersionId() == alpha.protoVersionId1:
-    pdu.apiAlphaSetEnterprise((1,3,6,1,1,2,3,4,1))
-    pdu.apiAlphaSetGenericTrap('coldStart')
+if pdu.omniGetProtoVersionId() == omni.protoVersionId1:
+    pdu.omniSetEnterprise((1,3,6,1,1,2,3,4,1))
+    pdu.omniSetGenericTrap('coldStart')
 
 msgAndPduDsp.sendPdu(
     transportDomain='udp', transportAddress=('127.0.0.1', 1162),
