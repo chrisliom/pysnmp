@@ -47,7 +47,6 @@ class telnet_engine(asynchat.async_chat):
 
         # Create async SNMP transport manager
         self.manager = asynrole.manager(self.request_done_fun)
-        self.manager.open()
         
         # A queue of pending requests
         self.pending = []
@@ -115,10 +114,10 @@ class telnet_engine(asynchat.async_chat):
         # In case of PySNMP exception, report it to user. Otherwise,
         # just pass the exception on.
         if type(exc_type) == ClassType and\
-           issubclass(exc_type, error.PySNMPError):
+           issubclass(exc_type, error.General):
             self.push('Exception: %s: %s\n' % (exc_type, exc_value))
         else:
-            raise
+            raise (exc_type, exc_value)
         
     def handle_close(self):
         """Invoked by asyncore on connection termination
@@ -207,7 +206,7 @@ class telnet_engine(asynchat.async_chat):
            reference to object instance that initiated this SNMP request
            alone with SNMP response message.
         """
-        if exp:
+        if exp[0] is not None:
             apply(self.handle_error, exp)
             return
             
