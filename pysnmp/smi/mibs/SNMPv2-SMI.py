@@ -138,9 +138,10 @@ class ObjectTypePattern(MibNodeBase):
         # whenever SNMP engine shares the same MIB for manager & agent roles
         if hasattr(self, 'syntaxClone'):
             return self.syntaxClone
-        elif hasattr(self, 'syntax'):
-            self.syntaxClone = self.syntax.clone()
-            return self.syntaxClone        
+        self.syntaxClone = self.getSyntax()
+        if self.syntaxClone is not None:
+            self.syntaxClone = self.syntaxClone.clone()
+        return self.syntaxClone
     def setSyntax(self, v):
         self.syntax = v
         return self
