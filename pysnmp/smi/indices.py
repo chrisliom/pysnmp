@@ -1,6 +1,7 @@
 """Ordered dictionaries classes used for indices"""
-from types import DictType
+from types import DictType, TupleType
 from string import join, split, atol
+from bisect import bisect
 
 try:
     from sys import version_info
@@ -117,9 +118,12 @@ class OidOrderedDict(OrderedDict):
 
     def __setitem__(self, key, value):
         if not self.__keysCache.has_key(key):
-            self.__keysCache[key] = map(
-                lambda x: atol(x), filter(None, split(key, '.'))
-                )
+            if type(key) == TupleType:
+                self.__keysCache[key] = key
+            else:
+                self.__keysCache[key] = map(
+                    lambda x: atol(x), filter(None, split(key, '.'))
+                    )
         OrderedDict.__setitem__(self, key, value)
 
         def __delitem__(self, key):
@@ -128,3 +132,11 @@ class OidOrderedDict(OrderedDict):
             OrderedDict.__delitem__(self, key)
         __delattr__ = __delitem__
 
+    def nextKey(self, key):
+        keys = self.keys()
+        if self.has_key(key):
+            nextIdx = keys.index(key) + 1            
+        else:
+            nextIdx = bisect(keys, key)
+        if nextIdx < len(keys):
+            return keys[nextIdx]
