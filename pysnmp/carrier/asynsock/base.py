@@ -10,22 +10,35 @@ from pysnmp.carrier import error
 class AbstractSocketTransport(asyncore.dispatcher):
     sockFamily = sockType = None
     retryCount = 0; retryInterval = 0
-    def __init__(self):
-        try:
-            s = socket.socket(self.sockFamily, self.sockType)
-        except socket.error, why:
-            raise error.CarrierError('socket() failed: %s' % why)
-        asyncore.dispatcher.__init__(self, s)
+    def __init__(self, sock=None, sockMap=None):
+        if sock is None:
+            try:
+                sock = socket.socket(self.sockFamily, self.sockType)
+            except socket.error, why:
+                raise error.CarrierError('socket() failed: %s' % why)
+        # Old asyncore doesn't allow socket_map param in constructor
+        if version_info < (2, 0):
+            # Taken from dispatcher.__init__()
+            self.socket = sock
+            self.add_channel(sockMap)
+            self.socket.setblocking(0)
+            self.connected = 1
+        else:
+            asyncore.dispatcher.__init__(self, sock, sockMap)
 
     # Old asyncore doesn't allow socket_map param
     if version_info < (2, 0):
-        def add_channel (self, map):
-            map[self] = self
+        def add_channel (self, sockMap=None):
+            if sockMap is None:
+                sockMap = asyncore.socket_map
+            sockMap[self] = self
 
-        def del_channel (self, map):
-            if map.has_key(self):
-                del map[self]
-        
+        def del_channel (self, sockMap=None):
+            if sockMap is None:
+                sockMap = asyncore.socket_map
+            if sockMap.has_key(self):
+                del sockMap[self]
+
     def registerSocket(self, sockMap=None):
         self.del_channel(sockMap)
         self.add_channel(sockMap)

@@ -7,9 +7,9 @@ from pysnmp.carrier import error
 class DgramSocketTransport(AbstractSocketTransport):
     sockType = SOCK_DGRAM
     retryCount = 3; retryInterval = 1
-    def __init__(self):
+    def __init__(self, sock=None, sockMap=None):
         self.__outQueue = []
-        AbstractSocketTransport.__init__(self)
+        AbstractSocketTransport.__init__(self, sock=None, sockMap=None)
         
     def openClientMode(self, iface=None):
         if iface is not None:
