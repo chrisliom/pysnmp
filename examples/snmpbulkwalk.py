@@ -189,7 +189,7 @@ while 1:
         # Make sure OIDs are increasing
         if chkIncOidFlag:
             bOids = filter(lambda (x, y): \
-                           snmp.ObjectIdentifier(x) > snmp.ObjectIdentifier(y),
+                           v2c.ObjectIdentifier(x) > v2c.ObjectIdentifier(y),
                            map(None, \
                                map(lambda x: x[0], vars), \
                                map(lambda x: x[0], \
