@@ -14,9 +14,9 @@ class MibBuilder:
         self.execContext = execContext
         self.mibSymbols = {}
         paths = (os.path.join(os.path.split(error.__file__)[0], 'mibs'),)
-        if os.getenv('PYSNMPMIBDIR'):
+        if os.environ.has_key('PYSNMPMIBDIR'):
             paths = paths + (
-                os.path.join(os.path.split(os.getenv('PYSNMPMIBDIR'))[0]),
+                os.path.join(os.path.split(os.environ['PYSNMPMIBDIR'])[0]),
                 )
         if pysnmp_mibs:
             paths = paths + (
