@@ -1,4 +1,4 @@
-1# ASN.1 named integers
+# ASN.1 named integers
 from  types import TupleType
 from pysnmp.asn1 import error
 
