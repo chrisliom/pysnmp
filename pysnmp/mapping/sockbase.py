@@ -1,4 +1,4 @@
-import asyncore, socket
+import asyncore, socket, sys
 from pysnmp.mapping.tranbase import TransportDomainBase
 from pysnmp.mapping import error
 
@@ -14,7 +14,7 @@ class SocketBase(TransportDomainBase, asyncore.dispatcher):
         try:
             s = socket.socket(self.sockFamily, self.sockType)
         except socket.error, why:
-            raise error.NetworkError('socket() failed: ' + why)
+            raise error.NetworkError('socket() failed: %s' % why)
         else:
             asyncore.dispatcher.__init__(self, s, \
                                          transportDispatcher.socketMap)
@@ -31,7 +31,7 @@ class SocketBase(TransportDomainBase, asyncore.dispatcher):
     def handle_close(self): self.transportDomainClose()
 
     def handle_error(self, *args):
-        self.__appCbFun((self, None), sys.exc_info())
+        self._appCbFun((self, None), sys.exc_info())
 
     def getTimeout(self): return self.timeout
     def getRetries(self): return self.retries
