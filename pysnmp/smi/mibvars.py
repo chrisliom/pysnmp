@@ -89,23 +89,13 @@ class MibVariables:
             )
 
 if __name__ == '__main__':
-    from pysnmp.smi.backend.libsmi import MibTree
     from pysnmp.smi.node import MibType
-
-    t = MibTree()
-    
-    from pysnmp.proto import rfc1902
-    for typeName in rfc1902.__all__:
-        t.registerType(MibType(module='SNMPv2-SMI', name=typeName,
-                               syntax=getattr(rfc1902, typeName)()))
-
-    t.modImport('IF-MIB')
 
     class SysDescrMibVariable(AbstractMibVariable):
         initialName = 'sysDescr'
         def handleRead(self, name, val=None):
             return 'mysys'
             
-    mv = MibVariables(t)
+    mv = MibVariables()
     mv.registerVariables(SysDescrMibVariable())
     print mv.readVariable('.1.3.6.1.2.1.1.1')

@@ -87,10 +87,3 @@ class AbstractMibTree:
     def unregisterType(self, typeNode):
         """Unregister  MibType object (or derivative)"""
         pass
-
-def getMibTree(*modNames):
-    mibPackage =  map(os.path.normpath, map(
-        lambda x: os.path.join(x, 'pysnmp', 'smi', 'backend'),
-        sys.path))
-
-    
