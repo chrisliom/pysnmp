@@ -44,29 +44,35 @@ class MibViewController:
                 if type(v) == ClassType:
                     if mibMod['typeToModIdx'].has_key(n):
                         raise error.SmiError(
-                            'Duplicate SMI type %r at module %r' % \
-                            (n, modName)
+                            'Duplicate SMI type %s::%s, has %s' % \
+                            (modName, n, mibMod['typeToModIdx'][n])
                             )
-                    globMibMod['typeToModIdx'][n] = mibMod['typeToModIdx'][n] = modName
+                    if not globMibMod['typeToModIdx'].has_key(n):
+                        globMibMod['typeToModIdx'][n] = modName
+                    mibMod['typeToModIdx'][n] = modName
                 elif type(v) == InstanceType:
                     if mibMod['varToNameIdx'].has_key(n):
                         raise error.SmiError(
-                            'Duplicate MIB variable %r at module %r' % \
-                            (n, modName)
+                            'Duplicate MIB variable %s::%s has %s' % \
+                            (modName, n, mibMod['varToNameIdx'][n])
                             )
-                    
-                    globMibMod['varToNameIdx'][n] = mibMod['varToNameIdx'][n] = v.name
-                    globMibMod['oidToModIdx'][v.name] = mibMod['oidToModIdx'][v.name] = modName
-                    if globMibMod['oidToLabelIdx'].has_key(v.name):
-                        raise error.SmiError(
-                            'Duplicate MIB variable name %r at module %r' % \
-                            (v.name, modName)
-                            )
-                    globMibMod['oidToLabelIdx'][v.name] = mibMod[
-                        'oidToLabelIdx'][v.name] = (n, )
+                    if not globMibMod['varToNameIdx'].has_key(n):
+                        globMibMod['varToNameIdx'][n] = v.name
+                    mibMod['varToNameIdx'][n] = v.name
+                    if not globMibMod['oidToModIdx'].has_key(v.name):
+                        globMibMod['oidToModIdx'][v.name] = modName
+                    mibMod['oidToModIdx'][v.name] = modName
+                    if not globMibMod['oidToLabelIdx'].has_key(v.name):
+                        globMibMod['oidToLabelIdx'][v.name] = (n, )
+                    mibMod['oidToLabelIdx'][v.name] = (n, )
+# XXX complain
+#                         raise error.SmiError(
+#                             'Duplicate MIB variable name %s::%s has %s' % 
+#                             (modName, v.name, globMibMod['oidToLabelIdx'][v.name])
+#                             )
                 else:
                     raise error.SmiError(
-                        'Unexpected object %r at %r' % (n, modName)
+                        'Unexpected object %s::%s' % (modName, n)
                         )
             
         # Build oid->long-label index
@@ -276,11 +282,11 @@ if __name__ == '__main__':
 
     mibBuilder = MibBuilder().loadModules()
     mibView = MibViewController(mibBuilder)
-    print mibView.getNodeName('iso')
+#    print mibView.getNodeName('iso')
 #    print mibView.getNodeName('sysDescr')
 #    print mibView.getNodeName('sysObjectID', 'SNMPv2-MIB')
 #    print mibView.getNodeName((1, 3, 6, 1, 2, 1, 1, 3))
-#    print mibView.getNodeName((1, 3, 6, 1, 2, 1, 1, 'sysContact'))
+    print mibView.getNodeName((1, 3, 6, 1, 2, 1, 1, 'sysContact'))
 
     print 'MIB tree traversal'
     
