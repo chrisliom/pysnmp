@@ -29,9 +29,9 @@ class AgentApplication(AbstractApplication):
                 )
         except error.NoSuchInstanceError:
             # Out of MIB
-            rspPdu.apiAlphaSetEndOfMibIndices(0)
+            rspPdu.apiAlphaSetEndOfMibIndices(1)
         except error.SmiError:
-            rspPdu.apiAlphaSetErrorIndex(0)
+            rspPdu.apiAlphaSetErrorIndex(1)
             rspPdu.apiAlphaSetErrorStatus('genError')
         else:
             apply(rspPdu.apiAlphaSetVarBindList, varBinds)
