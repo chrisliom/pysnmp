@@ -3,7 +3,7 @@ __all__ = [ 'Boolean', 'Integer', 'BitString', 'OctetString', 'Null', \
             'ObjectIdentifier', 'Real', 'Enumerated', 'Sequence', \
             'SequenceOf', 'Set', 'SetOf', 'Choice' ]
 
-import string, sys
+import string
 from string import join, split, find, atol
 from operator import getslice
 from types import IntType, LongType, StringType, NoneType, FloatType,  \
@@ -267,7 +267,7 @@ class OctetString(base.AbstractSimpleAsn1Item):
     __rmul__ = __mul__
 
     # They won't be defined if version is at least 2.0 final
-    if sys.version_info < (2, 0):
+    if base.version_info < (2, 0):
         def __getslice__(self, i, j):
             return self[max(0, i):max(0, j):]
 
@@ -306,7 +306,7 @@ class ObjectIdentifier(base.AbstractSimpleAsn1Item):
                               self.get())
 
     # They won't be defined if version is at least 2.0 final
-    if sys.version_info < (2, 0):
+    if base.version_info < (2, 0):
         def __getslice__(self, i, j):
             return self[max(0, i):max(0, j):]
 
@@ -462,7 +462,7 @@ class Set(base.AbstractMappingAsn1Item):
         protoValue = self.protoComponents.get(key, None)
         if protoValue is None:
             raise error.BadArgumentError(
-                'No such key %r at %r' %
+                'No such key %s at %s' %
                 (key, self.__class__.__name__)
             )
         if protoValue.isSubtype(value):
@@ -470,7 +470,7 @@ class Set(base.AbstractMappingAsn1Item):
             self._components[key] = value
         else:
             raise error.BadArgumentError(
-                'Unexpected component type %r at %r' %
+                'Unexpected component type %s at %s' %
                 (value.__class__.__name__, self.__class__.__name__)
             )
 
@@ -498,7 +498,7 @@ class Choice(base.AbstractMappingAsn1Item):
                 self.update(kwargs)
             else:
                 raise error.BadArgumentError(
-                    'Too many components given at %r' % self
+                    'Too many components given at %s' % self
                 )
         else:
             key = self.initialComponentKey
@@ -521,7 +521,7 @@ class Choice(base.AbstractMappingAsn1Item):
         protoValue = self.protoComponents.get(key, None)
         if protoValue is None:
             raise error.BadArgumentError(
-                'No such key %r at %r' %
+                'No such key %s at %s' %
                 (key, self.__class__.__name__)
             )
         if protoValue.isSubtype(value):
@@ -530,7 +530,7 @@ class Choice(base.AbstractMappingAsn1Item):
             self._components[key] = value
         else:
             raise error.BadArgumentError(
-                'Unregistered component %r at %r' %
+                'Unregistered component %s at %s' %
                 (value.__class__.__name__, self.__class__.__name__)
             )
 
