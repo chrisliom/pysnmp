@@ -280,7 +280,7 @@ class telnet_engine(asynchat.async_chat):
         if rsp.apiGenGetPdu().apiGenGetErrorStatus():
             errorIndex = rsp.apiGenGetPdu().apiGenGetErrorIndex() - 1
             errorStatus = str(rsp['pdu'].values()[0]['error_status'])
-            self.push(ErrorStatus)
+            self.push(errorStatus)
             if errorIndex < len(vars):
                 self.push(' at ' + str(vars[errorIndex][0]))
 
