@@ -446,7 +446,11 @@ class MibTableColumn(MibTree):
                 'Uninitialized column syntax at %r' % (self)
                 )
         return self.columnInitializer
-    
+
+    def getSyntax(self):
+        if self.columnInitializer is not None:
+            return getattr(self.columnInitializer, 'syntax', None)
+        
     # Column creation (this should probably be converted into some state
     # machine for clarity). Also, it might be a good idea to inidicate
     # defaulted cols creation in a clearer way than just a val == None.
