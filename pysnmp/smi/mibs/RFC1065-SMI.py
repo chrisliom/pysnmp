@@ -23,7 +23,7 @@ experimental = MibIdentifier(internet.name + (3,))
 private = MibIdentifier(internet.name + (4,))
 enterprises = MibIdentifier(private.name + (1,))
 
-ObjectName = MibIdentifier()
+ObjectName = rfc1155.ObjectName
 
 NetworkAddress = rfc1155.NetworkAddress
 IpAddress = rfc1155.IpAddress
