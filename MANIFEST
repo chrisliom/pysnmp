@@ -8,7 +8,6 @@ examples/snmpbulk.py
 examples/snmpbulkwalk.py
 examples/snmpget.py
 examples/snmpset.py
-examples/snmptable.py
 examples/snmptrap.py
 examples/snmptrapd.py
 examples/snmpwalk.py
