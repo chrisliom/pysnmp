@@ -338,7 +338,7 @@ class TAddress(TextualConvention, OctetString):
         )
 
 mibBuilder.exportSymbols(
-    modName, TextualConvention=TextualConvention, DisplayString=DisplayString,
+    'SNMPv2-TC', TextualConvention=TextualConvention, DisplayString=DisplayString,
     PhysAddress=PhysAddress, MacAddress=MacAddress, TruthValue=TruthValue,
     TestAndIncr=TestAndIncr, AutonomousType=AutonomousType,
     InstancePointer=InstancePointer, VariablePointer=VariablePointer,

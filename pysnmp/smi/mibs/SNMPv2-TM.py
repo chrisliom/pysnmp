@@ -46,7 +46,7 @@ rfc1157Proxy = MibIdentifier(snmpProxys.name + (1,))
 rfc1157Domain = MibIdentifier(rfc1157Proxy.name + (1,))
 
 mibBuilder.exportSymbols(
-    modName, snmpv2tm=snmpv2tm, snmpUDPDomain=snmpUDPDomain,
+    'SNMPv2-TM', snmpv2tm=snmpv2tm, snmpUDPDomain=snmpUDPDomain,
     snmpCLNSDomain=snmpCLNSDomain, snmpCONSDomain=snmpCONSDomain,
     SnmpOSIAddress=SnmpOSIAddress, snmpDDPDomain=snmpDDPDomain,
     SnmpNBPAddress=SnmpNBPAddress, snmpIPXDomain=snmpIPXDomain,
