@@ -366,7 +366,7 @@ class BINDINGS(SNMPOBJECT):
 
             # Nothing should left out
             if binding:
-                raise TypeError('Trailing garbage in binding: %s' % str(binding))
+                raise TypeError('Trailing garbage in binding: %s' % repr(binding))
         return rest
 
 class RR_PDU(SNMPOBJECT):
@@ -579,7 +579,7 @@ class RROBJECT:
 
         # Decode PDU
         if self.pdu.decode(self.msg['pdu']):
-            raise BadEncoding('Trailing garbage in PDU: '+ str(garbage))
+            raise BadEncoding('Trailing garbage in PDU: '+ repr(garbage))
 
         if self.pdu['tag'] != self.__class__.__name__:
             raise BadPDUType('Unmatched PDU type: %s vs %s' % \
@@ -588,7 +588,7 @@ class RROBJECT:
 
         # Decode variables bindings
         if self.bindings.decode(self.pdu['bindings']):
-            raise BadEncoding('Trailing garbage in bindings: ' + str(garbage))
+            raise BadEncoding('Trailing garbage in bindings: ' + repr(garbage))
 
         return rest
 
