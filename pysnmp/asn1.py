@@ -1,767 +1,378 @@
 """
-   Basic Encoding Rules (BER) for fundamental and non-structured SNMP
-   application specific ASN.1 data types.
+   A framework for implementing ASN.1 data types. Fundamental and
+   non-structured SNMP-specific objects included.
 
    Written by Ilya Etingof <ilya@glas.net>, 1999-2002.
-
-   This code is partially derived from Simon Leinen's <simon@switch.ch>
-   BER Perl module.
 """
-import string
+# Module public names
+__all__ = [ 'SimpleAsn1Object', 'StructuredAsn1Object' ]
 
-# Import package components
+from types import InstanceType
 import error
 
-class Error(error.Generic):
-    """Base class for asn1 module exceptions
-    """
-    pass
+tagClasses = { 
+    'UNIVERSAL'          : 0x00,
+    'APPLICATION'        : 0x40,
+    'CONTEXT'            : 0x80,
+    'PRIVATE'            : 0xC0
+    }
 
-class UnknownTag(Error):
-    """Unknown BER tag
-    """
-    pass
+tagFormats = {
+    'SIMPLE'             : 0x00,
+    'CONSTRUCTED'        : 0x20
+    }
 
-class OverFlow(Error):
-    """Data item does not fit the packet
+class Asn1Object:
+    """Base class for all ASN.1 object.
     """
-    pass
-
-class UnderRun(Error):
-    """Short BER data stream
-    """
-    pass
-
-class BadEncoding(Error):
-    """Incorrect BER encoding
-    """
-    pass
-
-class TypeError(Error):
-    """ASN.1 data type incompatibility
-    """
-    pass
-
-class BadArgument(Error):
-    """Malformed argument
-    """
-    pass
-
-class BERHEADER:
-    """BER packet header encoders & decoders
-    """
-    # BER class types
-    CLASS = { 
-        'UNIVERSAL'          : 0x00,
-        'APPLICATION'        : 0x40,
-        'CONTEXT'            : 0x80,
-        'PRIVATE'            : 0xC0,
-        }
-
-    # BER format types
-    FORMAT = {
-        'SIMPLE'             : 0x00,
-        'CONSTRUCTED'        : 0x20
-        }
+    #
+    # ASN.1 tags
+    #
+    tagClass = tagClasses['UNIVERSAL']
+    tagFormat = None
+    tagId = None
+    tagCategory = 'IMPLICIT'
     
-    # BER tags for various ASN.1 data types
-    TAGS = {
-        # Primitive ASN.1 types tags
-        'BOOLEAN'            : 0x00 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
-        'INTEGER'            : 0x02 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
-        'BITSTRING'          : 0x03 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
-        'OCTETSTRING'        : 0x04 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
-        'NULL'               : 0x05 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
-        'OBJECTID'           : 0x06 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
-        'SEQUENCE'           : 0x10 | FORMAT['CONSTRUCTED'] | CLASS['UNIVERSAL'],
-        'SET'                : 0x11 | FORMAT['CONSTRUCTED'] | CLASS['UNIVERSAL'],
-        # Primitive SNMP application specific tags
-        'IPADDRESS'          : 0x00 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
-        'COUNTER32'          : 0x01 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
-        'GAUGE32'            : 0x02 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
-        'TIMETICKS'          : 0x03 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
-        'OPAQUE'             : 0x04 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
-        'NSAPADDRESS'        : 0x05 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
-        'COUNTER64'          : 0x06 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
-        'UNSIGNED32'         : 0x07 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
-        # SNMP v.2 exception tags
-        'noSuchObject'       : 0x00 | FORMAT['SIMPLE'] | CLASS['CONTEXT'],
-        'noSuchInstance'     : 0x01 | FORMAT['SIMPLE'] | CLASS['CONTEXT'],
-        'endOfMibView'       : 0x02 | FORMAT['SIMPLE'] | CLASS['CONTEXT']
-        }
+    #
+    # Argument type constraint
+    #
+    allowedTypes = []
 
-    def encode_tag(self, name):
-        """
-           encode_tag(name) -> octet stream
-           
-           Encode ASN.1 data item (specified by name) into its numeric
-           representation.
-        """
-        # Lookup the tag ID by name
-        if self.TAGS.has_key(name):
-            return '%c' % self.TAGS[name]
-    
-        raise UnknownTag('Unknown tag: ' + name)
+    #
+    # Subtyping stuff
+    #
 
-    def encode_length(self, length):
+    # A list of permitted values
+    singleValueConstraint = []
+
+    # A list of classes representing contained subtypes
+    containedSubtypeConstraint = []
+
+    # A tuple of (min, max) of allowed value
+    valueRangeConstraint = ()
+
+    # A tuple of (min, max) of allowed size of value
+    sizeConstraint = ()
+
+    # A list of permitted character values
+    permittedAlphabetConstraint = []
+
+    # Hmm, crunchy so far
+    innerSubtypeConstraint = {}
+
+    def _subtype_single_value_constraint(self, value):
+        """Particular subtype constraint checking method
         """
-           encode_length(length) -> octet string
-           
-           Encode ASN.1 data item length (integer) into octet stream
-           representation.
+        if self.singleValueConstraint:
+            if value not in self.singleValueConstraint:
+                raise error.BadArgumentError('Single value constraint for %s: %s not within allowed values' % (self.__class__.__name__, str(value)))
+
+    def _subtype_single_value_constraint_na(self, value):
         """
-        # If given length fits one byte
-        if length < 0x80:
-            # Pack it into one octet
-            return '%c' % length
+        """
+        if self.singleValueConstraint:
+            raise error.BadArgumentError('Single value constraint not applicible to %s' % self.__class__.__name__)
+
+    def _subtype_contained_subtype_constraint(self, value):
+        """Particular subtype constraint checking method
+        """
+        if self.containedSubtypeConstraint:
+            for subType in self.containedSubtypeConstraint:
+                # Attempt to instantiate contained subtype with our value
+                subType(value)
+
+    def _subtype_contained_subtype_constraint_na(self, value):
+        """
+        """
+        if self.containedSubtypeConstraint:
+            raise error.BadArgumentError('Contained subtype constraint not applicible to %s' % self.__class__.__name__)
+
+    def _subtype_value_range_constraint(self, value):
+        """Particular subtype constraint checking method
+        """
+        if self.valueRangeConstraint:
+            if value < self.valueRangeConstraint[0] or \
+               value > self.valueRangeConstraint[1]:
+                raise error.BadArgumentError('Value range constraint for %s: %s not in %s' % (self.__class__.__name__, str(value), str(self.valueRangeConstraint)))
+
+    def _subtype_value_range_constraint_na(self, value):
+        """
+        """
+        if self.valueRangeConstraint:
+            raise error.BadArgumentError('Value range constraint not applicible to %s' % self.__class__.__name__)
+
+    def _subtype_size_constraint(self, value):
+        """Particular subtype constraint checking method
+        """
+        if self.sizeConstraint:
+            if len(value) < self.sizeConstraint[0] or \
+               len(value) > self.sizeConstraint[1]:
+                raise error.BadArgumentError('Value size constraint for %s: %s not in %s' % (self.__class__.__name__, str(value), str(self.sizeConstraint)))
+
+    def _subtype_size_constraint_na(self, value):
+        """
+        """
+        if self.sizeConstraint:
+            raise error.BadArgumentError('Size constraint not applicible to %s' % self.__class__.__name__)
+
+    def _subtype_permitted_alphabet_constraint(self, value):
+        """Particular subtype constraint checking method
+        """
+        if self.permittedAlphabetConstraint:
+            if value not in self.permittedAlphabetConstraint:
+                raise error.BadArgumentError('Permitted alphabet constraint for %s: %s out of alphabet' % (self.__class__.__name__, str(value)))
+
+    def _subtype_permitted_alphabet_constraint_na(self, value):
+        """
+        """
+        if self.permittedAlphabetConstraint:
+            raise error.BadArgumentError('Permitted alphabet constraint not applicible to %s' % self.__class__.__name__)
+
+    def _subtype_inner_subtype_constraint(self, value):
+        """Particular subtype constraint checking method XXX
+        """
+        pass
+
+    def _subtype_inner_subtype_constraint_na(self, value):
+        """
+        """
+        if self.innerSubtypeConstraint:
+            raise error.BadArgumentError('Inner subtype constraint not applicible to %s' % self.__class__.__name__)
+
+    def _subtype_constraint(self, value):
+        """All constraints checking method
+        """
+        self._subtype_single_value_constraint(value)
+        self._subtype_contained_subtype_constraint(value)
+        self._subtype_value_range_constraint(value)
+        self._subtype_size_constraint(value)
+        self._subtype_permitted_alphabet_constraint(value)
+        self._subtype_inner_subtype_constraint(value)
         
-        # One extra byte required
-        elif length < 0xFF:
-            # Pack it into two octets
-            return '%c%c' % (0x81, length)
-        
-        # Two extra bytes required
-        elif length < 0xFFFF:
-            # Pack it into three octets
-            return '%c%c%c' % (0x82, \
-                               (length >> 8) & 0xFF, \
-                               length & 0xFF)
-        
-        # Three extra bytes required
-        elif length < 0xFFFFFF:
-            # Pack it into three octets
-            return '%c%c%c%c' % (0x83, \
-                                 (length >> 16) & 0xFF, \
-                                 (length >> 8) & 0xFF, \
-                                 length & 0xFF)
-        
-        # More octets may be added
+    def _type_constraint(self, value):
+        """
+        """
+        if self.allowedTypes and type(value) not in self.allowedTypes:
+            raise error.BadArgumentError('Value type constraint for %s: %s not in %s' % (self.__class__.__name__, type(value), str(self.allowedTypes)))
+
+    def get_underling_tag(self):
+        """
+        """
+        for superClass in self.__class__.__bases__:
+            if issubclass(self.__class__, superClass):
+                break
         else:
-            raise OverFlow('Too large length: ' + str(length))
+            raise error.BadArgumentError('No underling type for %s' % self.__class__.__name__)
 
-    def decode_tag(self, tag):
-        """
-           decode_tag(tag) -> name
-           
-           Decode a tag (octet) into symbolic representation of ASN.1 data
-           item type tag.
-        """
-        # Lookup tag in the dictionary of known tags
-        for key in self.TAGS.keys():
-            if tag == self.TAGS[key]:
-                return key
-            
-        raise UnknownTag('Unknown tag: ' + repr(tag))
-
-    def decode_length(self, input):
-        """
-           decode_length(input) -> (length, size)
-           
-           Return the data item's length (integer) and the size of length
-           data (integer).
-        """
-        try:
-            # Get the most-significant-bit
-            msb = ord(input[0]) & 0x80
-            if not msb:
-                return (ord(input[0]) & 0x7F, 1)
-
-            # Get the size if the length
-            size = ord(input[0]) & 0x7F
-
-            # One extra byte length
-            if msb and size == 1:
-                return (ord(input[1]), size+1)
-            
-            # Two extra bytes length
-            elif msb and size == 2:
-                result = ord(input[1])
-                result = result << 8
-                return (result | ord(input[2]), size+1)
-
-            # Two extra bytes length
-            elif msb and size == 3:
-                result = ord(input[1])
-                result = result << 8
-                result = result | ord(input[2])
-                result = result << 8
-                return (result | ord(input[3]), size+1)
-
-            else:
-                raise OverFlow('Too many length bytes: ' + str(size))
-
-        except StandardError, why:
-            raise BadEncoding('Malformed input: ' + str(why))
-
-
-#
-# ASN.1 object classes
-#
-
-class ASN1OBJECT(BERHEADER):
+        return (superClass.tagClass, superClass.tagFormat, superClass.tagId)
+    
+class SimpleAsn1Object(Asn1Object):
+    """Base class for a simple ASN.1 object. Defines behaviour and
+       properties of various non-structured ASN.1 objects.
     """
-       Basic ASN.1 object. Defines behaviour and properties of
-       various ASN.1 objects.
-    """
+    tagFormat = tagFormats['SIMPLE']
+    tagId = 0x00
+    initialValue = None
+
+    # Disable not applicible constraints
+    _subtype_inner_subtype_constraint = Asn1Object._subtype_inner_subtype_constraint_na    
+    
     def __init__(self, value=None):
         """Store ASN.1 value
         """
-        self.value = None
-        self.update(value)
+        self.set(value)
 
     def __str__(self):
         """Return string representation of class instance
         """
-        return '%s: %s' % (self.__class__.__name__, str(self.value))
+        if self.value == self.initialValue:
+            return '%s: %s' % (self.__class__.__name__, str(self.value))
+        else:
+            return '%s: %s' % (self.__class__.__name__, str(self.get()))
 
     def __repr__(self):
         """Return native representation of instance payload
         """
-        return self.__class__.__name__ + '(' + repr(self.value) + ')'
-
-    def __call__(self):
-        """Return instance payload
-        """
-        if self.value is None:
-            raise BadArgument('Uninitialized object payload')
-        
-        return self.value
+        if self.value == self.initialValue:
+            return self.__class__.__name__ + '()'
+        else:
+            return self.__class__.__name__ + '(' + repr(self.get()) + ')'
 
     def __cmp__(self, other):
         """Attempt to compare the payload of instances of the same class
         """
-        try:
+        if type(other) == InstanceType:
+            if not isinstance(other, SimpleAsn1Object):
+                raise errorBadArgument('Incompatible types for comparation %s with %s' % (self.__class__.__name__, str(other)))
+            other = self.__class__(other.get())
+        else:
+            other = self.__class__(other)
+        if hasattr(self, '_cmp'):
             return self._cmp(other)
-
-        except AttributeError:
-            pass
-
-        except StandardError, why:
-            raise TypeError('Cannot compare %s vs %s: %s'\
-                            % (str(self), str(other), why))
-
-        return cmp(self.value, other)
-
-    def update(self, value):
-        """
+        else:
+            return cmp(self.value, other.value)
+        
+    #
+    # Simple ASN.1 object protocol definition
+    #
+    
+    def set(self, value):
+        """Set a value to object
         """
         if value is None:
+            self.value = self.initialValue
             return
-        
-        if hasattr(self, '_range'):
-            try:
-                if self._range(value):
-                    raise OverFlow('Value %s does not fit the %s type' \
-                                   % (str(value), self.__class__.__name__))
 
-            except StandardError, why:
-                raise TypeError('Cannot range check value %s: %s'\
-                                % (str(value), why))
-            
+        if hasattr(self, '_iconv'):
+            value = self._iconv(value)
+        
+        if hasattr(self, '_type_constraint'):
+            self._type_constraint(value)
+
+        if hasattr(self, '_subtype_constraint'):
+            self._subtype_constraint(value)
+
         self.value = value
 
-    def encode(self, value=None):
+    def get(self):
+        """Get a value from object
         """
-            encode() -> string
-            
-            BER encode object payload whenever possible
-        """
-        self.update(value)
+        if hasattr(self, '_oconv'):
+            return self._oconv(self.value)
         
-        try:
-            result = self._encode()
-
-            return self.encode_tag(self.__class__.__name__) + \
-                   self.encode_length(len(result)) + result
-
-        except AttributeError:
-            raise TypeError('No encoder defined for %s object' %\
-                            self.__class__.__name__)
-
-        except StandardError, why:
-            raise BadArgument('Encoder failure (bad input?): ' + str(why))
-    
-    def decode(self, input):
-        """
-            decode(input) -> (value, rest)
-            
-            BER decode input (string) into ASN1 object payload, return
-            the rest of input stream.
-        """
-        try:
-            tag = self.decode_tag(ord(input[0]))
-
-            if tag != self.__class__.__name__:
-                raise TypeError('Type mismatch: %s vs %s' %\
-                                (self.__class__.__name__, tag))
-            
-            (length, size) = self.decode_length(input[1:])
-
-            if len(input) < length:
-                raise UnderRun('Short input')
-
-            self.update(self._decode(input[1+size:1+size+length]))
-            
-            return (self.value, input[1+size+length:])
-
-        except AttributeError:
-            raise TypeError('No decoder defined for %s object' %\
-                            self.__class__.__name__)
-
-        except StandardError, why:
-            raise BadEncoding('Decoder failure (bad input?): '\
-                                    + str(why))
-    
-class INTEGER(ASN1OBJECT):
-    """An ASN.1, indefinite length integer object
-    """
-    def __init__(self, value=None):
-        """Invoke base class constructor and install specific defaults
-        """
-        ASN1OBJECT.__init__(self, value)
-
-    def _encode(self):
-        """
-           _encode() -> octet stream
-           
-           Encode tagged integer into octet stream.
-        """
-        result = ''
-        integer = self.value
-        
-        # The 0 and -1 values need to be handled separately since
-        # they are the terminating cases of the positive and negative
-        # cases repectively.
-        if integer == 0:
-            result = '\000'
-            
-        elif integer == -1:
-            result = '\377'
-            
-        elif integer < 0:
-            while integer <> -1:
-                (integer, result) = integer>>8, chr(integer & 0xff) + result
-                
-            if ord(result[0]) & 0x80 == 0:
-                result = chr(0xff) + result
-        else:
-            while integer > 0:
-                (integer, result) = integer>>8, chr(integer & 0xff) + result
-                
-            if (ord(result[0]) & 0x80 <> 0):
-                result = chr(0x00) + result
-
-        return result
-
-    def _decode(self, input):
-        """
-           _decode(input)
-           
-           Decode octet stream into signed ASN.1 integer (of any length).
-        """
-        bytes = map(ord, input)
-
-        if bytes[0] & 0x80:
-            bytes.insert(0, -1L)
-
-        result = reduce(lambda x,y: x<<8 | y, bytes, 0L)
-
-        try:
-            return int(result)
-
-        except OverflowError:
-            return result
-
-class UNSIGNED32(INTEGER):
-    """ASN.1 UNSIGNED32 object
-    """
-    def __init__(self, value=None):
-        """
-           Invoke base class constructor and install specific defaults
-        """
-        INTEGER.__init__(self, value)
-
-    def _decode(self, input):
-        """
-           _decode(input)
-           
-           Decode octet stream into unsigned ASN.1 integer (of any length).
-        """
-        bytes = map(ord, input)
-
-        if bytes[0] & 0x80:
-            bytes.insert(0, 0xffffffffL)
-
-        res = reduce(lambda x,y: x<<8 | y, bytes, 0L)
-
-        # Attempt to return int whenever possible
-        try:
-            return int(res)
-
-        except OverflowError:
-            return res
-
-    def _range(self, value):
-        """
-        """
-        return value < 0 or value & ~0xffffffffL
-
-class TIMETICKS(UNSIGNED32):
-    """ASN.1 TIMETICKS object
-    """
-    pass
-
-class UPTIME(UNSIGNED32):
-    """ASN.1 UPTIME object
-    """
-    pass
-
-class COUNTER32(UNSIGNED32):
-    """ASN.1 COUNTER32 object
-    """
-    pass
-
-class GAUGE32(UNSIGNED32):
-    """ASN.1 GAUGE32 object
-    """
-    pass
-
-class COUNTER64(UNSIGNED32):
-    """ASN.1 COUNTER64 object
-    """
-    def __init__(self, value=None):
-        """Invoke base class constructor and install specific defaults
-        """
-        UNSIGNED32.__init__(self, value)
-        
-    def _range(self, value):
-        """
-        """
-        return value < 0 or value & ~0xffffffffffffffffL
-    
-class SEQUENCE(ASN1OBJECT):
-    """ASN.1 sequence object
-    """
-    def _encode(self):
-        """
-           _encode() -> octet stream
-
-           Encode ASN.1 sequence (specified as string) into octet
-           string.
-        """
-        if self.value is None:
-            return ''
         return self.value
 
-    def _decode(self, input):
+    def _setraw(self, value):
+        """Set a raw value (skipping convertion and range chacking) to object
         """
-           _decode(input)
-           
-           Decode octet stream into ASN.1 sequence.
-        """
-        return input
+        self.value = value
 
-class OPAQUE(SEQUENCE):
-    """ASN.1 opaque object
+    def _getraw(self):
+        """Get a raw value (skipping convertion and range chacking)
+           from object
+        """   
+        return self.value
+
+class StructuredAsn1Object(Asn1Object):
+    """Base class for structured ASN.1 objects
     """
-    pass
-
-class OCTETSTRING(SEQUENCE):
-    """ASN.1 octet string object
-    """
-    pass
-
-class OBJECTID(ASN1OBJECT):
-    """ASN.1 Object ID object (taken and returned as string in conventional
-       "dotted" representation)
-    """
-    def _encode(self):
-        """
-           _encode() -> octet stream
-           
-           Encode ASN.1 Object ID into octet stream.
-        """
-        # Turn string type Object ID into numeric representation
-        oid = self.str2num(self.value)
-
-        # Make sure the Object ID is long enough
-        if len(oid) < 2:
-            raise BadArgument('Short Object ID: ' + str(oid))
-
-        # Build the first twos
-        index = 0
-        result = oid[index] * 40
-        result = result + oid[index+1]
-        try:
-            result = [ '%c' % int(result) ]
-
-        except OverflowError:
-            raise BadArgument('Too large initial sub-IDs: ' + str(oid[index:]))
-
-        # Setup index
-        index = index + 2
-
-        # Cycle through subids
-        for subid in oid[index:]:
-            if subid > -1 and subid < 128:
-                # Optimize for the common case
-                result.append('%c' % (subid & 0x7f))
-
-            elif subid < 0 or subid > 0xFFFFFFFFL:
-                raise BadArgument('Too large Sub-Object ID: ' + str(subid))
-
-            else:
-                # Pack large Sub-Object IDs
-                res = [ '%c' % (subid & 0x7f) ]
-                subid = subid >> 7
-                while subid > 0:
-                    res.insert(0, '%c' % (0x80 | (subid & 0x7f)))
-                    subid = subid >> 7
-
-                # Convert packed Sub-Object ID to string and add packed
-                # it to resulted Object ID
-                result.append(string.join(res, ''))
-
-        # Convert BER encoded Object ID to string and return
-        return string.join(result, '')
-        
-    def _decode(self, input):
-        """
-           _decode(input)
-           
-           Decode octet stream into ASN.1 Object ID
-        """
-        oid = []
-        index = 0
-
-        # Get the first subid
-        subid = ord(input[index])
-        oid.append(int(subid / 40))
-        oid.append(int(subid % 40))
-
-        index = index + 1
-
-        # Loop through the rest
-        while index < len(input):
-            # Get a subid
-            subid = ord(input[index])
-
-            if subid < 128:
-                oid.append(subid)
-                index = index + 1
-            else:
-                # Construct subid from a number of octets
-                next = subid
-                subid = 0
-                while next >= 128:
-                    # Collect subid
-                    subid = (subid << 7) + (next & 0x7F)
-
-                    # Take next octet
-                    index = index + 1
-                    next = ord(input[index])
-
-                    # Just for sure
-                    if index > len(input):
-                        raise BadArgument('Malformed sub-Object ID')
-
-                # Append a subid to oid list
-                subid = (subid << 7) + next
-                oid.append(subid)
-                index = index + 1
-
-        # Turn numeric Object ID into string representation
-        return self.num2str(oid)        
-
-    def _cmp(self, other):
-        """
-        """
-        return cmp(self.str2num(self.value), self.str2num(other()))
-
-    def isaprefix(self, other):
-        """
-           isaprefix(other) -> boolean
-           
-           Compare our own OID with the other one (given as a string),
-           return non-None if ours is a prefix of the other OID.
-
-           This is intended to be used for MIB tables retrieval.
-        """
-        # Convert into numeric
-        value = self.str2num(self.value)
-        ovalue = self.str2num(other)
-
-        # Pick the shortest oid
-        if len(value) <= len(ovalue):
-            # Get the length
-            length = len(value)
-
-            # Compare oid'es
-            if value[:length] == ovalue[:length]:
-                return not None
-
-        # Our OID turned to be greater than the other
-        return None
-
-    def str2num(self, soid):
-        """
-            str2num(soid) -> noid
-            
-            Convert Object ID "soid" presented in a dotted form into an
-            Object ID "noid" represented as a list of numeric sub-ID's.
-        """    
-        # Convert string into a list and filter out empty members
-        # (leading dot causes this)
-        try:
-            toid = filter(lambda x: len(x), string.split(soid, '.'))
-
-        except:
-            raise BadArgument('Malformed Object ID: ' + str(soid))
-
-        # Convert a list of symbols into a list of numbers
-        try:
-            noid = map(lambda x: string.atol(x), toid)
-
-        except:
-            raise BadArgument('Malformed Object ID: ' + str(soid))
-
-        if not noid:
-            raise BadArgument('Empty Object ID: ' + str(soid))
-
-        return noid
-
-    def num2str(self, noid):
-        """
-            num2str(noid) -> snoid
-            
-            Convert Object ID "noid" presented as a list of numeric
-            sub-ID's into Object ID "soid" in dotted notation.
-        """    
-        if not noid:
-            raise BadArgument('Empty numeric Object ID')
-
-        # Convert a list of number into a list of symbols and merge all
-        # list members into a string
-        try:
-            soid = reduce(lambda x, y: x+y,\
-                          map(lambda x: '.%lu' % x, noid))
-        except:
-            raise BadArgument('Malformed numeric Object ID: '+ str(noid))
- 
-        if not soid:
-            raise BadArgument('Empty numeric Object ID: ' + str(noid))
-
-        return soid
-
-class IPADDRESS(ASN1OBJECT):
-    """ASN.1 IP address object (taken and returned as string in conventional
-       "dotted" representation)
-    """
-    def _encode(self):
-        """
-           _encode() -> octet stream
-           
-           Encode ASN.1 IP address into octet stream.
-        """
-        # Assume address is given in dotted notation
-        try:
-            packed = string.split(self.value, '.')
-
-        except:
-            raise BadArgument('Malformed IP address: '+ str(self.value))
-        
-        # Make sure it is four octets length
-        if len(packed) != 4:
-            raise BadArgument('Malformed IP address: '+ str(self.value))
-
-        # Convert string octets into integer counterparts
-        # (this is still not immune to octet overflow)
-        try:
-            packed = map(lambda x: string.atoi (x), packed)
-        except string.atoi_error:
-            raise BadArgument('Malformed IP address: '+ str(self.value))
-        
-        # Build a result
-        result = '%c%c%c%c' % (packed[0], packed[1],\
-                               packed[2], packed[3])
-
-        # Return encoded result
-        return result
-
-    def _decode(self, input):
-        """
-           _decode(input)
-           
-           Decode octet stream into ASN.1 IP address
-        """
-        if len(input) != 4:
-            raise BadEncoding('Malformed IP address: '+ str(input))
-
-        return '%d.%d.%d.%d' % \
-               (ord(input[0]), ord(input[1]), \
-                ord(input[2]), ord(input[3]))
-        
-class NULL(ASN1OBJECT):
-    """ASN.1 NULL object
-    """
-    def _encode(self):
-        """
-           _encode() -> octet stream
-           
-           Encode ASN.1 NULL object into octet stream.
-        """
-        return ''
-
-    def _decode(self, input):
-        """
-           _decode(input)
-           
-           Decode octet stream into ASN.1 IP address
-        """
-        if input:
-            raise BadEncoding('Non-empty NULL value: %s' % str(input))
-
-        return ''
-
-    def _range(self, value):
-        """
-        """
-        return value
-
-class noSuchObject(NULL):
-    """SNMP v.2 noSuchObject exception
-    """
-    pass
-
-class noSuchInstance(NULL):
-    """SNMP v.2 noSuchInstance exception
-    """
-    pass
-
-class endOfMibView(NULL):
-    """SNMP v.2 endOfMibView exception
-    """
-    pass
-
-#
-# BER data stream decoder
-#
-
-def decode(input):
-    """
-       decode(input) -> (asn1, rest)
-       
-       Decode input octet stream (string) into ASN.1 object and return
-       the rest of input (string).
-    """
-    tag = BERHEADER().decode_tag(ord(input[0]))
+    tagFormat = tagFormats['CONSTRUCTED']
+    initialNames = []
+    initialComponents = []
     
-    try:
-        object = eval(tag + '()')
-        return (object, object.decode(input)[1])
+    # Disable not applicible constraints
+    _subtype_value_range_constraint = Asn1Object._subtype_value_range_constraint_na
+    _subtype_permitted_alphabet_constraint = Asn1Object._subtype_permitted_alphabet_constraint_na
 
-    except NameError, why:
-        raise UnknownTag('Unsuppored ASN.1 data type: %s' % tag)
-    
-    except StandardError, why:
-        raise BadEncoding('Decoder failure (bad input?): ' + str(why))
+    def __init__(self, **kwargs):
+        """Store dictionary args
+        """
+        # Dictionary emulation (for strict ordering)
+        self._names = []; self._names.extend(self.initialNames)
+        self._components = []; self._components.extend(self.initialComponents)
+
+        # Wnen true, preserve object structure
+        self.freezeStructure = None
+
+        self.update(kwargs)
+
+    def __str__(self):
+        """Return string representation of class instance
+        """
+        s = '%s:' % self.__class__.__name__
+        for idx in range(len(self)):
+            s = s + ' %s: %s' % (self._names[idx], str(self._components[idx]))
+        return s
+
+    def __repr__(self):
+        """Return native representation of instance payload
+        """
+        s = ''
+        for idx in range(len(self)):
+            if s:
+                s = s + ', '
+            s = s + '%s=%s' % (self._names[idx], str(self._components[idx]))
+        return '%s(%s)' % (self.__class__.__name__, s)
+
+    def __cmp__(self, other):
+        """Attempt to compare the payload of instances of the same class
+        """
+        if type(other) == InstanceType:
+            if not isinstance(other, StructuredAsn1Object):
+                raise errorBadArgument('Incompatible types for comparation %s with %s' % (self.__class__.__name__, str(other)))
+            other = self.__class__(other.get())
+        else:
+            other = self.__class__(other)
+
+        if hasattr(self, '_cmp'):
+            return self._cmp(other)
+
+        return cmp(self.keys(), other.keys()) | \
+                   cmp(self.values(), other.values())
+
+    #
+    # Dictionary interface emulation (for strict ordering)
+    #
+
+    def __setitem__(self, key, value):
+        """
+        """
+        if not isinstance(value, Asn1Object):
+            raise error.BadArgumentError('Not an ASN.1 object')
+
+        try:
+            idx = self._names.index(key)
+
+        except ValueError:
+            if self.freezeStructure:
+                raise error.BadArgumentError('Object structure violation (no such identifier): %s' % key)
+            self._names.append(key)
+            self._components.append(value)
+
+        else:
+            if self._components[idx].__class__.__name__ != \
+               value.__class__.__name__:
+                raise error.BadArgumentError('Object structure violation (component type mismatch): %s vs %s' % (self._components[idx].__class__.__name__, value.__class__.__name__))
+            self._components[idx] = value
+
+    def __getitem__(self, key):
+        """
+        """
+        try:
+            idx = self._names.index(key)
+
+        except ValueError:
+            raise error.BadArgumentError(str(key))
+
+        else:
+            return self._components[self._names.index(key)]
+
+    def keys(self):
+        """
+        """
+        return self._names
+
+    def has_key(self, key):
+        """
+        """
+        try:
+            return self._names.index(key)
+
+        except ValueError:
+            return None
+
+    def values(self):
+        """
+        """
+        return self._components
+
+    def update(self, dict):
+        """
+        """
+        for key in dict.keys():
+            self[key] = dict[key]
+
+    def __len__(self):
+        """
+        """
+        return len(self._names)
