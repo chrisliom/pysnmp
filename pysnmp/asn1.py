@@ -50,43 +50,44 @@ class BadArgument(Error):
 class BERHEADER:
     """BER packet header encoders & decoders
     """
-    # Flags for BER tags
-    FLAGS = { 
+    # BER class types
+    CLASS = { 
         'UNIVERSAL'          : 0x00,
         'APPLICATION'        : 0x40,
         'CONTEXT'            : 0x80,
         'PRIVATE'            : 0xC0,
-        # Extended tags
-        'PRIMITIVE'          : 0x00,
-        'CONSTRUCTOR'        : 0x20
         }
 
+    # BER format types
+    FORMAT = {
+        'SIMPLE'             : 0x00,
+        'CONSTRUCTED'        : 0x20
+        }
+    
     # BER tags for various ASN.1 data types
     TAGS = {
-        # Universal BER tags    
-        'BOOLEAN'            : 0x00,
-        'INTEGER'            : 0x02,
-        'BITSTRING'          : 0x03,
-        'OCTETSTRING'        : 0x04,
-        'NULL'               : 0x05,
-        'OBJECTID'           : 0x06,
-        'SEQUENCE'           : 0x10,
-        'SET'                : 0x11,
-        'UPTIME'             : 0x43,
-        # Basic SNMP tags
-        'IPADDRESS'          : 0x00 | FLAGS['APPLICATION'],
-        'COUNTER32'          : 0x01 | FLAGS['APPLICATION'],
-        'GAUGE32'            : 0x02 | FLAGS['APPLICATION'],
-        'TIMETICKS'          : 0x03 | FLAGS['APPLICATION'],
-        'OPAQUE'             : 0x04 | FLAGS['APPLICATION'],
-        'NSAPADDRESS'        : 0x05 | FLAGS['APPLICATION'],
-        'COUNTER64'          : 0x06 | FLAGS['APPLICATION'],
-        'UNSIGNED32'         : 0x07 | FLAGS['APPLICATION'],
-        'TAGGEDSEQUENCE'     : 0x10 | FLAGS['CONSTRUCTOR'],
+        # Primitive ASN.1 types tags
+        'BOOLEAN'            : 0x00 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
+        'INTEGER'            : 0x02 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
+        'BITSTRING'          : 0x03 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
+        'OCTETSTRING'        : 0x04 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
+        'NULL'               : 0x05 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
+        'OBJECTID'           : 0x06 | FORMAT['SIMPLE'] | CLASS['UNIVERSAL'],
+        'SEQUENCE'           : 0x10 | FORMAT['CONSTRUCTED'] | CLASS['UNIVERSAL'],
+        'SET'                : 0x11 | FORMAT['CONSTRUCTED'] | CLASS['UNIVERSAL'],
+        # Primitive SNMP application specific tags
+        'IPADDRESS'          : 0x00 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
+        'COUNTER32'          : 0x01 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
+        'GAUGE32'            : 0x02 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
+        'TIMETICKS'          : 0x03 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
+        'OPAQUE'             : 0x04 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
+        'NSAPADDRESS'        : 0x05 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
+        'COUNTER64'          : 0x06 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
+        'UNSIGNED32'         : 0x07 | FORMAT['SIMPLE'] | CLASS['APPLICATION'],
         # SNMP v.2 exception tags
-        'noSuchObject'       : 0x00 | FLAGS['CONTEXT'],
-        'noSuchInstance'     : 0x01 | FLAGS['CONTEXT'],
-        'endOfMibView'       : 0x02 | FLAGS['CONTEXT'],
+        'noSuchObject'       : 0x00 | FORMAT['SIMPLE'] | CLASS['CONTEXT'],
+        'noSuchInstance'     : 0x01 | FORMAT['SIMPLE'] | CLASS['CONTEXT'],
+        'endOfMibView'       : 0x02 | FORMAT['SIMPLE'] | CLASS['CONTEXT']
         }
 
     def encode_tag(self, name):
@@ -488,11 +489,6 @@ class SEQUENCE(ASN1OBJECT):
            Decode octet stream into ASN.1 sequence.
         """
         return input
-
-class TAGGEDSEQUENCE(SEQUENCE):
-    """ASN.1 tagged sequence object
-    """
-    pass
 
 class OPAQUE(SEQUENCE):
     """ASN.1 opaque object
