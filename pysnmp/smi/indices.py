@@ -18,6 +18,7 @@ if version_info < (2, 2):
             if kwargs:
                 self.update(kwargs)
                 self.__dirty = 1
+        def __len__(self): return len(self.__dict)
         def __getitem__(self, key): return self.__dict[key]
         def __setitem__(self, key, value):
             if not self.__dict.has_key(key):
