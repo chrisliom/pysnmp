@@ -36,8 +36,8 @@ sysDescr = MibVariable(system.name + (1,), DisplayString("PySNMP engine version 
 sysObjectID = MibVariable(system.name + (2,), ObjectIdentifier((1,3,6,1,4,1,20408))).setMaxAccess('readonly')
 
 class __SysUpTime(TimeTicks):
-    initialValue = int(time())*100
-    def get(self): return int(time()) - TimeTicks.get(self)
+    initialValue = int(time())
+    def get(self): return (int(time()) - TimeTicks.get(self))*100
 
 sysUpTime = MibVariable(system.name + (3,), __SysUpTime()).setMaxAccess('readonly')
 
