@@ -1,16 +1,16 @@
 """Implementation of data types defined by SNMP SMI (RFC1155, RFC1212)"""
-
-__all__ = [ 'Integer', 'OctetString', 'Null', 'ObjectIdentifier', \
-            'IpAddress', 'Counter', 'Gauge', 'TimeTicks', 'Opaque', \
-            'Sequence', 'SequenceOf', 'Choice', 'NetworkAddress', \
-            'ObjectName', 'SimpleSyntax', 'ApplicationSyntax', \
-            'ObjectSyntax']
-
 from string import split, atoi, atoi_error
 from types import StringType
 from pysnmp.asn1 import univ, tags, subtypes
 import pysnmp.asn1.encoding.ber
 from pysnmp.proto import error
+
+__all__ = [
+    'Integer', 'OctetString', 'Null', 'ObjectIdentifier',
+    'IpAddress', 'Counter', 'Gauge', 'TimeTicks', 'Opaque',
+    'Sequence', 'SequenceOf', 'Choice', 'NetworkAddress',
+    'ObjectName', 'SimpleSyntax', 'ApplicationSyntax', 'ObjectSyntax'
+    ]
 
 # SimpleSyntax
 
@@ -106,24 +106,32 @@ class NetworkAddress(univ.Choice):
 ObjectName = univ.ObjectIdentifier
 
 class SimpleSyntax(univ.Choice):
-    protoComponents = { 'number': Integer(),
-                        'string': OctetString(),
-                        'object': ObjectIdentifier(),
-                        'empty': Null() }
+    protoComponents = {
+        'number': Integer(),
+        'string': OctetString(),
+        'object': ObjectIdentifier(),
+        'empty': Null()
+        }
     initialComponentKey = 'empty'
 
 class ApplicationSyntax(univ.Choice):
-    protoComponents = { 'address': NetworkAddress(),
-                        'counter': Counter(),
-                        'gauge': Gauge(),
-                        'ticks': TimeTicks(),
-                        'arbitrary': Opaque() }
+    protoComponents = {
+        'address': NetworkAddress(),
+        'counter': Counter(),
+        'gauge': Gauge(),
+        'ticks': TimeTicks(),
+        'arbitrary': Opaque()
+        }
 
 class ObjectSyntax(univ.Choice):
     class TableSyntax(univ.Choice):
-        protoComponents = { 'table': SequenceOf(),
-                            'row': Sequence() }
-    protoComponents = { 'simple': SimpleSyntax(),
-                        'application_wide': ApplicationSyntax(),
-                        'sequence': TableSyntax() }
+        protoComponents = {
+            'table': SequenceOf(),
+            'row': Sequence()
+            }
+    protoComponents = {
+        'simple': SimpleSyntax(),
+        'application_wide': ApplicationSyntax(),
+        'sequence': TableSyntax()
+        }
     initialComponentKey = 'simple'

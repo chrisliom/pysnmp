@@ -94,25 +94,33 @@ Choice = univ.Choice
 class ObjectName(ObjectIdentifier): pass
 
 class SimpleSyntax(univ.Choice):
-    protoComponents = { 'integer_value': Integer(),
-                        'string_value': OctetString(),
-                        'objectID_value': ObjectIdentifier(),
-                        'bit_value': BitString() }
+    protoComponents = {
+        'integer_value': Integer(),
+        'string_value': OctetString(),
+        'objectID_value': ObjectIdentifier(),
+        'bit_value': BitString()
+        }
 
 class ApplicationSyntax(univ.Choice):
-    protoComponents = { 'ipAddress_value': IpAddress(),
-                        'counter_value': Counter32(),
-                        'timeticks_value': TimeTicks(),
-                        'arbitrary_value': Opaque(),
-                        'big_counter_value': Counter64(),
-                        'unsigned_integer_value': Unsigned32(),
-                        'gauge32_value': Gauge32(),
-                        'bits_value': Bits() } # BITS misplaced?
+    protoComponents = {
+        'ipAddress_value': IpAddress(),
+        'counter_value': Counter32(),
+        'timeticks_value': TimeTicks(),
+        'arbitrary_value': Opaque(),
+        'big_counter_value': Counter64(),
+        'unsigned_integer_value': Unsigned32(),
+        'gauge32_value': Gauge32(),
+        'bits_value': Bits()
+        } # BITS misplaced?
 
 class ObjectSyntax(univ.Choice):
     class TableSyntax(univ.Choice):
-        protoComponents = { 'table': SequenceOf(),
-                            'row': Sequence() }
-    protoComponents = { 'simple_syntax': SimpleSyntax(),
-                        'application_syntax': ApplicationSyntax(),
-                        'sequence_syntax': TableSyntax() }
+        protoComponents = {
+            'table': SequenceOf(),
+            'row': Sequence()
+            }
+    protoComponents = {
+        'simple_syntax': SimpleSyntax(),
+        'application_syntax': ApplicationSyntax(),
+        'sequence_syntax': TableSyntax()
+        }
