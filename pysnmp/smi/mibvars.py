@@ -294,7 +294,7 @@ class TableColumn(AbstractMibSubtree):
         # Make sure creation allowed
         if self._vars.has_key(name):
             return
-        if self.columnInitializer.maxAccess != 'readcreate':
+        if val is not None and self.columnInitializer.maxAccess != 'readcreate':
             raise error.NoCreationError(
                 'Column instance creation prohibited at %r' % self
                 )
@@ -352,7 +352,7 @@ class TableColumn(AbstractMibSubtree):
     def destroyCheck(self, name, val=None):
         # Make sure destruction is allowed
         if self._vars.has_key(name):
-            if self.columnInitializer.maxAccess != 'readcreate':
+            if val is not None and self.columnInitializer.maxAccess != 'readcreate':
                 raise error.NoAccessError(
                     'Column instance destruction prohibited at %r' % self
                     )
