@@ -265,6 +265,11 @@ class Integer(base.AbstractSimpleAsn1Item):
         self.namedValues = apply(self.namedValues.clone, namedValues)
         return self
 
+    def clone(self, value=None):
+        myClone = base.AbstractSimpleAsn1Item.clone(self)
+        myClone.namedValues = self.namedValues
+        return myClone
+
 class BitString(base.AbstractSimpleAsn1Item):
     tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x03)
     allowedTypes = ( StringType, )

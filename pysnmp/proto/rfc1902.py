@@ -122,6 +122,11 @@ class Bits(univ.OctetString):
     def addNamedValues(self, *namedValues):
         self.namedValues = apply(self.namedValues.clone, namedValues)
         return self
+
+    def clone(self, value=None):
+        myClone = univ.OctetString.clone(self)
+        myClone.namedValues = self.namedValues
+        return myClone
     
 Sequence = univ.Sequence
 SequenceOf = univ.SequenceOf
@@ -139,14 +144,12 @@ class SimpleSyntax(univ.Choice):
 class ApplicationSyntax(univ.Choice):
     protoComponents = {
         'ipAddress_value': IpAddress(),
-        'bits': Bits(),        
         'counter_value': Counter32(),
         'timeticks_value': TimeTicks(),
         'arbitrary_value': Opaque(),
         'big_counter_value': Counter64(),
         'unsigned_integer_value': Unsigned32(),
         'gauge32_value': Gauge32(),
-        'bits_value': Bits()
         } # BITS misplaced?
 
 class ObjectSyntax(univ.Choice):
