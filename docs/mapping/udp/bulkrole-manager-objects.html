@@ -54,8 +54,9 @@ Append request tuple (<STRONG>dst</STRONG>, <STRONG>data</STRONG>,
 <STRONG>ctx</STRONG>) to the list of requests.
 </P>
 <P>
-This method can not be used after the <STRONG>manager.dispatch</STRONG>()
-is invoked and the <STRONG>manager.clear</STRONG>() method is used.
+This method can not be used after <STRONG>manager.dispatch()</STRONG> is
+invoked, unless the <STRONG>manager.clear()</STRONG> method is called first
+to prepare the instance for reuse.
 </P>
 </DD>
 </DL>
@@ -71,8 +72,9 @@ Insert request tuple (<STRONG>dst</STRONG>, <STRONG>data</STRONG>,
 <STRONG>ctx</STRONG>) at list position <STRONG>idx</STRONG> (integer).
 </P>
 <P>
-This method can not be used after the <STRONG>manager.dispatch()</STRONG>
-is invoked and the <STRONG>manager.clear</STRONG>() method is used.
+This method can not be used after <STRONG>manager.dispatch()</STRONG> is
+invoked, unless the <STRONG>manager.clear()</STRONG> method is called first
+to prepare the instance for reuse.
 </P>
 </DD>
 </DL>
@@ -86,8 +88,9 @@ Remove the first occurrence of the (<STRONG>dst</STRONG>,
 <STRONG>data</STRONG>, <STRONG>ctx</STRONG>) request tuple.
 </P>
 <P>
-This method can not be used after the <STRONG>manager.dispatch</STRONG>()
-is invoked and the <STRONG>manager.clear</STRONG>() method is used.
+This method can not be used after <STRONG>manager.dispatch()</STRONG> is
+invoked, unless the <STRONG>manager.clear()</STRONG> method is called first
+to prepare the instance for reuse.
 </P>
 </DD>
 </DL>
@@ -131,8 +134,9 @@ Return index of first occurrence of request tuple (<STRONG>dst</STRONG>,
 <STRONG>data</STRONG>, <STRONG>ctx</STRONG>) in the list.
 </P>
 <P>
-This method can not be used after the <STRONG>manager.dispatch</STRONG>()
-is invoked and the <STRONG>manager.clear</STRONG>() method is used.
+This method can not be used after <STRONG>manager.dispatch()</STRONG> is
+invoked, unless the <STRONG>manager.clear()</STRONG> method is called first
+to prepare the instance for reuse.
 </P>
 </DD>
 </DL>
