@@ -9,7 +9,7 @@ __all__ = [ 'SnmpV3Message', 'probeVersion' ]
 from time import time
 from pysnmp.asn1 import oidtree
 from pysnmp.proto import rfc1157, rfc1902, rfc1905, rfc3411, rfc3414, error
-import pysnmp.smi.rfc1907, pysnmp.smi.rfc3411, pysnmp.smi.rfc3412
+#import pysnmp.smi.rfc1907, pysnmp.smi.rfc3411, pysnmp.smi.rfc3412
 import pysnmp.asn1.error
 
 class SnmpV3Message(rfc1902.Sequence):
@@ -177,8 +177,6 @@ def probeMessageVersion(wholeMsg):
 # Security Models
 
 class SnmpV1SecurityModel:
-    """User-based security model
-    """
     def __init__(self, mib=None): pass
     def generateRequestMsg(self, msg, **kwargs):
         raise error.NotImplementedError('Security model ' + \
@@ -186,8 +184,13 @@ class SnmpV1SecurityModel:
                                         ' not implemented')
 
 class SnmpV2cSecurityModel:
-    """User-based security model
-    """
+    def __init__(self, mib=None): pass
+    def generateRequestMsg(self, msg, **kwargs):
+        raise error.NotImplementedError('Security model ' + \
+                                        self.__class__.__name__ + \
+                                        ' not implemented')
+
+class SnmpV3SecurityModel:
     def __init__(self, mib=None): pass
     def generateRequestMsg(self, msg, **kwargs):
         raise error.NotImplementedError('Security model ' + \
@@ -199,22 +202,86 @@ class SnmpV2cSecurityModel:
 class v1MP:
     """Message processing subsystem for SNMP version 1
     """
-    def __init__(self, mib=None): pass
+    def __init__(self, mib=None):
+        self.securityModel = SnmpV1SecurityModel(mib)
+        self.__cacheEntries = {}
+    
     def prepareOutgoingMessage(self, **kwargs):
-        raise error.NotImplementedError('Message processing model ' + \
-                                        self.__class__.__name__ + \
-                                        ' not implemented')
+        expectResponse = kwargs.get('expectResponse', None)
+        sendPduHandle = kwargs.get('sendPduHandle', None)
+        if sendPduHandle is None:
+            raise error.BadArgumentError('Missing sendPduHandle at %s' %\
+                                         (self.__class__.__name__))
+
+        msg = rfc1157.Message()
+
+# XXX
+
+        (errorIndication, wholeMsg) = self.securityModel.generateRequestMsg(msgCommunity=msgCommunity, msgPdu=msgPdu)
+        
+        return (None, \
+                kwargs.get('transportDomain', None), \
+                kwargs.get('transportAddress', None), \
+                kwargs.get('wholeMsg', None))
 
     def prepareResponseMessage(self, **kwargs):
-        raise error.NotImplementedError('Message processing model ' + \
-                                        self.__class__.__name__ + \
-                                        ' not implemented')
+        return (None, \
+                kwargs.get('transportDomain', None), \
+                kwargs.get('transportAddress', None), \
+                kwargs.get('wholeMsg', None))
 
     def prepareDataElements(self, wholeMsg):
-        raise error.NotImplementedError('Message processing model ' + \
-                                        self.__class__.__name__ + \
-                                        ' not implemented')
+        msg = rfc1157.Message()
+        try:
+            rest = msg.decode(wholeMsg)
+        except pysnmp.asn1.error.Asn1Error, why:
+            return { 'statusInformation': 'parseError' }
+            
+        msgVersion = msg['version']
+        msgCommunity = msg['community']
+        msgPdu = msg['pdu']
 
+        errorIndication = self.securityModel.processIncomingMsg(messageProcessingModel=msgVersion, msgCommunity=msgCommunity, pdu=msgPdu)
+
+        if errorIndication is not None:
+            return { 'errorIndication': errorIndication }
+
+        if isinstance(msgPdu, rfc1157.GetResponsePdu):
+            cacheEntry = self.cachePop(requestId=msgPdu['request_id'])
+            if cacheEntry is None:
+                return { 'errorIndication': \
+                         ('No request found in cache for %s' % msg, None) }
+
+            sendPduHandle = cacheEntry.get('sendPduHandle', None)
+
+            return { 'messageProcessingModel': 1,
+                     'sendPduHandle': sendPduHandle, 'pdu': msgPdu }
+        
+        if isinstance(pdu, rfc1157.TrapPdu):
+            return { 'messageProcessingModel': 1, 'pdu': msgPdu }
+
+        stateReference = self.cacheAdd(requestId=msg['request_id'], \
+                                       msgPdu=msgPdu)
+
+        return { 'messageProcessingModel': 1, 'pdu': msgPdu }
+
+    # Cache handling
+    
+    def cachePush(self, requestId, msgPdu):
+        if self.__cacheEntries.has_key(requestId):
+            raise error.InternalError('Duplicate request ID %s' % pdu)
+        if not has_key(self, '__stateHandleSource'):
+            self.__stateHandleSource = rfc1155.Integer()
+        stateHandle = self.__stateHandleSource.inc(1).get()
+        self.__cacheEntries[requestId] = (stateHandle, msgPdu)
+        return stateHandle
+
+    def cachePop(self, requestId):
+        (stateHandle, msgPdu) = self.__cacheEntries.get(requestId, \
+                                                        (None, None))
+        if stateHandle: del self.__cacheEntries[requestId]
+        return (stateHandle, msgPdu)
+    
 class v2cMP(v1MP): pass
 
 class v3MP:
@@ -228,7 +295,8 @@ class v3MP:
         # Pre-defined security models
         self.securityModels = { 1:  SnmpV1SecurityModel(),
                                 2:  SnmpV2cSecurityModel(),
-                                3:  rfc3414.UserBasedSecurityModel() }
+                                3:  SnmpV3SecurityModel() }
+#                                3:  rfc3414.UserBasedSecurityModel() }
 
         # Global source for stateReference and cache repositories
         self.__stateRefCounter = rfc1902.Integer(0L)
@@ -604,41 +672,43 @@ class v3MP:
         if isinstance(pdu, rfc3411.UnconfirmedClass):
             return (messageProcessingModel, securityModel, securityName, securityLevel, contextEngineId, contextName, pduVersion, pdu, pduType, sendPduHandle, maxSizeResponseScopedPdu, statusInformation, stateReference)
 
-class Dispatcher:
+class MsgAndPduDispatcher:
     """SNMP engine PDU & message dispatcher. Exchanges SNMP PDU's with
        applications and serialized messages with transport level.
     """
-    def __init__(self, mib=None):
-        """
-        """
-        if mib is None:
-            # Initialize SMI tree
-            self.mib = oidtree.Root()
-
-            # ...MIBII
-            self.mib.attachNode(pysnmp.smi.rfc1907.Snmp())
-            # ...SNMP management
-            self.mib.attachNode(pysnmp.smi.rfc3411.SnmpFrameworkMib())
-            # ...statistics for SNMP Messages        
-            self.mib.attachNode(pysnmp.smi.rfc3412.SnmpMpdMib())
-        else:
-            self.mib = mib
+    def __init__(self, transport=None, mib=None):
             
+# Not implemented
+#         if mib is None:
+#             # Initialize SMI tree
+#             self.mib = oidtree.Root()
+
+#             # ...MIBII
+#             self.mib.attachNode(pysnmp.smi.rfc1907.Snmp())
+#             # ...SNMP management
+#             self.mib.attachNode(pysnmp.smi.rfc3411.SnmpFrameworkMib())
+#             # ...statistics for SNMP Messages        
+#             self.mib.attachNode(pysnmp.smi.rfc3412.SnmpMpdMib())
+#         else:
+#             self.mib = mib
+
+        self.mib = None
+
         # Versions to subsystems mapping
         self.messageProcessingSubsystems = { rfc1157.Version().get()
                                              : v1MP(self.mib),
                                              rfc1905.Version().get()
-                                             : v2cMP(self.mib), \
-                                             SnmpV3Message.Version().get()
-                                             : v3MP(self.mib) }
+                                             : v2cMP(self.mib) }
+#                                             SnmpV3Message.Version().get()
+#                                             : v3MP(self.mib) }
 
         # Versions to octet-stream probers mapping
         self.messageProcessingModels = { rfc1157.Version().get()
                                          : rfc1157.probeMessageVersion,
                                          rfc1905.Version().get()
-                                         : rfc1905.probeMessageVersion,
-                                         SnmpV3Message.Version().get()
-                                         : probeMessageVersion }
+                                         : rfc1905.probeMessageVersion }
+#                                         SnmpV3Message.Version().get()
+#                                         : probeMessageVersion }
 
         # Registered context engine IDs
         self.__contextEngineIdSet = {}
@@ -647,6 +717,32 @@ class Dispatcher:
         self.__sendPduHandle = rfc1902.Counter32(0)
         self.__sendPduHandles = {}
 
+        # Transport object
+        self.__transport = None
+
+        if transport is not None:
+            self.registerTransportDispatcher(transport)
+        
+    # Register/unregister with transport dispatcher
+    def registerTransportDispatcher(self, transport):
+        if self.__transport is not None:
+            raise error.BadArgumentError('Transport disp already registered')
+        transport.transportDispatcherRegisterCbFun(self.receiveMessage)
+        self.__transport = transport
+
+    def unregisterTransportDispatcher(self):
+        if self.__transport is None:
+            raise error.BadArgumentError('Transport dispatcher not registered')
+        self.__transport.snmpTransportUnregisterCbFun()
+        self.__transport = None
+
+    def runTransportDispatcher(self):
+        self.__transport.transportDispatcherDispatch()
+    
+    def closeTransportDispatcher(self):
+        self.__transport.transportDispatcherClose()
+        sekf.unregisterTransportDispatcher()
+        
     # These routines manage cache of management apps
     def cacheAdd(self, expectResponse):
         sendPduHandle = self.__sendPduHandle.inc(1).get()
@@ -734,9 +830,11 @@ class Dispatcher:
                 return statusInformation['errorIndication']
 
         # 4.1.1.6
-        # N/A at this level
+        self.__transport.transportDispatcherSend(wholeMsg, \
+                                                 transportDomain, \
+                                                 transportAddress)
         
-        return (statusInformation, sendPduHandle, wholeMsg)
+        return (statusInformation, sendPduHandle)
 
     # 4.1.2.1
     def returnResponsePdu(self, **kwargs):
@@ -757,7 +855,8 @@ class Dispatcher:
         stateReference = kwargs.get('stateReference', None)
         statusInformation = kwargs.get('statusInformation', (None, None))
 
-        mpHdl = self.messageProcessingSubsystems.get(messageProcessingModel, None)
+        mpHdl = self.messageProcessingSubsystems.get(messageProcessingModel, \
+                                                     None)
         if mpHdl is None:
             raise error.BadArgumentError('Unknown messageProcessingModel: %s'\
                                          % str(messageProcessingModel))
@@ -783,7 +882,7 @@ class Dispatcher:
         # 4.2.1.1
         
         # snmpInPkts
-        self.mib.searchNode('1.3.6.1.1.2.1.11.1')['type'].getTerminal().inc(1)
+        if self.mib: self.mib.searchNode('1.3.6.1.1.2.1.11.1')['type'].getTerminal().inc(1)
 
         # 4.2.1.2
         for (messageProcessingModel, proberFun) in \
@@ -792,11 +891,11 @@ class Dispatcher:
                 if proberFun(wholeMsg):
                     break
             except error.Asn1Error:
-                self.mib.searchNode('1.3.6.1.1.2.1.11.6')['type'].getTerminal().inc(1)
+                if self.mib: self.mib.searchNode('1.3.6.1.1.2.1.11.6')['type'].getTerminal().inc(1)
                 return ( 'parseError', None )
         else:
             # snmpInBadVersions
-            self.mib.searchNode('1.3.6.1.1.2.1.11.3')['type'].getTerminal().inc(1)
+            if self.mib: self.mib.searchNode('1.3.6.1.1.2.1.11.3')['type'].getTerminal().inc(1)
             return ( 'parseError', None )
 
         # 4.2.1.3 -- no-op
@@ -823,9 +922,12 @@ class Dispatcher:
             # 4.2.2.1.2
             if app is None:
                 # 4.2.2.1.2.a
-                self.mib.searchNode('1.3.6.1.6.3.11.2.1.3')['type'].getTerminal().inc(1)
+                if self.mib: self.mib.searchNode('1.3.6.1.6.3.11.2.1.3')['type'].getTerminal().inc(1)
                 # 4.2.2.1.2.b
-                statusInformation = (1, rfc1905.VarBind(name=self.mib.searchNode('1.3.6.1.6.3.11.2.1.3')['type'].getTerminal()['value']))
+                if self.mib:
+                    statusInformation = (1, rfc1905.VarBind(name=self.mib.searchNode('1.3.6.1.6.3.11.2.1.3')['type'].getTerminal()['value']))
+                else:
+                    statusInformation = (1, rfc1905.VarBind()) # XXX
                 
                 (statusInformation, transportDomain, transportAddress, wholeMsg) = mpHdl.prepareResponseMessage(messageProcessingModel=messageProcessingModel, securityModel=securityModel, securityName=securityName, securityLevel=securityLevel, contextEngineId=contextEngineId, contextName=contextName, pduVersion=pduVersion, pdu=pdu, maxSizeResponseScopedPdu=maxSizeResponseScopedPdu, stateReference=stateReference, statusInformation=statusInformation)
 
@@ -848,7 +950,7 @@ class Dispatcher:
 
             # 4.2.2.2.2
             if app is None:
-                self.mib.searchNode('1.3.6.1.6.3.11.2.1.3')['type'].getTerminal().inc(1)
+                if self.mib: self.mib.searchNode('1.3.6.1.6.3.11.2.1.3')['type'].getTerminal().inc(1)
                 return
                 
             # 4.2.2.2.3
@@ -858,13 +960,12 @@ class Dispatcher:
             app.processResponsePdu(messageProcessingModel=messageProcessingModel, securityModel=securityModel, securityName=securityName, securityLevel=securityLevel, contextEngineId=contextEngineId, contextName=contextName, pduVersion=pduVersion, pdu=pdu, statusInformation=statusInformation, sendPduHandle=sendPduHandle)
 
 if __name__ == '__main__':
-
     class Application:
         def processResponsePdu(self, **kwargs):
             print repr(kwargs)
             
-    mgrDisp = Dispatcher()
-    agentDisp = Dispatcher()
+    mgrDisp = MsgAndPduDispatcher()
+    agentDisp = MsgAndPduDispatcher()
     agentDisp.registerContextEngineId('myCtxEngId', rfc1905.GetRequestPdu,
                                       Application())
 
