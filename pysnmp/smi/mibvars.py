@@ -60,46 +60,6 @@ class AbstractMibVariable(MibVariablePattern):
             mibVar.syntax = syntax
         return mibVar
 
-    # Create operation
-    
-    def createCheck(self, name, val):
-        if name == self.name:
-            if self.maxAccess != 'readcreate':
-                raise error.NoCreationError(
-                    'Varaible creation prohibited at %r' % self
-                    )
-        else:
-            raise error.NoSuchInstanceError(
-                'Variable %s does not exist at %r' % (name, self)
-                )
-        
-    def createReserve(self, name, val):
-        raise error.NotImplementedError(
-            'Creation not implemented at %r' % self
-            )
-
-    createCommit = createRelease = createRollback = createReserve
-
-    # Destroy operation
-    
-    def destroyCheck(self, name, val):
-        if name == self.name:
-            if self.maxAccess != 'readcreate':
-                raise error.NoAccessError(
-                    'Varaible destruction prohibited at %r' % self
-                    )
-        else:
-            raise error.NoSuchInstanceError(
-                'Variable %s does not exist at %r' % (name, self)
-                )
-        
-    def destroyReserve(self, name, val):
-        raise error.NotImplementedError(
-            'Destruction not implemented at %r' % self
-            )
-
-    destroyCommit = destroyRelease = destroyRollback = destroyReserve
-
     # Read operation
     
     def readCheck(self, name, val):
@@ -214,52 +174,6 @@ class AbstractMibSubtree(MibSubtreePattern):
                 'Variable %s does not exist at %r' % (name, self)
                     )
 
-    # Create operation
-
-    def createCheck(self, name, val):
-        if name == self.name:
-            if self.maxAccess != 'readcreate':
-                raise error.NoCreationError(
-                    'Variable creation prohibited at %r' % self
-                    )
-        else:
-            return self._passToSubtree('createCheck', name, val)
-
-    def createReserve(self, name, val):
-        self._passToSubtree('createReserve', name, val)        
-
-    def createCommit(self, name, val):
-        self._passToSubtree('createCommit', name, val)        
-
-    def createRelease(self, name, val):
-        self._passToSubtree('createRelease', name, val)        
-
-    def createRollback(self, name, val):
-        self._passToSubtree('createRollback', name, val)        
-        
-    # Destroy operation
-    
-    def destroyCheck(self, name, val):
-        if name == self.name:
-            if self.maxAccess != 'readcreate':
-                raise error.NoAccessError(
-                    'Varaible destruction prohibited at %r' % self
-                    )
-        else:
-            return self._passToSubtree('destroyCheck', name, val)
-        
-    def destroyReserve(self, name, val):
-        self._passToSubtree('destroyReserve', name, val)
-        
-    def destroyCommit(self, name, val):
-        self._passToSubtree('destroyCommit', name, val)
-
-    def destroyRelease(self, name, val):
-        self._passToSubtree('destroyRelease', name, val)
-        
-    def destroyRollback(self, name, val):
-        self._passToSubtree('destroyRollback', name, val)
-
     # Read operation
     
     def readCheck(self, name, val):
@@ -365,97 +279,103 @@ class TableColumn(AbstractMibSubtree):
             self.setColumnInitializer(self.defaultColumnInitializer.clone())
         else:
             self.columnInitializer = None
-        self.__newInstance = {}
+        self.__createdInstances = {}; self.__destroyedInstances = {}
+        self.__rowOpWanted = {}
 
     def setColumnInitializer(self, mibVar):
         self.columnInitializer = mibVar
         self.columnInitializer.name = self.name
         return self
 
-    # Column creation
+    # Column creation (this should probably be converted into some state
+    # machine for clarity)
     
-    def createCheck(self, createName, name, val):
+    def createCheck(self, name, val=None):
         # Make sure creation allowed
-        if self._vars.has_key(createName):
+        if self._vars.has_key(name):
             return
-        try:
-            self.columnInitializer.createCheck(createName, None)
-        except error.NoSuchInstanceError:
-            pass
-        
-    def createReserve(self, createName, name, val):
-        # Create a new column instance but not replace the old one
-        if self._vars.has_key(createName):
-            return
-        if self.__newInstance.has_key(createName):
-            raise error.SmiError(
-                'Column %r instance %s already being created' %
-                (self, createName)
+        if self.columnInitializer.maxAccess != 'readcreate':
+            raise error.NoCreationError(
+                'Column instance creation prohibited at %r' % self
                 )
-        self.__newInstance[createName] = self.columnInitializer.clone(
-            createName
-            )
-        if createName == name:
+
+    def createReserve(self, name, val=None):
+        # Create a new column instance but do not replace the old one
+        if self._vars.has_key(name):
+            return
+        if not self.__createdInstances.has_key(name):
+            self.__createdInstances[name] = self.columnInitializer.clone(
+                name
+                )
+        if val is not None:
             try:
-                self.__newInstance[createName].writeCheck(name, val)
-            except error.RowCreationWanted:
+                self.__createdInstances[name].writeCheck(name, val)
+            except (error.RowCreationWanted, error.RowDestructionWanted):
                 pass            
-            self.__newInstance[createName].writeReserve(name, val)
-        
-    def createCommit(self, createName, name, val):
+            try:
+                self.__createdInstances[name].writeReserve(name, val)
+            except (error.RowCreationWanted, error.RowDestructionWanted):
+                pass
+            
+    def createCommit(self, name, val=None):
         # Commit new instance value
-        if self._vars.has_key(createName):
+        if self._vars.has_key(name):
+            if self.__createdInstances.has_key(name):
+                if val is not None:
+                    self._vars[name].writeCommit(name, val)
             return
-        if createName == name:
-            self.__newInstance[createName].writeCommit(name, val)
+        if val is not None:
+            self.__createdInstances[name].writeCommit(name, val)
         # ...commit new column instance
-        self._vars[createName], self.__newInstance[createName] = \
-                                self.__newInstance[createName], \
-                                self._vars.get(createName)
+        self._vars[name], self.__createdInstances[name] = \
+                          self.__createdInstances[name], self._vars.get(name)
 
-    def createRelease(self, createName, name, val):
+    def createRelease(self, name, val=None):
         # Drop previous column instance
-        if self._vars.has_key(createName):
-            return
-        if self.__newInstance.has_key(createName):
-            del self.__newInstance[createName]
+        if self.__createdInstances.has_key(name):
+            del self.__createdInstances[name]
+            self._vars[name].writeRelease(name, val)
         
-    def createRollback(self, createName, name, val):
+    def createRollback(self, name, val=None):
         # Set back previous column instance, drop the new one
-        if self._vars.has_key(createName):
-            return
-        self._vars[createName], self.__newInstance[createName] = \
-                                self.__newInstance[createName], None
-        # Remove new instance on rollback
-        if self._vars[createName] is None:
-            del self._vars[createName]
-
+        if self.__createdInstances.has_key(name):
+            self._vars[name] = self.__createdInstances[name]
+            del self.__createdInstances[name]            
+            # Remove new instance on rollback
+            if self._vars[name] is None:
+                del self._vars[name]
+            else:
+                self._vars[name].writeRollback(name, val)
+                
     # Column destruction
         
-    def destroyCheck(self, destroyName, name, val):
+    def destroyCheck(self, name, val=None):
         # Make sure destruction is allowed
-        if self._vars.has_key(destroyName):
-            self._vars[destroyName].destroyCheck(destroyName, val)
+        if self._vars.has_key(name):
+            if self.columnInitializer.maxAccess != 'readcreate':
+                raise error.NoAccessError(
+                    'Column instance destruction prohibited at %r' % self
+                    )
             
-    def destroyReserve(self, destroyName, name, val):
+    def destroyReserve(self, name, val=None):
         pass
 
-    def destroyCommit(self, destroyName, name, val):
+    def destroyCommit(self, name, val=None):
         # Make a copy of column instance and take it off the tree
-        if self._vars.has_key(destroyName):
-            self.__newInstance[destroyName] = self._vars[destroyName]
-            del self._vars[destroyName]
+        if self._vars.has_key(name):
+            self.__destroyedInstances[name] = self._vars[name]
+            del self._vars[name]
         
-    def destroyRelease(self, destroyName, name, val):
+    def destroyRelease(self, name, val=None):
         # Drop instance copy
-        if self.__newInstance.has_key(destroyName):
-            del self.__newInstance[destroyName]
+        if self.__destroyedInstances.has_key(name):
+            del self.__destroyedInstances[name]
             
-    def destroyRollback(self, destroyName, name, val):
+    def destroyRollback(self, name, val=None):
         # Set back column instance
-        if self.__newInstance.has_key(destroyName):
-            self._vars[destroyName] = self.__newInstance[destroyName]
-            del self.__newInstance[destroyName]
+        if self.__destroyedInstances.has_key(name):
+            self._vars[name] = self.__destroyedInstances[name]
+            del self.__destroyedInstances[name]
             
     # Set/modify column
 
@@ -464,10 +384,42 @@ class TableColumn(AbstractMibSubtree):
         try:
             # First try the instance
             AbstractMibSubtree.writeCheck(self, name, val)
-        except error.NoSuchInstanceError:
-            # ...otherwise indicate that a row should be created
-            raise error.RowCreationWanted((name, val))
+        # ...otherwise proceed with creating new column
+        except (error.NoSuchInstanceError, error.RowCreationWanted):
+            self.__rowOpWanted[name] =  error.RowCreationWanted()
+            self.createCheck(name, val)
+        except error.RowDestructionWanted:
+            self.__rowOpWanted[name] =  error.RowDestructionWanted()
+            self.destroyCheck(name, val)
+        if self.__rowOpWanted.has_key(name):
+            raise self.__rowOpWanted[name]
 
+    def __delegateWrite(self, subAction, name, val):
+        if not self.__rowOpWanted.has_key(name):
+            getattr(AbstractMibSubtree, 'write'+subAction)(self, name, val)
+            return
+        if isinstance(self.__rowOpWanted[name], error.RowCreationWanted):
+            getattr(self, 'create'+subAction)(name, val)
+        if isinstance(self.__rowOpWanted[name], error.RowDestructionWanted):
+            getattr(self, 'destroy'+subAction)(name, val)            
+        raise self.__rowOpWanted[name]
+
+    def writeReserve(self, name, val):
+        self.__delegateWrite('Reserve', name, val)
+
+    def writeCommit(self, name, val):
+        self.__delegateWrite('Commit', name, val)
+
+    def writeRelease(self, name, val):
+        self.__delegateWrite('Release', name, val)
+        if self.__rowOpWanted.has_key(name):
+            del self.__rowOpWanted[name]
+            
+    def writeRollback(self, name, val):
+        self.__delegateWrite('Rollback', name, val)
+        if self.__rowOpWanted.has_key(name):
+            del self.__rowOpWanted[name]
+        
 class RowStatus(AbstractMibVariable):
     """A special kind of scalar MIB variable responsible for
        MIB table row creation/destruction. See RFC-1903 for details.
@@ -531,7 +483,7 @@ class RowStatus(AbstractMibVariable):
         ),
         #
         ( stDestroy, stNotExists ): (
-        None, stNotExists
+        error.RowDestructionWanted, stNotExists
         ),
         ( stDestroy, stNotReady ): (
         error.RowDestructionWanted, stNotExists
@@ -585,88 +537,26 @@ class TableRow(AbstractMibSubtree):
     """MIB table row. Manages a set of table columns. Implements row
        creation/destruction.
     """
-    def __manageColumns(self, action, statusColumnName, val):
+    def __manageColumns(self, action, statusColumnName):
         for name, var in self._vars.items():
             getattr(var, action)(
-                name+(statusColumnName[-1],), statusColumnName, val
+                name+(statusColumnName[-1],), None
                 )
 
-    def writeCheck(self, name, val):
-        # Relay check request to column, expect row operation request.
-        if not hasattr(self, '__doingCreation'):
-            self.__doingCreation = None
-        if not hasattr(self, '__doingDestruction'):
-            self.__doingDestruction = None
+    def __delegate(self, subAction, name, val):
+        # Relay operation request to column, expect row operation request.
         try:
-            self._passToSubtree('writeCheck', name, val)
+            self._passToSubtree('write'+subAction, name, val)
         except error.RowCreationWanted, why:
-            if self.__doingCreation:
-                raise SmiError(
-                    'Row %r being created (instance %s)' % (self, name)
-                    )
-            self.__doingCreation = why.why
+            self.__manageColumns('create'+subAction, name)
         except error.RowDestructionWanted, why:
-            if self.__doingDestruction:
-                raise SmiError(
-                    'Row %r being destroyed (instance %s)' % (self, name)
-                    )
-            self.__doingDestruction = why.why
-        if self.__doingCreation:
-            self.__manageColumns('createCheck', self.__doingCreation[0],
-                                 self.__doingCreation[1])
-        elif self.__doingDestruction:
-            self.__manageColumns('destroyCheck', self.__doingDestruction[0],
-                                 self.__doingDestruction[1])
-    
-    def writeReserve(self, name, val):
-        # Relay request to column object, run row operation if required
-        if self.__doingCreation:
-            self.__manageColumns('createReserve', self.__doingCreation[0],
-                                 self.__doingCreation[1])
-        elif self.__doingDestruction:
-            self.__manageColumns('destroyReserve', self.__doingDestruction[0],
-                                 self.__doingDestruction[1])
-        else:
-            self._passToSubtree('writeReserve', name, val)
-    
-    def writeCommit(self, name, val):
-        # Relay request to column object, run row operation if required        
-        if self.__doingCreation:
-            self.__manageColumns('createCommit', self.__doingCreation[0],
-                                 self.__doingCreation[1])
-        elif self.__doingDestruction:
-            self.__manageColumns('destroyCommit', self.__doingDestruction[0],
-                                 self.__doingDestruction[1])
-        else:
-            self._passToSubtree('writeCommit', name, val)
-    
-    def writeRelease(self, name, val):
-        # Relay request to column object, run row operation if required,
-        # cleanup row operation state.
-        if self.__doingCreation:
-            self.__manageColumns('createRelease', self.__doingCreation[0],
-                                 self.__doingCreation[1])
-            self.__doingCreation = None
-        elif self.__doingDestruction:
-            self.__manageColumns('destroyRelease', self.__doingDestruction[0],
-                                 self.__doingDestruction[1])
-            self.__doingDestruction = None
-        else:
-            self._passToSubtree('writeRelease', name, val)
-    
-    def writeRollback(self, name, val):
-        # Relay request to column object, run row operation if required,
-        # cleanup row operation state.
-        if self.__doingCreation:
-            self.__manageColumns('createRollback', self.__doingCreation[0],
-                                 self.__doingCreation[1])
-            self.__doingCreation  = None
-        elif self.__doingDestruction:
-            self.__manageColumns('destroyRollback', self.__doingDestruction[0],
-                                 self.__doingDestruction[1])
-            self.__doingDestruction = None
-        else:
-            self._passToSubtree('writeRollback', name, val)
+            self.__manageColumns('destroy'+subAction, name)
+
+    def writeCheck(self, name, val): self.__delegate('Check', name, val)
+    def writeReserve(self, name, val): self.__delegate('Reserve', name, val)
+    def writeCommit(self, name, val): self.__delegate('Commit', name, val)
+    def writeRelease(self, name, val): self.__delegate('Release', name, val)
+    def writeRollback(self, name, val): self.__delegate('Rollback', name, val)
     
 class MibTable(AbstractMibSubtree):
     """MIB table"""
@@ -744,29 +634,38 @@ class MibVarManager(MibSubtreePattern):
         if myErr:
             raise myErr
         return outputNameVals
-    
+
+    def readVars(self, *vars):
+        return apply(self.flipFlopFsm, (self.fsmReadVar, ) + vars)
+
+    def readNextVars(self, *vars):
+        return apply(self.flipFlopFsm, (self.fsmReadNextVar, ) + vars)
+
+    def writeVars(self, *vars):
+        return apply(self.flipFlopFsm, (self.fsmWriteVar, ) + vars)
+
 if __name__ == '__main__':
     from pysnmp.asn1.univ import ObjectIdentifier, Null, Integer
 
     mv = MibVarManager((1,3),
                        LocalMibSubtree(
-        (1,3,1),
-        # Pre-initialized table, no creation allowed
-        MibTable((1,3,1,1),
-                 TableRow((1,3,1,1,1),
-                          # read-only var
-                          TableColumn((1,3,1,1,1,1),
-                                      MibVariable((1,3,1,1,1,1,1),
-                                                  Integer(1)
-                                                  )
-                                      ),
-                          # read-write var
-                          TableColumn((1,3,1,1,1,2),
-                                      MibVariable((1,3,1,1,1,2,1),
-                                                  Integer(1)).setAccess('readwrite')
-                                      )
-                          )
-                 ),
+         (1,3,1),
+#         # Pre-initialized table, no creation allowed
+#         MibTable((1,3,1,1),
+#                  TableRow((1,3,1,1,1),
+#                           # read-only var
+#                           TableColumn((1,3,1,1,1,1),
+#                                       MibVariable((1,3,1,1,1,1,1),
+#                                                   Integer(1)
+#                                                   )
+#                                       ),
+#                           # read-write var
+#                           TableColumn((1,3,1,1,1,2),
+#                                       MibVariable((1,3,1,1,1,2,1),
+#                                                   Integer(1)).setAccess('readwrite')
+#                                       )
+#                           )
+#                  ),
         # Table with row creation
         MibTable((1,3,1,2),
                  TableRow((1,3,1,2,1),
@@ -775,26 +674,20 @@ if __name__ == '__main__':
                           # read-write var
                           TableColumn((1,3,1,2,1,2)
                                       ).setColumnInitializer(MibVariable(
-        (1,3,1,2,1,2), Integer(1)).setAccess('readcreate')
+        (1,3,1,2,1,2), Integer(123)).setAccess('readcreate')
                                                              )
                           )
                  )
         )
     )
 
-#    print mv.flipFlopFsm(mv.fsmReadVar, ((1,3,1,1,1,2), None))
-#    print mv.flipFlopFsm(mv.fsmWriteVar, ((1,3,1,1,1,2,1), Integer(4)))
-#    print mv.flipFlopFsm(mv.fsmReadVar, ((1,3,1,1,1,2,1), None))
-    
-#    print mv.flipFlopFsm(mv.fsmReadVar, ((1,3,1,2,1,1,1), None))
-#    print mv.flipFlopFsm(mv.fsmWriteVar, ((1,3,1,2,1,1,1), Integer(4)))
-#    print mv.flipFlopFsm(mv.fsmReadVar, ((1,3,1,2,1,1,1), None))
-#    print mv.flipFlopFsm(mv.fsmReadVar, ((1,3,1,2,1,2,1), None))
-#    print mv.flipFlopFsm(mv.fsmWriteVar, ((1,3,1,2,1,1,1), Integer(6)))
-#    print mv.flipFlopFsm(mv.fsmReadVar, ((1,3,1,2,1,2,1), None))
     try:
-        print mv.flipFlopFsm(mv.fsmWriteVar,    ((1,3,1,2,1,1,1), Integer(4)))
-        print mv.flipFlopFsm(mv.fsmWriteVar,    ((1,3,1,2,1,1,1), Integer(6)))
+        print mv.flipFlopFsm(mv.fsmWriteVar,
+                             ((1,3,1,2,1,1,1), Integer(4)),
+                             )
+        print mv.flipFlopFsm(mv.fsmWriteVar,
+                             ((1,3,1,2,1,1,1), Integer(6))
+                             )
     except error.SmiError, why:
         print why
 #    print mv.flipFlopFsm(mv.fsmReadNextVar, ((1,3,1,2,1), None))
@@ -807,4 +700,4 @@ if __name__ == '__main__':
             break
         print name, val
 
-# XXX create access verif at column
+# Column needs fsm for instance management
