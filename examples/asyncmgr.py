@@ -114,7 +114,7 @@ class telnet_engine(asynchat.async_chat):
         # In case of PySNMP exception, report it to user. Otherwise,
         # just pass the exception on.
         if type(exc_type) == ClassType and\
-           issubclass(exc_type, error.General):
+           issubclass(exc_type, error.Generic):
             self.push('Exception: %s: %s\n' % (exc_type, exc_value))
         else:
             raise (exc_type, exc_value)
@@ -200,14 +200,15 @@ class telnet_engine(asynchat.async_chat):
         # Add request details into a pool of pending requests
         self.pending.append((req, (args[0], port), time.time() + timeout))
         
-    def request_done_fun(self, manager, data, (response, src), exp):
+    def request_done_fun(self, manager, data, (response, src),\
+                         (exc_type, exc_value, exc_traceback)):
         """Callback method invoked by SNMP manager object as response
            arrives. Asynchronous SNMP manager object passes back a
            reference to object instance that initiated this SNMP request
            alone with SNMP response message.
         """
-        if exp[0] is not None:
-            apply(self.handle_error, exp)
+        if exc_type is not None:
+            apply(self.handle_error, (exc_type, exc_value, exc_traceback))
             return
             
         # Initialize response buffer
