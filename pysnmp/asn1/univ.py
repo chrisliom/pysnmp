@@ -1,15 +1,17 @@
 """ASN.1 "universal" data types"""
-__all__ = [ 'Boolean', 'Integer', 'BitString', 'OctetString', 'Null', \
-            'ObjectIdentifier', 'Real', 'Enumerated', 'Sequence', \
-            'SequenceOf', 'Set', 'SetOf', 'Choice' ]
-
 import string
 from string import join, split, atoi, atol
 from operator import getslice
 from types import IntType, LongType, StringType, NoneType, FloatType,  \
      TupleType, ListType, SliceType
 from exceptions import StandardError, TypeError
-from pysnmp.asn1 import base, tags, subtypes, error
+from pysnmp.asn1 import base, tags, subtypes, namedval, error
+
+__all__ = [
+    'Boolean', 'Integer', 'BitString', 'OctetString', 'Null', 
+    'ObjectIdentifier', 'Real', 'Enumerated', 'Sequence',
+    'SequenceOf', 'Set', 'SetOf', 'Choice'
+    ]
 
 #
 # "Simple" ASN.1 types implementation
@@ -65,8 +67,16 @@ class Boolean(base.AbstractSimpleAsn1Item):
 class Integer(base.AbstractSimpleAsn1Item):
     tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x02)
     allowedTypes = ( IntType, LongType, StringType )
+    namedValues = namedval.NamedValues()
     initialValue = 0
-    
+
+    def __str__(self):
+        r = self.namedValues.getName(self.rawAsn1Value)
+        if r is not None:
+            return '%s(%s)' % (r, self.rawAsn1Value)
+        else:
+            return str(self.rawAsn1Value)
+        
     # Basic arithmetic ops
     
     def __add__(self, value):
@@ -238,6 +248,9 @@ class Integer(base.AbstractSimpleAsn1Item):
     def _iconv(self, value):
         if type(value) != StringType:
             return value
+        r = self.namedValues.getValue(value)
+        if r is not None:
+            return r
         try:
             return atoi(value)
         except:
@@ -247,6 +260,10 @@ class Integer(base.AbstractSimpleAsn1Item):
                 raise error.BadArgumentError(
                     'Cant coerce %s into integer' % value
                     )
+
+    def addNamedValues(self, *namedValues):
+        self.namedValues = apply(self.namedValues.clone, namedValues)
+        return self
 
 class BitString(base.AbstractSimpleAsn1Item):
     tagSet = base.AbstractSimpleAsn1Item.tagSet.clone(tagId=0x03)
@@ -562,3 +579,9 @@ class SequenceOf(base.AbstractSequenceAsn1Item):
 
 class SetOf(SequenceOf):
     tagSet = SequenceOf.tagSet.clone(tagId=0x11)
+
+if __name__ == '__main__':
+    i = Integer()
+    i.namedValues = i.namedValues.clone('up', ('down', 2))
+    i.set('up')
+    print str(i)
