@@ -74,7 +74,6 @@ class MibBuilder:
             g = {
                 'mibBuilder': self,
                 'execContext': self.execContext,
-                'modName': modName,
                 }
 
             self.mibSymbols[modName] = {}
