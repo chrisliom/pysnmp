@@ -1,13 +1,13 @@
 """Implementation of data types defined by SNMP SMI (RFC1902)"""
+from string import join
 from pysnmp.proto import rfc1155, error
-from pysnmp.asn1 import univ, tags, subtypes
+from pysnmp.asn1 import univ, tags, subtypes, namedval
 
 __all__ = [
-    'Integer', 'Integer32', 'OctetString', 'BitString', 'Null', \
-    'ObjectIdentifier', 'IpAddress', 'Counter32', 'Gauge32', \
-    'Unsigned32', 'TimeTicks', 'Opaque',  'Counter64', 'Sequence', \
-    'Bits', 'SequenceOf', 'Choice', 'ObjectName', 'SimpleSyntax', \
-    'ApplicationSyntax', 'ObjectSyntax'
+    'Integer', 'Integer32', 'OctetString', 'Null', 'ObjectIdentifier',
+    'IpAddress', 'Counter32', 'Gauge32', 'Unsigned32', 'TimeTicks',
+    'Opaque',  'Counter64', 'Sequence', 'Bits', 'SequenceOf', 'Choice',
+    'ObjectName', 'SimpleSyntax', 'ApplicationSyntax', 'ObjectSyntax'
     ]
 
 # SimpleSyntax
@@ -24,8 +24,6 @@ class Integer32(univ.Integer):
         subtypes.ValueRangeConstraint(-2147483648L, 2147483647L),
     )
     
-class BitString(univ.BitString): pass
-
 class OctetString(univ.OctetString):
     # Subtyping -- size constraint    
     subtypeConstraints = ( subtypes.ValueSizeConstraint(0, 65535), )
@@ -85,8 +83,46 @@ class Counter64(univ.Integer):
         subtypes.ValueRangeConstraint(0, 18446744073709551615L),
     )
 
-# XXX ?
-class Bits(OctetString): pass
+class Bits(univ.OctetString):
+    namedValues = namedval.NamedValues()
+    
+    def _iconv(self, bits):
+        octets = []
+        for bit in bits:
+            v = self.namedValues.getValue(bit)
+            if v is None:
+                raise error.BadArgumentError(
+                    'Unknown named bit %s' % bit
+                    )
+            d, m = divmod(v, 8)
+            if d >= len(octets):
+                octets.extend((0,) * (d - len(octets) + 1))
+            octets[d] = octets[d] | 0x01 << (7-m)
+        return join(map(lambda x: chr(x), octets))
+
+    def _oconv(self, value):
+        names = []
+        octets = tuple(map(None, value))
+        i = 0
+        while i < len(octets):
+            v = ord(octets[i])
+            j = 7
+            while j > 0:
+                if v & (0x01<<j):
+                    name = self.namedValues.getName(i*8+7-j)
+                    if name is None:
+                        raise error.BadArgumentError(
+                            'Unknown named value %s' % v
+                            )
+                    names.append(name)
+                j = j - 1
+            i = i + 1
+        return tuple(names)
+
+    def addNamedValues(self, *namedValues):
+        self.namedValues = apply(self.namedValues.clone, namedValues)
+        return self
+    
 Sequence = univ.Sequence
 SequenceOf = univ.SequenceOf
 Choice = univ.Choice
@@ -97,13 +133,13 @@ class SimpleSyntax(univ.Choice):
     protoComponents = {
         'integer_value': Integer(),
         'string_value': OctetString(),
-        'objectID_value': ObjectIdentifier(),
-        'bit_value': BitString()
+        'objectID_value': ObjectIdentifier()
         }
 
 class ApplicationSyntax(univ.Choice):
     protoComponents = {
         'ipAddress_value': IpAddress(),
+        'bits': Bits(),        
         'counter_value': Counter32(),
         'timeticks_value': TimeTicks(),
         'arbitrary_value': Opaque(),
@@ -124,3 +160,10 @@ class ObjectSyntax(univ.Choice):
         'application_syntax': ApplicationSyntax(),
         'sequence_syntax': TableSyntax()
         }
+
+if __name__ == '__main__':
+    b = Bits()
+    b.namedValues = b.namedValues.clone(('Zero', 0), ('One', 1))
+    #b.clone('One')
+    b.set(('Zero','One'))
+    print b
