@@ -1,434 +1,196 @@
-"""
-   A framework for implementing Basic Encoding Rules (BER) en/decoders
-   for ASN.1 data types.
-
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
-   details.
-"""
-# Module public names
-__all__ = [ 'SimpleAsn1Object', 'OrderedFixedTypeAsn1Object', \
-            'UnorderedFixedTypeAsn1Object', 'SingleFixedTypeAsn1Object', \
-            'OrderedVariableTypeAsn1Object', 'UnorderedVariableTypeAsn1Object']
-
+"""Base classes for BER codecs"""
 from types import StringType
 from string import join
-from pysnmp.asn1.encoding.ber import error
 from pysnmp.asn1.base import tagCategories
-from pysnmp.asn1.error import Asn1Error
+from pysnmp.asn1.encoding.ber import error
 
-def decodeTag(input, where='decodeTag'):
-    """Decode first octet of input octet stream into int tag
-    """
-    if type(input) != StringType:
-        raise error.BadArgumentError('Non-string type input %s at %s' %\
-                                     (type(input), where))
-    if len(input) < 2:
-        raise error.UnderRunError('Short octet stream (no tag) at %s' % where)
-    
-    return ord(input[0])
+codecId = 'BER'
 
-class BerObject:
-    """Base class for BER en/decoding classes
-    """
-    # A placeholders for ASN.1-defined attributes XXX
-    tagClass = tagFormat = tagId = 0
-    
-    def berEncodeTag(self, (tagClass, tagFormat, tagId) = (None, None, None)):
-        """BER encode ASN.1 type tag
-        """
-        if tagClass is None:
-            tagClass = self.tagClass
-        if tagFormat is None:
-            tagFormat = self.tagFormat
-        if tagId is None:
-            tagId = self.tagId
+class AbstractBerCodec:
+    # Abstract interface to BER codec
 
-        return chr(tagClass | tagFormat | tagId)
+    def encodeValue(self, client):
+        """encodeValue(client) -> oStream"""
+        raise error.BadArgumentError(
+            'No BER value encoder implemented at %r for %r' %
+            (self.__class__.__name__, client.__class__.__name__)
+        )
 
-    def berEncodeLength(self, length):
-        """
-           berEncodeLength(length) -> octet string
-           
-           BER encode ASN.1 data item length (integer).
-        """
-        # If given length fits one byte
-        if length < 0x80:
-            # Pack it into one octet
-            return chr(length)
-        
-        # One extra byte required
-        elif length < 0xFF:
-            # Pack it into two octets
-            return join(map(chr, [0x81, length]), '')
-        
-        # Two extra bytes required
-        elif length < 0xFFFF:
-            # Pack it into three octets
-            return join(map(chr, [0x82, (length >> 8) & 0xFF,
-                                  length & 0xFF]), '')
-        
-        # Three extra bytes required
-        elif length < 0xFFFFFF:
-            # Pack it into three octets
-            return join(map(chr, [0x83, (length >> 16) & 0xFF,
-                                  (length >> 8) & 0xFF, length & 0xFF]), '')
-        
-        # More octets may be added
+    def decodeValue(self, client, oStream):
+        """decodeValue(client, oStream) -> restOfStream"""
+        raise error.BadArgumentError(
+            'No BER value decoder implemented at %r for %r' %
+            (self.__class__.__name__, client.__class__.__name__)
+        )
+
+    def encode(self, client):
+        oStream = self.encodeValue(client)
+        if client.tagCategory == tagCategories['IMPLICIT']:
+            taggingSequence = (
+                client.tagClass[0] | client.tagFormat[0] | client.tagId[0],
+            )
+        elif client.tagCategory == tagCategories['UNTAGGED']:
+            taggingSequence = ()
+        elif client.tagCategory == tagCategories['EXPLICIT']:
+            return map(lambda x, y, z: x|y|z, client.tagClass, \
+                       client.tagFormat, client.tagId)            
         else:
-            raise error.OverFlowError('Too large length %d for %s' %\
-                                      (length, self.__class__.__name__))
+            raise error.BadArgumentError(
+                'Unsupported tagCategory (%d) at %s for %s' %
+                (client.tagCategory, self.__class__.__name__,
+                 client.__class__.__name__,)
+            )
+        idx = len(taggingSequence)
+        while idx:
+            idx = idx - 1
+            # Encode length
+            length = len(oStream)
+            if length < 0x80:
+                berLength = chr(length)
+            elif length < 0xFF:
+                berLength = '\x81%c' % length
+            elif length < 0xFFFF:
+                berLength = '\x82%c%c' % ((length >> 8) & 0xFF, length & 0xFF)
+            elif length < 0xFFFFFF:
+                berLength = '\x83%c%c%c' % (
+                    (length >> 16) & 0xFF,
+                    (length >> 8) & 0xFF,
+                    length & 0xFF
+            )
+            # More octets may be added
+            else:
+                raise error.OverFlowError(
+                    'Too large length %d at %r' %
+                    (length, self.__class__.__name__)
+                )
+            oStream = chr(taggingSequence[idx]) + berLength + oStream
+        return oStream
+    
+    def decode(self, client, oStream):
+        restOfStream = None
+        if client.tagCategory == tagCategories['IMPLICIT']:
+            taggingSequence = (
+                client.tagClass[0] | client.tagFormat[0] | client.tagId[0],
+            )
+        elif client.tagCategory == tagCategories['UNTAGGED']:
+            taggingSequence = ()
+        elif client.tagCategory == tagCategories['EXPLICIT']:
+            return map(lambda x, y, z: x|y|z, client.tagClass, \
+                       client.tagFormat, client.tagId)            
+        else:
+            raise error.BadArgumentError(
+                'Unsupported tagCategory (%d) at %s for %s' %
+                (client.tagCategory, self.__class__.__name__,
+                 client.__class__.__name__,)
+            )
+        for tag in taggingSequence:
+            # Decode BER tag
+            if len(oStream) < 2:
+                raise error.UnderRunError(
+                    'Short octet stream (no tag) at %r' %
+                    self.__class__.__name__
+            )
+            gotTag = ord(oStream[0])
+            if gotTag != tag:
+                raise error.TypeMismatchError(
+                    'Tag mismatch at %r for %r: expected %o but got %o' %
+                    (self.__class__.__name__, client.__class__.__name__,
+                     tag, gotTag)
+                )
 
-    def berDecodeLength(self, input):
-        """
-           berDecodeLength(input) -> (length, size)
-           
-           Return the data item's length (integer) and the size of length
-           data (integer).
-        """
-        if len(input) < 1:
-            raise error.BadEncodingError('Short octet stream at %s' %\
-                                         self.__class__.__name__)
-
-        # Get the most-significant-bit
-        msb = ord(input[0]) & 0x80
-        if not msb:
-            return (ord(input[0]) & 0x7F, 1)
-
-        if len(input) < 2:
-            raise error.BadEncodingError('Short octet stream at %s' %\
-                                         self.__class__.__name__)
-        
-        # Get the size if the length
-        size = ord(input[0]) & 0x7F
-
-        # One extra byte length
-        if msb and size == 1:
-            return (ord(input[1]), size+1)
-
-        if len(input) < 3:
-            raise error.BadEncodingError('Short octet stream at %s' %\
-                                         self.__class__.__name__)
-        
-        # Two extra bytes length
-        if msb and size == 2:
-            result = ord(input[1])
-            result = result << 8
-            return (result | ord(input[2]), size+1)
-
-        if len(input) < 4:
-            raise error.BadEncodingError('Short octet stream at %s' %\
-                                         self.__class__.__name__)
-
-        # Two extra bytes length
-        if msb and size == 3:
-                result = ord(input[1])
-                result = result << 8
-                result = result | ord(input[2])
-                result = result << 8
-                return (result | ord(input[3]), size+1)
-
-        raise error.OverFlowError('Too many length bytes %d for %s' %\
-                                  (size, self.__class__.__name__))
-
-class SimpleAsn1Object(BerObject):
-    """BER packet header encoders & decoders for simple (that is non-structured
-       ASN.1 objects)
-    """
-    def berEncode(self, value=None):
-        """
-            berEncode() -> octet string
-            
-            BER encode object payload whenever possible
-        """
-        if not hasattr(self, '_berEncode'):
-            raise error.BadArgumentError('No encoder defined for %s' %\
-                                         self.__class__.__name__)
-        
-        if value is not None and hasattr(self, 'set'):
-            self.set(value); value = self.rawAsn1Value
-        if value is None and hasattr(self, 'rawAsn1Value'):
-            value = self.rawAsn1Value
-
-        if self.tagCategory == tagCategories['EXPLICIT']:
-            for superClass in self.__class__.__bases__:
-                if issubclass(superClass, SimpleAsn1Object):
+            # Decode length
+            while 1:
+                lenOfStream = len(oStream)
+                if lenOfStream < 2:
+                    raise error.BadEncodingError(
+                        'Short octet stream (<2) at %r' %
+                        self.__class__.__name__
+                    )
+                firstOctet  = ord(oStream[1])
+                msb = firstOctet & 0x80
+                if not msb:
+                    length, size = firstOctet & 0x7F, 1
                     break
-            else:
-                raise error.BadArgumentError('No underling type for %s' % \
-                                             self.__class__.__name__)
-            
-            if value is None:
-                value = superClass.berEncodeTag(self, self.getUnderlyingTag())\
-                        + superClass.berEncodeLength(self, 0)
-            else:
-                value = superClass._berEncode(self, value)
-                value = superClass.berEncodeTag(self, self.getUnderlyingTag())\
-                        + superClass.berEncodeLength(self, len(value)) + result
 
-        if value is None:
-            return self.berEncodeTag() + self.berEncodeLength(0)
-        else:
-            value = self._berEncode(value)
-            return self.berEncodeTag() + \
-                   self.berEncodeLength(len(value)) + value
-
-    encode = berEncode
-    
-    def berDecode(self, input):
-        """
-            berDecode(input) -> (value, rest)
-            
-            BER decode input (octet string) into ASN1 object payload,
-            return the rest of input stream.
-        """
-        if not hasattr(self, '_berDecode'):
-            raise error.BadArgumentError('No decoder defined for %s' %\
-                                         self.__class__.__name__)
-
-        if decodeTag(input, self.__class__.__name__) != \
-           self.tagClass | self.tagFormat | self.tagId:
-            raise error.TypeMismatchError('Tag mismatch %o at %s' %\
-                                          (decodeTag(input), \
-                                           self.__class__.__name__))
-        
-        (length, size) = self.berDecodeLength(input[1:])
-        if len(input) - 1 - size < length:
-            raise error.UnderRunError('Short input for %s' %\
-                                      self.__class__.__name__)
-
-        value = self._berDecode(input[1+size:1+size+length])
-
-        if hasattr(self, '_setRawAsn1Value'):
-            self._setRawAsn1Value(value)
-
-        return input[1+size+length:]
-    
-    decode = berDecode
-    
-class StructuredAsn1Object(SimpleAsn1Object):
-    """BER for structured ASN.1 objects
-    """
-    def berWrapHeader(self, input):
-        """Add BER header to data chunk if needed
-        """
-        if self.tagCategory == tagCategories['UNTAGGED']:
-            return input
-        else:
-            return self.berEncodeTag() + \
-                   self.berEncodeLength(len(input)) + input
-
-    def berUnwrapHeader(self, input):
-        """Decode BER header, return (data, rest)
-        """
-        if self.tagCategory == tagCategories['UNTAGGED']:
-            return (input, '')            
-        if decodeTag(input, self.__class__.__name__) != \
-           self.tagClass | self.tagFormat | self.tagId:
-            raise error.TypeMismatchError('Tag mismatch %o at %s' %\
-                                          (decodeTag(input), \
-                                           self.__class__.__name__))
-        
-        (length, size) = self.berDecodeLength(input[1:])
-        if len(input) - 1 - size < length:
-            raise error.UnderRunError('Short input for %s' % \
-                                      self.__class__.__name__)
-
-        return (input[1+size:1+size+length], input[1+size+length:])
-
-class FixedTypeAsn1Object(StructuredAsn1Object):
-    """BER for fixed-type ASN.1 objects
-    """
-    def berEncode(self, **kwargs):
-        """
-            berEncode() -> octet string
-            
-            BER encode object payload whenever possible
-        """
-        self.update(kwargs)
-
-        if hasattr(self, '_berEncode'):
-            result = self._berEncode()
-        else:
-            result = ''
-            for key in self.keys():
-                result = result + self[key].encode()
-
-        return self.berWrapHeader(result)
-    
-    encode = berEncode
-    
-class OrderedFixedTypeAsn1Object(FixedTypeAsn1Object):
-    """BER for ordered, fixed-type ASN.1 objects
-    """
-    def berDecode(self, input):
-        """
-            berDecode(input) -> rest
-            
-            BER decode input (octet string) into ASN1 object payload,
-            return the rest of input stream.
-        """
-        (input, rest) = self.berUnwrapHeader(input)
-            
-        if hasattr(self, '_berDecode'):
-            input = self._berDecode(input)
-        else:
-            for key in self.keys():
-                input = self[key].berDecode(input)
-
-        if len(input):
-            raise error.TypeMismatchError('Extra data in wire at %s: %s'%
-                                          (self.__class__.__name__,
-                                           repr(input)))
-        return rest
-
-    decode = berDecode
-    
-class UnorderedFixedTypeAsn1Object(FixedTypeAsn1Object):
-    """BER for unordered, fixed-type ASN.1 objects
-    """
-    def berDecode(self, input):
-        """
-            berDecode(input) -> rest
-            
-            BER decode input (octet string) into ASN1 object payload,
-            return the rest of input stream.
-        """
-        (input, rest) = self.berUnwrapHeader(input)
-            
-        if hasattr(self, '_berDecode'):
-            input = self._berDecode(input)
-        else:
-            keys = self.keys()
-            while keys:
-                for key in keys:
-                    try:
-                        input = self[key].berDecode(input)
-
-                    except Asn1Error:
-                        continue
-
-                    keys.remove(key)
+                if lenOfStream < 3:
+                    raise error.BadEncodingError(
+                        'Short octet stream (<3) at %r' %
+                        self.__class__.__name__
+                    )
+                size = firstOctet & 0x7F
+                secondOctet  = ord(oStream[2])
+                if msb and size == 1:
+                    length, size = secondOctet, size+1
                     break
-                else:
-                    raise error.TypeMismatchError('Octet-stream parse error at %s'\
-                                                  % self.__class__.__name__)
-        if len(input):
-            raise error.TypeMismatchError('Extra data in wire at %s: %s'%
-                                          (self.__class__.__name__,
-                                           repr(input)))
-        return rest
-
-    decode = berDecode
-    
-class SingleFixedTypeAsn1Object(FixedTypeAsn1Object):
-    """BER for a single, fixed-type ASN.1 objects
-    """
-    def berDecode(self, input):
-        (input, rest) = self.berUnwrapHeader(input)            
-        if hasattr(self, '_berDecode'):
-            input = self._berDecode(input)
-        else:
-            # XXX improve input[:1] based caching
-            if not hasattr(self, '_cachedChoiceComponents'):
-                self._cachedChoiceComponents = {}
-            # First try current component
-            if len(self):
-                try:
-                    if len(self.values()[0].berDecode(input)):
-                        raise error.TypeMismatchError('Extra data in wire at %s'\
-                                                      % self.__class__.__name__)
-                except Asn1Error:
-                    pass
-                else:
-                    return rest
-            # Secondly, try cache
-            cachedValues = self._cachedChoiceComponents.get(input[:1], None)
-            if cachedValues is None:
-                self._cachedChoiceComponents[input[:1]] = cachedValues = []
-            else:
-                for (name, value) in cachedValues:
-                    try:
-                        if len(value.berDecode(input)):
-                            raise error.TypeMismatchError('Extra data in wire at %s'\
-                                                          % self.__class__.__name__)
-                    except Asn1Error:
-                        continue
-                    else:                        
-                        self[name] = value
-                        return rest
-
-            # At last, try all components one by one
-            idx = 0
-            for idx in range(len(self.choiceComponents)):
-                name, value = (self.choiceNames[idx], \
-                               self.choiceComponents[idx]())
-                try:
-                    if len(value.berDecode(input)):
-                        raise error.TypeMismatchError('Extra data in wire at %s'\
-                                                      % self.__class__.__name__)
-                except Asn1Error:
-                    continue
-                else:
-                    self[name] = value
-                    cachedValues.append((name, value))
-                    return rest
-            else:
-                raise error.TypeMismatchError('Octet-stream parse error at %s'\
-                                              % self.__class__.__name__)
-
-    decode = berDecode
-
-class VariableTypeAsn1Object(StructuredAsn1Object):
-    """BER for variable-type ASN.1 objects
-    """
-    def berEncode(self, args=[]):
-        """
-            berEncode() -> octet string
             
-            BER encode object payload whenever possible
-        """
-        self.extend(args)
+                if lenOfStream < 4:
+                    raise error.BadEncodingError(
+                        'Short octet stream (<4) at %r' %
+                        self.__class__.__name__
+                    )
+                if msb and size == 2:
+                    length = secondOctet
+                    length = length << 8
+                    length, size = length | ord(oStream[3]), size+1
+                    break
 
-        if hasattr(self, '_berEncode'):
-            result = self._berEncode()
-        else:
-            result = ''
-            for value in self:
-                result = result + value.berEncode()
+                if lenOfStream < 5:
+                    raise error.BadEncodingError(
+                        'Short octet stream (<5) at %r' %
+                        self.__class__.__name__
+                    )
+                if msb and size == 3:
+                    length = secondOctet
+                    length = length << 8
+                    length = length | ord(oStream[3])
+                    length = length << 8
+                    length, size = length | ord(oStream[4]), size+1
+                    break
 
-        return self.berWrapHeader(result)
+                raise error.OverFlowError(
+                    'Too many length bytes %d at %r' %
+                    (size, self.__class__.__name__)
+                )
+            if len(oStream) - 1 - size < length:
+                raise error.UnderRunError(
+                    'Incomplete octet-stream at %r for %r' %
+                    (self.__class__.__name__, client.__class__.__name__)
+                )
+            if restOfStream is None:
+                restOfStream = oStream[1+size+length:]
+            oStream = oStream[1+size:1+size+length]
+            
+        # Untagged item
+        if restOfStream is None:
+            return self.decodeValue(client, oStream)
+        if self.decodeValue(client, oStream):
+            raise error.TypeMismatchError(
+                'Extra data left in wire at %r for %r: %s' %
+                (self.__class__.__name__, client.__class__.__name__,
+                 repr(oStream))
+            )
+        return restOfStream
 
-    encode = berEncode
+class SimpleBerCodecBase(AbstractBerCodec): pass
+class StructuredBerCodecBase(AbstractBerCodec): pass
 
-    def berDecode(self, input):
-        """
-            BER decode input (octet string) into ASN1 object payload,
-            return the rest of input stream.
-        """
-        (input, rest) = self.berUnwrapHeader(input)
+class MappingTypeBerCodecBase(StructuredBerCodecBase):
+    def encodeValue(self, client):
+        oStream = []
+        for key in client.keys():
+            oStream.append(client[key].encodeItem(codecId))            
+        return join(oStream, '')
 
-        if hasattr(self, '_berDecode'):
-            return self._berDecode(input)
-        else:
-            if not hasattr(self, '_cachedComponents'):
-                self._cachedComponents = []
-            idx = 0
-            while len(input):
-                if len(self._cachedComponents) <= idx:
-                    self._cachedComponents.append(self.protoComponent())
-                input = self._cachedComponents[idx].berDecode(input)
-                idx = idx + 1
-            self[:] = self._cachedComponents[:idx]
-        return rest
+class SequenceTypeBerCodec(StructuredBerCodecBase):
+    def encodeValue(self, client):
+        oStream = []
+        for component in client:
+            oStream.append(component.encodeItem(codecId))
+        return join(oStream, '')
 
-    decode = berDecode
-    
-class OrderedVariableTypeAsn1Object(VariableTypeAsn1Object):
-    """BER for ordered, variable-type ASN.1 objects
-    """
-    pass
-
-class UnorderedVariableTypeAsn1Object(VariableTypeAsn1Object):
-    """BER for unordered, variable-type ASN.1 objects
-    """
-    pass
+    def decodeValue(self, client, oStream):
+        client.clear()
+        while oStream:
+            protoComponent = client.componentFactoryBorrow()
+            oStream = protoComponent.decodeItem(oStream, codecId)
+            client.append(protoComponent)

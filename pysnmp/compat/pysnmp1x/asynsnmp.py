@@ -2,7 +2,7 @@
    Deprecated PySNMP 1.x compatibility interface to asynchronous SNMP v.1
    engine implementation.
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 import asyncore

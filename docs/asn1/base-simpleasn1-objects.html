@@ -20,8 +20,10 @@ class implement the following additional methods:
 <DT><STRONG>set</STRONG>(<STRONG>value</STRONG>)</DT>
 <DD>
 <P>
-Loads the <STRONG>value</STRONG> to ASN.1 object. The type of
-<STRONG>value</STRONG> is specific to ASN.1 object implementation.
+Sets the <STRONG>value</STRONG> to ASN.1 object. The <STRONG>value</STRONG>
+must be either a <STRONG>SimpleAsn1Object</STRONG> class instance or
+an arbitrary value specific to ASN.1 object implementation (e.g superclass
+implementation).
 </P>
 </DD>
 </DL>
@@ -31,8 +33,9 @@ Loads the <STRONG>value</STRONG> to ASN.1 object. The type of
 <DT><STRONG>get</STRONG>()</DT>
 <DD>
 <P>
-Retruns the payload of ASN.1 object. The type of returned value is specific
-to ASN.1 object implementation.
+Returns the payload of ASN.1 object as a native Python value. The exact type of
+returned value is specific to ASN.1 object implementation (e.g. superclass
+implementation).
 </P>
 </DD>
 </DL>

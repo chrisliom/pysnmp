@@ -9,7 +9,3 @@ class TransportError(error.PySnmpError):
     """Base class for transport related exceptions
     """
     pass
-
-class BadArgumentError(TransportError): pass
-
-class NotImplementedError(TransportError): pass

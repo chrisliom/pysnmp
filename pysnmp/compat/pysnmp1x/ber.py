@@ -1,7 +1,7 @@
 """
    Deprecated PySNMP 1.x compatibility interface to ASN.1 data types handlers.
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 from pysnmp.proto import rfc1155
@@ -104,10 +104,9 @@ class ber(wrapexp.Base):
     def _oid_prefix_check_fun(self, enc_oid_1, enc_oid_2):
         """Compatibility method: compare OIDs
         """
-        obj1 = rfc1155.ObjectIdentifier(); obj.decode(enc_oid_1)
-        obj2 = rfc1155.ObjectIdentifier(); obj.decode(enc_oid_2)
-        if obj1 <= obj2:
-            return not None
+        obj1 = rfc1155.ObjectIdentifier(); obj1.decode(enc_oid_1)
+        obj2 = rfc1155.ObjectIdentifier(); obj2.decode(enc_oid_2)
+        return obj1.isaprefix(obj2)
     
     def oid_prefix_check(self, enc_oid_1, enc_oid_2):
         """

@@ -1,0 +1,1 @@
+"""SMI macro implementations"""

@@ -1,11 +1,6 @@
-"""
-   Package exception classes.
-
-   Written by Ilya Etingof <ilya@glas.net>, 2001-2003.
+"""Package exception classes
 """   
 from pysnmp.asn1 import error
 
-class EncodingError(error.Asn1Error):
-    """Base class for ber sub-package exceptions
-    """
-    pass
+class EncodingError(error.Asn1Error): pass
+class BadArgumentError(EncodingError): pass

@@ -2,7 +2,7 @@
    Invoke base API methods, catch possible exceptions and translate them
    into legacy PySNMP 1.x counterparts.
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 import pysnmp.proto.error, pysnmp.asn1.error, pysnmp.asn1.encoding.ber.error

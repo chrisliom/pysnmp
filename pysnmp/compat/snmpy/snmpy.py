@@ -5,7 +5,7 @@
    For more information on snmpy project, please, refer to
    http://www.sf.net/projects/snmpy/
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 
    Initial copyrights for prototype code and API are as follows:

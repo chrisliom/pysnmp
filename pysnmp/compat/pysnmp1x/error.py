@@ -2,7 +2,7 @@
    Deprecated PySNMP 1.x compatibility interface to exception classes.
    Suggested by Case Van Horsen <case@ironwater.com>.
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 from pysnmp import error

@@ -1,8 +1,8 @@
 """
    An implementation of high-level API to SNMP v.1 message PDU objects
-   (RFC1157)
+   (RFC1157).
 
-   Copyright 1999-2003 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 # Module public names
@@ -12,15 +12,21 @@ __all__ = [ 'GetRequestPduMixIn', 'GetNextRequestPduMixIn',
             'registerMixIns' ]
 
 import pysnmp.proto.api.alpha.rfc1157
-from pysnmp.proto import rfc1157
+from pysnmp.proto import rfc1155, rfc1157
 
 class RequestPduMixIn:
     def apiGenGetRequestId(self): return self.apiAlphaGetRequestId().get()
     def apiGenSetRequestId(self, value): self.apiAlphaSetRequestId(value)
     def apiGenGetVarBind(self):
-        return map(lambda x: (x[0].get(), x[1]), self.apiAlphaGetVarBinds())
+        return map(lambda x: (x[0].get(), x[1]), \
+                   map(lambda x: x.apiAlphaGetOidVal(), \
+                       self.apiAlphaGetVarBindList()))
     def apiGenSetVarBind(self, varBinds):
-        apply(self.apiAlphaSetVarBinds, varBinds)
+        tempVarBinds = []
+        for oid, val in varBinds:
+            if val is None: val = rfc1155.Null()
+            tempVarBinds.append((oid, val))
+        apply(self.apiAlphaSetVarBindList, tempVarBinds)
     
 # Request PDU mix-ins
 class GetRequestPduMixIn(RequestPduMixIn): pass

@@ -1,220 +1,159 @@
-"""
-   ASN.1 "universal" data types.
-
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
-   details.
-"""
-# Module public names
+"""ASN.1 "universal" data types"""
 __all__ = [ 'Boolean', 'Integer', 'BitString', 'OctetString', 'Null', \
             'ObjectIdentifier', 'Real', 'Enumerated', 'Sequence', \
             'SequenceOf', 'Set', 'SetOf', 'Choice' ]
 
-import string
-from sys import version_info
-from operator import getslice, setslice, delslice
+import string, sys
+from string import join, split, find, atol
+from operator import getslice
 from types import IntType, LongType, StringType, NoneType, FloatType,  \
-     ListType, SliceType
+     TupleType, ListType, SliceType
 from exceptions import StandardError, TypeError
-from pysnmp.asn1 import base, error
+from pysnmp.asn1 import base, subtypes, error
 
 #
-# ASN.1 "simple" types implementation
+# "Simple" ASN.1 types implementation
 #
 
-class Boolean(base.SimpleAsn1Object):
-    """An ASN.1 boolean object
-    """
-    tagId = 0x01
-    allowedTypes = [ IntType, LongType ]
-    singleValueConstraint = [ 0, 1 ]
-    initialValue = 0L
-
-    # Disable not applicible constraints
-    _subtype_value_range_constraint = None
-    _subtype_size_constraint = None
-    _subtype_permitted_alphabet_constraint = None
+class Boolean(base.AbstractSimpleAsn1Item):
+    tagId = (0x01, )
+    allowedTypes = ( IntType, LongType )
+    subtypeConstraints = ( subtypes.SingleValueConstraint(0, 1), )
+    initialValue = 0
 
     # Basic logical ops
     
     def __and__(self, value):
-        """Perform binary AND operation
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() & value.get())
 
     __rand__ = __and__
 
     def __or__(self, value):
-        """Perform binary OR operation
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() | value.get())
 
     __ror__ = __or__
 
     def __xor__(self, value):
-        """Perform binary XOR operation
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() ^ value.get())
 
     __rxor__ = __xor__
 
     def __iand__(self, value):
-        """Perform binary AND operation against ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() & value.get())
         return self
 
     def __ior__(self, value):
-        """Perform binary OR operation against ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() | value.get())
         return self
 
     def __ixor__(self, value):
-        """Perform binary XOR operation against ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() ^ value.get())
         return self
 
-class Integer(base.SimpleAsn1Object):
-    """An ASN.1, indefinite length integer object
-    """
-    tagId = 0x02
-    allowedTypes = [ IntType, LongType ]
-    initialValue = 0L
-
-    # Disable not applicible constraints
-    _subtype_size_constraint = None
-    _subtype_permitted_alphabet_constraint = None
-
+class Integer(base.AbstractSimpleAsn1Item):
+    tagId = (0x02, )
+    allowedTypes = ( IntType, LongType )
+    initialValue = 0
+    
     # Basic arithmetic ops
     
     def __add__(self, value):
-        """Add a value
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() + value.get())
 
     __radd__ = __add__
     
     def __sub__(self, value):
-        """Subscract a value
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() - value.get())
 
     def __rsub__(self, value):
-        """Subscract our value from given one
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(value.get() - self.get())
     
     def __mul__(self, value):
-        """Multiply a value
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() * value.get())
 
     __rmul__ = __mul__
     
     def __div__(self, value):
-        """Divide a value by ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() / value.get())
 
     def __rdiv__(self, value):
-        """Divide ourselves by value
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(value.get() / self.get())
 
     def __mod__(self, value):
-        """Take a modulo of ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() % value.get())
 
     __rmod__ = __mod__
 
     def __pow__(self, value, modulo):
-        """Provision for pow()
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(pow(self.get(), value.get(), modulo))
 
     def __rpow__(self, value, modulo):
-        """Provision for rpow()
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(pow(value.get(), self.get(), modulo))
 
     def __lshift__(self, value):
-        """Perform left shift operation
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() << value.get())
 
     def __rshift__(self, value):
-        """Perform right shift operation
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() >> value.get())
 
     def __and__(self, value):
-        """Perform binary AND operation
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() & value.get())
 
     __rand__ = __and__
 
     def __or__(self, value):
-        """Perform binary OR operation
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() | value.get())
 
     __ror__ = __or__
 
     def __xor__(self, value):
-        """Perform binary XOR operation
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         return self.__class__(self.get() ^ value.get())
 
     __rxor__ = __xor__
 
     def __iadd__(self, value):
-        """Add value to ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() + value.get())
         return self
 
@@ -222,10 +161,8 @@ class Integer(base.SimpleAsn1Object):
     inc = __iadd__
     
     def __isub__(self, value):
-        """Subscract value from ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() - value.get())
         return self
 
@@ -233,10 +170,8 @@ class Integer(base.SimpleAsn1Object):
     dec = __isub__
     
     def __imul__(self, value):
-        """Multiply a value to ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() * value.get())
         return self
 
@@ -244,10 +179,8 @@ class Integer(base.SimpleAsn1Object):
     mul = __imul__
     
     def __idiv__(self, value):
-        """Divide a value by ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() / value.get())
         return self
 
@@ -255,233 +188,129 @@ class Integer(base.SimpleAsn1Object):
     div = __idiv__
     
     def __imod__(self, value):
-        """Take a modulo of ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() % value.get())
         return self
 
     def __ipow__(self, value, modulo):
-        """Provision for x**=y
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(pow(self.get(), value.get(), modulo))
         return self
 
     def __ilshift__(self, value):
-        """Perform left shift operation
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() << value.get())
         return self
     
     def __irshift__(self, value):
-        """Perform right shift operation
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() >> value.get())
         return self
 
     def __iand__(self, value):
-        """Perform binary AND operation against ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() & value.get())
         return self
 
     def __ior__(self, value):
-        """Perform binary OR operation against ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() | value.get())
         return self
 
     def __ixor__(self, value):
-        """Perform binary XOR operation against ourselves
-        """
         if not isinstance(value, self.__class__):
-            value = self.__class__(value)
+            value = self.componentFactoryBorrow(value)
         self.set(self.get() ^ value.get())
         return self
 
-    def __int__(self):
-        """Return an integer value of ourselves
-        """
-        return int(self.get())
+    def __int__(self): return int(self.get())
 
-    def __long__(self):
-        """Return a long integer value of ourselves
-        """
-        return long(self.get())
+    def __long__(self): return long(self.get())
 
-    def __float__(self):
-        """Return a floating point value of ourselves
-        """
-        return float(self.get())    
+    def __float__(self): return float(self.get())    
 
-class BitString(base.SimpleAsn1Object):
-    """An ASN.1 BITSTRING object XXX
-    """
-    tagId = 0x03
-    allowedTypes = [ StringType ]
+class BitString(base.AbstractSimpleAsn1Item):
+    tagId = (0x03, )
+    allowedTypes = ( StringType, )
+    initialValue = ''
 
-    # Disable not applicible constraints
-    _subtype_value_range_constraint = None
-    _subtype_permitted_alphabet_constraint = None
-
-class OctetString(base.SimpleAsn1Object):
-    """ASN.1 octet string object
-    """
-    tagId = 0x04
-    allowedTypes = [ StringType ]
+class OctetString(base.AbstractSimpleAsn1Item):
+    tagId = (0x04, )
+    allowedTypes = ( StringType, )
     initialValue = ''
     
-    # Disable not applicible constraints
-    _subtype_value_range_constraint = None
-    _subtype_permitted_alphabet_constraint = None
-
     # Immutable sequence object protocol
     
     def __len__(self): return len(self.get())
     def __getitem__(self, i):
-        """Get string component by index or slice
-        """
         if type(i) == SliceType:
             return self.__class__(getslice(self.get(), i.start, i.stop))
         else:
             return self.get()[i]
 
     def __add__(self, other):
-        """Add sub-id  with input verification
-        """
-        val = self.get() + self.__class__(other).get()
+        val = self.get() + self.componentFactoryBorrow(other).get()
         return self.__class__(val)
 
     def __radd__(self, other):
-        """Add sub-id  with input verification
-        """
-        val = list(self.__class__(other)) + self.rawAsn1Value
+        val = list(self.componentFactoryBorrow(other)) + self.rawAsn1Value
         return self.__class__(val) 
 
-    def __mul__(self, value):
-        """Multiply a value
-        """
-        return self.__class__(self.get() * value)
+    def __mul__(self, value): return self.__class__(self.get() * value)
 
     __rmul__ = __mul__
 
     # They won't be defined if version is at least 2.0 final
-    if version_info < (2, 0):
+    if sys.version_info < (2, 0):
         def __getslice__(self, i, j):
             return self[max(0, i):max(0, j):]
 
-class Null(base.SimpleAsn1Object):
-    """ASN.1 NULL object
-    """
-    tagId = 0x05
-    allowedTypes = [ IntType, LongType, StringType, NoneType ]
-    singleValueConstraint = [ 0, 0L, '', None ]
-
-    # Disable not applicible constraints
-    _subtype_contained_subtype_constraint = None
-    _subtype_value_range_constraint = None
-    _subtype_size_constraint = None
-    _subtype_permitted_alphabet_constraint = None
-
-class ObjectIdentifier(base.SimpleAsn1Object):
-    """ASN.1 Object ID object (taken and returned as string in conventional
-       "dotted" representation)
-    """
-    tagId = 0x06
-    allowedTypes = [ StringType, ListType ]
-    initialValue = []
-    initialChildren = []
+class Null(base.AbstractSimpleAsn1Item):
+    tagId = (0x05, )
+    allowedTypes = ( IntType, LongType, StringType, NoneType )
+    subtypeConstraints = ( subtypes.SingleValueConstraint(0, 0L, '', None), )
+    initialValue = 0
     
-    # Disable not applicible constraints
-    _subtype_value_range_constraint = None
-    _subtype_size_constraint = None
-    _subtype_permitted_alphabet_constraint = None
+    def _iconv(self, value):
+        if value: return 1
+        else: return 0
 
-    def __init__(self, value=None):
-        """
-        """
-        base.SimpleAsn1Object.__init__(self, value)
-        self.childNodes = None
-
+class ObjectIdentifier(base.AbstractSimpleAsn1Item):
+    tagId = (0x06, )
+    allowedTypes = ( StringType, TupleType, ListType )
+    initialValue = ()
+    
     # Sequence object protocol
     
     def __len__(self): return len(self.rawAsn1Value)
     def __getitem__(self, i):
-        """Get sequence component by index or slice
-        """
         if type(i) == SliceType:
-            vals = filter(None, string.split(self.get(), '.'))
-            return self.__class__(string.join(getslice(vals, i.start,
+            vals = filter(None, split(self.get(), '.'))
+            return self.__class__(join(getslice(vals, i.start,
                                                        i.stop), '.'))
         else:
             return self.rawAsn1Value[i]
 
-    def __delitem__(self, i):
-        """Delete sequence component by index or slice
-        """
-        vals = filter(None, string.split(self.get(), '.'))
-        if type(i) == SliceType:
-            delslice(vals, i.start, i.stop)
-        else:
-            del vals[i]
-        self.set(string.join(vals, '.'))
-        
-    def __setitem__(self, i, item):
-        """Set sub-id by index or slice with input verification
-        """
-        vals = filter(None, string.split(self.get(), '.'))
-        if type(i) == SliceType:
-            setslice(vals, i.start, i.stop,
-                     filter(None,string.split(self.__class__([item]).get())))
-        else:
-            vals[i] = self.__class__([item]).get()
-        self.set(string.join(vals, '.'))
-
     def __add__(self, other):
-        """Add sub-id  with input verification
-        """
-        return self.__class__(self.get() + self.__class__(other).get())
+        return self.__class__(self.get() + \
+                              self.componentFactoryBorrow(other).get())
 
     def __radd__(self, other):
-        """Add sub-id  with input verification
-        """
-        return self.__class__(self.__class__(other).get() + self.get())
+        return self.__class__(self.componentFactoryBorrow(other).get() + \
+                              self.get())
 
     # They won't be defined if version is at least 2.0 final
-    if version_info < (2, 0):
+    if sys.version_info < (2, 0):
         def __getslice__(self, i, j):
             return self[max(0, i):max(0, j):]
-        def __setslice__(self, i, j, seq):
-            self[max(0, i):max(0, j):] = seq
-        def __delslice__(self, i, j):
-            del self[max(0, i):max(0, j):]
 
-    def append(self, item):
-        """Append sub-id with input verification
-        """
-        self.set(self.get() + '.' + str(item))
-
-    def extend(self, item):
-        """Append an oid with input verification
-        """
-        self.set(self.get() + self.__class__(item).get())        
-
-    def index(self, suboid):
-        """Returns index of first occurrence of given sub-identifier
-        """
-        val = list(self)
-        return val.index(suboid)
+    def index(self, suboid): return val.index(self.rawAsn1Value)
 
     def isaprefix(self, other):
         """
@@ -494,7 +323,7 @@ class ObjectIdentifier(base.SimpleAsn1Object):
         """
         # Normalize foreign value type to ours
         if not isinstance(other, self.__class__):
-            other = self.__class__(other)
+            other = self.componentFactoryBorrow(other)
 
         # Pick the shortest oid
         if len(self) <= len(other):
@@ -506,23 +335,25 @@ class ObjectIdentifier(base.SimpleAsn1Object):
                 return not None
 
     def match(self, subOids, offset=None):
-        """Compare OIDs by numeric or alias values
-        """
+        """Compare OIDs by numeric values"""
         # The following is a bit kludgy as we have to support a part of
         # OID syntax here (which is also being done by ASN.1 object input
         # filter) but so far I do not see any better solution XXX (cmp?)
         if type(subOids) == StringType:
             try:
-                subOids = filter(lambda x: len(x), string.split(subOids, '.'))
+                subOids = filter(lambda x: len(x), split(subOids, '.'))
             except:
-                raise error.BadArgumentError('Malformed Object ID %s at %s' % (str(subOids), self.__class__.__name__))
+                raise error.BadArgumentError(
+                    'Malformed Object ID %s at %s' %
+                    (str(subOids), self.__class__.__name__)
+                )
             for idx in range(len(subOids)):
                 try:
                     subOids[idx] = ObjectIdentifier(subOids[idx])[0]
                 except error.BadArgumentError:
                     pass
         else:
-            subOids = list(ObjectIdentifier(subOids))            
+            subOids = tuple(ObjectIdentifier(subOids))            
 
         if offset is None:
             offset = max(len(self), len(subOids))
@@ -530,50 +361,35 @@ class ObjectIdentifier(base.SimpleAsn1Object):
             return -1
 
         for idx in range(offset):
-            if self[idx] == subOids[idx] or self.aliases[idx] == subOids[idx]:
+            if self[idx] == subOids[idx]:
                 continue
             return -1
         else:
             return 0
         
-    def str2num(self, symbolicOid, aliases=None):
+    def str2num(self, symbolicOid):
         """
             str2num(symbolicOid) -> numericOid
             
             Convert symbolic Object ID presented in a dotted form into a
             numeric Object ID  represented as a list of numeric sub-ID's.
         """
-        numericOid = []
+        numericOid = ()
         
         if len(symbolicOid) == 0:
             return numericOid
 
         try:
-            # Fast lane for all-numeric OIDs
-            if string.find(symbolicOid, '(') < 0:
-                for element in filter(None, string.split(symbolicOid, '.')):
-                    numericOid.append(string.atol(element, 0))
-                if aliases is not None:
-                    aliases.extend([None] * len(numericOid))
-            else:
-                for element in filter(None, string.split(symbolicOid, '.')):
-                    if string.find(element, '(') < 0:
-                        numericOid.append(string.atol(element, 0))
-                        if aliases is not None: aliases.append(None)
-                    else:
-                        idx = string.index(element, '(')
-                        if aliases is not None:
-                            aliases.append(string.strip(element[:idx]))
-                        element = string.strip(element[idx+1:string.rindex(element, ')')])
-                        numericOid.append(string.atol(element, 0))
-
+            for element in filter(None, split(symbolicOid, '.')):
+                numericOid = numericOid + (atol(element, 0), )
         except string.atol_error, why:
-            raise error.BadArgumentError('Malformed Object ID %s at %s: %s' %\
-                                         (str(symbolicOid),
-                                          self.__class__.__name__, why))
+            raise error.BadArgumentError(
+                'Malformed Object ID %s at %s: %s' %
+                (str(symbolicOid), self.__class__.__name__, why)
+            )
         return numericOid
 
-    def num2str(self, numericOid, aliases=None):
+    def num2str(self, numericOid):
         """
             num2str(numericOid) -> symbolicOid
             
@@ -581,183 +397,151 @@ class ObjectIdentifier(base.SimpleAsn1Object):
             sub-ID's into symbolic Object ID in dotted notation.
         """
         symbolicOid = ''
-        if len(numericOid) == 0:
-            return symbolicOid
+        if not numericOid: return symbolicOid
 
         # Convert a list of number into a list of symbols and merge all
         # list members into a string
         try:
-            for idx in range(len(numericOid)):
+            idx = 0
+            while idx < len(numericOid):
                 oid = str(numericOid[idx])
                 if numericOid[idx] <= 0x7fffffff:
                     if oid[-1] == 'L': oid = oid[:-1]
-                if aliases is None or len(aliases)-1 < idx or aliases[idx] is None:
-                    symbolicOid = symbolicOid + '.' + oid
-                else:
-                    symbolicOid = '%s.%s(%s)' % (symbolicOid, aliases[idx], oid)
+                symbolicOid = symbolicOid + '.' + oid
+                idx = idx + 1
                     
         except StandardError, why:
-            raise error.BadArgumentError('Malformed OID %s at %s: %s'
-                                         % (numericOid,
-                                            self.__class__.__name__,
-                                            why))
+            raise error.BadArgumentError(
+                'Malformed OID %s at %s: %s' % 
+                (numericOid, self.__class__.__name__, why)
+            )
         if not symbolicOid:
-            raise error.BadArgumentError('Empty numeric Object ID %s at %s' %\
-                                         (str(numericOid),
-                                          self.__class__.__name__))
+            raise error.BadArgumentError(
+                'Empty numeric Object ID %s at %s' %
+                (str(numericOid), self.__class__.__name__)
+            )
         return symbolicOid
 
     def _iconv(self, value):
-        """Input filter: accept both string & list type OIDs
-        """
         if type(value) == StringType:
-            self.aliases = []
-            return self.str2num(value, self.aliases)
+            return self.str2num(value)
         if type(value) == ListType:
-            self.aliases = None
-            return self.str2num(self.num2str(value, self.aliases),
-                                self.aliases)
-
+            value = tuple(value)
+        if type(value) == TupleType:
+            return self.str2num(self.num2str(value))
+        return value
+    
     def _oconv(self, value):
-        if hasattr(self, 'aliases'):
-            return self.num2str(value, self.aliases)
         return self.num2str(value)
 
-    # Provision for hierarchical organisation
-
-    def initChildNodes(self):
-        """Initialize possible children
-        """
-        self.childNodes = {}        
-        for newNode in self.initialChildren:
-            self.attachNode(newNode())
-        
-    def resolveKeyOid(self, arg):
-        if hasattr(arg, 'getKeyOid'):
-            getKeyOid = getattr(arg, 'getKeyOid')
-            if not callable(getKeyOid):
-                raise error.BadArgumentError('Non-callable %s.getKeyOid() at %s' % (arg, self))
-            return getKeyOid()
-        else:
-            return arg
-
-    def searchNode(self, oid, idx=None):
-        """Search the tree of OIDs by name
-        """
-        if self.childNodes is None: self.initChildNodes()
-        if not isinstance(oid, ObjectIdentifier):
-            oid = ObjectIdentifier(oid)
-        if idx is None:
-            idx = len(self)
-        childNode = self.childNodes.get(oid[idx], None)
-        if childNode is None:
-            raise error.BadArgumentError('No such sub-OID %s under %s at %s' %\
-                                         (str(oid), self,
-                                          self.__class__.__name__))
-        childOid = self.resolveKeyOid(childNode)
-        if oid.rawAsn1Value == childOid.rawAsn1Value:
-            return childNode
-        else:
-            return childOid.searchNode(oid, idx+1)
-
-    def attachNode(self, newNode, newOid=None, idx=None):
-        """Attach a new OID node to OIDs tree
-        """
-        if self.childNodes is None: self.initChildNodes()
-        if newOid is None:
-            newOid = self.resolveKeyOid(newNode)
-            if not isinstance(newOid, ObjectIdentifier):
-                raise error.BadArgumentError('Child node %s is not an ObjectIdentifier type at %s' % (newOid, self))
-        if idx is None:
-            if len(newOid) <= len(self):
-                raise error.BadArgumentError('Cannot attach %s to parent OID at %s' % (newOid, self))
-            idx = len(self)
-        if len(newOid) - 1 == idx:
-            self.childNodes[newOid[idx]] = newNode
-            return
-        if not self.childNodes.has_key(newOid[idx]):
-            self.childNodes[newOid[idx]] = ObjectIdentifier(self.get() + newOid[idx:idx+1].get())
-        childNode = self.childNodes[newOid[idx]]
-        self.resolveKeyOid(childNode).attachNode(newNode, newOid, idx + 1)
-
-    def strNode(self, level=0):
-        """Pretty print OID tree
-        """
-        if self.childNodes is None: self.initChildNodes()
-        out = ''
-        for childNode in self.childNodes.values():
-            out = out + '> ' + repr(childNode) + '\n' + \
-                  self.resolveKeyOid(childNode).strNode()
-        return out
-        
-class Real(base.SimpleAsn1Object):
-    """An ASN.1 REAL object XXX
-    """
-    tagId = 0x09
-    allowedTypes = [ IntType, LongType, FloatType ]
+class Real(base.AbstractSimpleAsn1Item):
+    tagId = (0x09, )
+    allowedTypes = ( IntType, LongType, FloatType )
     initialValue = 0.0
 
-    # Disable not applicible constraints
-    _subtype_size_constraint = None
-    _subtype_permitted_alphabet_constraint = None
-
-class Enumerated(base.SimpleAsn1Object):
-    """An ASN.1 ENUMERATED object XXX
-    """
-    tagId = 0x10
-    allowedTypes = [ IntType, LongType ]
+class Enumerated(base.AbstractSimpleAsn1Item):
+    tagId = (0x10, )
+    allowedTypes = ( IntType, LongType )
     initialValue = 0
 
-    # Disable not applicible constraints
-    _subtype_value_range_constraint = None
-    _subtype_size_constraint = None
-    _subtype_permitted_alphabet_constraint = None
+# "Structured" ASN.1 types implementation
 
-#
-# ASN.1 "structured" types implementation
-#
+class Set(base.AbstractMappingAsn1Item):
+    tagId = (0x11, )
+    protoComponents = {}
 
-class Sequence(base.RecordTypeAsn1Object):
-    """ASN.1 SEQUENCE object
-    """
-    tagId = 0x10
+    def __init__(self, **kwargs):
+        base.AbstractMappingAsn1Item.__init__(self)
+        # Initialize fixed structure
+        if self.protoComponents:
+            for k, v in self.protoComponents.items():
+                self._components[k] = v.clone()
+        if kwargs: self.update(kwargs)
 
-class SequenceOf(base.VariableTypeAsn1Object):
-    """ASN.1 SEQUENCE OF object
-    """
-    tagId = 0x10
+    def __setitem__(self, key, value):
+        protoValue = self.protoComponents.get(key, None)
+        if protoValue is None:
+            raise error.BadArgumentError(
+                'No such key %r at %r' %
+                (key, self.__class__.__name__)
+            )
+        if protoValue.isSubtype(value):
+            self.verifyConstraints(value)
+            self._components[key] = value
+        else:
+            raise error.BadArgumentError(
+                'Unexpected component type %r at %r' %
+                (value.__class__.__name__, self.__class__.__name__)
+            )
 
-    # Disable not applicible constraints
-    _subtype_permitted_alphabet_constraint =None
+class Sequence(Set):
+    tagId = (0x10, )
+    protoSequence = ()
 
-class Set(base.RecordTypeAsn1Object):
-    """ASN.1 SET object
-    """
-    tagId = 0x11
+    # Provisions for ordered dictionary
+    def keys(self): return list(self.protoSequence)
+    def values(self):
+        return map(lambda k, v=self._components: v[k], self.protoSequence)
+    def items(self):
+        return map(lambda k, v=self._components: (k, v[k]), self.protoSequence)
 
-class SetOf(base.VariableTypeAsn1Object):
-    """ASN.1 SET OF object
-    """
-    tagId = 0x11
-
-    # Disable not applicible constraints
-    _subtype_permitted_alphabet_constraint = None
-
-class Choice(base.ChoiceTypeAsn1Object):
-    """ASN.1 CHOICE clause
-    """
+class Choice(base.AbstractMappingAsn1Item):
     # Untagged type
     tagCategory = base.tagCategories['UNTAGGED']
+    protoComponents = {}
+    initialComponentKey = None
     
-    # Disable not applicible constraints XXX
-    _subtype_permitted_alphabet_constraint = None
+    def __init__(self, **kwargs):
+        base.AbstractMappingAsn1Item.__init__(self)
+        if kwargs:
+            if len(kwargs) == 1:
+                self.update(kwargs)
+            else:
+                raise error.BadArgumentError(
+                    'Too many components given at %r' % self
+                )
+        else:
+            key = self.initialComponentKey
+            if key:
+                self._components[key] = self.protoComponents[key].clone()
 
-class Any(base.AnyTypeAsn1Object):
-    """ASN.1 ANY clause
-    """
-    # Untagged type
-    tagCategory = base.tagCategories['UNTAGGED']
-    
-    # Disable not applicible constraints XXX
-    _subtype_permitted_alphabet_constraint = None
-    _subtype_inner_subtype_constraint = None
+    def componentFactoryBorrow(self, key):
+        if not hasattr(self, '_componentCache'):
+            self._componentCache = {}
+        if not self._componentCache.has_key(key):
+            val = self.protoComponents.get(key, None)
+            if val is None:
+                raise error.BadArgumentError('Non-existing key %s' % key)
+            self._componentCache[key] = self.protoComponents[key].clone()
+        return self._componentCache[key]
+
+    # Dictionary interface emulation (for strict ordering)
+
+    def __setitem__(self, key, value):
+        protoValue = self.protoComponents.get(key, None)
+        if protoValue is None:
+            raise error.BadArgumentError(
+                'No such key %r at %r' %
+                (key, self.__class__.__name__)
+            )
+        if protoValue.isSubtype(value):
+            self._components.clear()
+            self.verifyConstraints(value)
+            self._components[key] = value
+        else:
+            raise error.BadArgumentError(
+                'Unregistered component %r at %r' %
+                (value.__class__.__name__, self.__class__.__name__)
+            )
+
+    def __delitem__(self, key):
+        if self._components.has_key(key):
+            del self._components[key]
+
+class SequenceOf(base.AbstractSequenceAsn1Item):
+    tagId = (0x10, )
+    protoComponent = None
+    initialValue = []
+
+class SetOf(SequenceOf):
+    tagId = (0x11, )

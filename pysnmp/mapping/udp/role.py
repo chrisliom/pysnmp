@@ -1,10 +1,11 @@
 """
    Single-session, blocking network I/O classes.
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
-import socket, select, types
+import socket, select
+from types import TupleType, ListType
 from sys import stderr
 from pysnmp.mapping.udp import error
 
@@ -13,14 +14,14 @@ class Manager:
     """
     def __init__(self, agent=(None, 0), iface=('0.0.0.0', 0)):
         # Attempt to resolve default agent name
-        (host, port) = agent
+        host, port = agent
         if host is not None:
             try:
                 host = socket.gethostbyname(host)
             except socket.error, why:
                 raise error.NetworkError('gethostbyname() failed: %s' % why)
         self.agent = (host, port)
-            
+
         # Initialize defaults
         self.iface = iface
         self.socket = None
@@ -59,17 +60,19 @@ class Manager:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         except socket.error, why:
-            raise error.NetworkError('%s: socket() error: %s' %\
-                                     (self.__class__.__name__, why))
+            raise error.NetworkError(
+                '%s: socket() error: %s' % (self.__class__.__name__, why)
+            )
 
         # Bind to specific interface on client machine
         try:
             self.socket.bind(self.iface)
 
         except socket.error, why:
-            raise error.NetworkError('%s: bind() error: %s: %s' % \
-                                     (self.__class__.__name__, \
-                                      self.iface, why))
+            raise error.NetworkError(
+                '%s: bind() error: %s: %s' % 
+                (self.__class__.__name__, self.iface, why)
+            )
         return self.socket
 
     def send(self, request, dst=(None, 0)):
@@ -85,13 +88,15 @@ class Manager:
             self.open()
 
         if dst == (None, 0): dst = self.agent
-        
+
         try:
             self.socket.sendto(request, dst)
             
         except socket.error, why:
-            raise error.NetworkError('%s: sendto() to %s error: %s' % \
-                                     (self.__class__.__name__, dst, why))
+            raise error.NetworkError(
+                '%s: sendto() to %s error: %s' % 
+                (self.__class__.__name__, dst, why)
+            )
 
         if self.dumpPacketsFlag: stderr.write('sent to %s: %s \n' %
                                               (dst, repr(request)))
@@ -106,22 +111,27 @@ class Manager:
         """   
         # Make sure the connection exists
         if not self.socket:
-            raise error.NetworkError('%s: socket not initialized' % \
-                                     self.__class__.__name__)
+            raise error.NetworkError(
+                '%s: socket not initialized' % self.__class__.__name__
+            )
 
         try:
             (message, src) = self.socket.recvfrom(65536)
 
         except socket.error, why:
-            raise error.NetworkError('%s: recv() error: %s' % \
-                                     (self.__class__.__name__, why))
+            raise error.NetworkError(
+                '%s: recv() error: %s' % (self.__class__.__name__, why)
+            )
 
         if self.dumpPacketsFlag: stderr.write('received from %s: %s\n' %
                                               (src, repr(message)))
         if self.checkPeerAddrFlag and self.agent != (None, 0):
             if src != self.agent and \
                    src != (socket.gethostbyname(self.agent[0]), self.agent[1]):
-                raise error.NetworkError('%s: src/dst addresses mismatch: %s/%s' % (self.__class__.__name__, src, self.agent))
+                raise error.NetworkError(
+                    '%s: src/dst addresses mismatch: %s/%s' %
+                    (self.__class__.__name__, src, self.agent)
+                )
         return (message, src)
         
     def receive(self):
@@ -136,8 +146,9 @@ class Manager:
         """
         # Make sure the connection exists
         if not self.socket:
-            raise error.NetworkError('%s: socket not initialized' % \
-                                     self.__class__.__name__)
+            raise error.NetworkError(
+                '%s: socket not initialized' % self.__class__.__name__
+            )
 
         # Wait for response
         r, w, x = select.select([self.socket], [], [], self.timeout)
@@ -147,12 +158,14 @@ class Manager:
             return self.read()
 
         # No answer, raise an exception
-        raise error.NoResponseError('%s: no response arrived before timeout' %\
-                                    self.__class__.__name__)
+        raise error.NoResponseError(
+            '%s: no response arrived before timeout' %
+            self.__class__.__name__
+        )
 
-    def sendAndReceive(self, message, dst=(None, 0), cb_fun=None):
+    def sendAndReceive(self, message, dst=(None, 0), cbFun=None):
         """
-           send_and_receive(data[, dst]) -> (data, src)
+           sendAndEeceive(data[, dst, [(cbFun, cbCtx)]]) -> (data, src)
            
            Send data item to remote entity by address specified on object 
            creation or 'dst' address and receive a data item in response
@@ -161,6 +174,18 @@ class Manager:
            Return a tuple of data item (as string) and source address
            'src' (in socket module notation).
         """
+        # Expand cbFun to cbFun&cbCtx preserving compatibility
+        if type(cbFun) != TupleType:
+            cbFun, cbCtx = (cbFun, None)
+        else:
+            cbFun, cbCtx = cbFun
+
+        if cbFun is not None and not callable(cbFun):
+            raise error.BadArgumentError(
+                '%s: non-callable callback function' %
+                self.__class__.__name__
+            )
+        
         # Initialize retries counter
         retries = 0
 
@@ -179,21 +204,29 @@ class Manager:
                     break
 
                 # Got some response
-                if callable(cb_fun):
-                    if cb_fun(response, src):
-                        # Response is good
+                if cbFun is None:
+                    # Response is not verified
+                    return (response, src)
+                else:
+                    if cbCtx is None:
+                        # Compatibility aid                        
+                        r = cbFun(response, src)
+                    else:
+                        r = cbFun(response, src, cbCtx)
+                    # Response is good
+                    if r:
                         return (response, src)
                     else:
                         continue
-                else:
-                    # Response is not verified
-                    return (response, src)
 
             # Otherwise, try it again
             retries = retries + 1
 
         # No answer, raise an exception
-        raise error.NoResponseError('%s: no response arrived in %d secs * %d retries' % (self.__class__.__name__, self.timeout, self.retries))
+        raise error.NoResponseError(
+            '%s: no response arrived in %d secs * %d retries' %
+            (self.__class__.__name__, self.timeout, self.retries)
+        )
     
     send_and_receive = sendAndReceive
     
@@ -209,41 +242,45 @@ class Manager:
                 self.socket.close()
 
             except socket.error, why:
-                raise error.NetworkError('%s: close() error: %s' % \
-                                         (self.__class__.__name__, why))
+                raise error.NetworkError(
+                    '%s: close() error: %s' % (self.__class__.__name__, why)
+                )
 
             # Initialize it to None to indicate it's closed
             self.socket = None  
 
+# Compatibility alias
 manager = Manager
 
 class Agent:
     """Network client: receive requests, send back responses
     """
-    def __init__(self, (cb_fun, cb_ctx)=(None, None),
+    def __init__(self, (cbFun, cbCtx)=(None, None),
                  ifaces=[('0.0.0.0', 161)]):
         # Block on select() waiting for request by default
         self.timeout = None
 
-        if type(ifaces) != types.ListType:
-            raise error.BadArgumentError('%s: interfaces list is not a list' %
-                                         self.__class__.__name__)
+        if type(ifaces) != ListType:
+            raise error.BadArgumentError(
+                '%s: interfaces list is not a list' %
+                self.__class__.__name__
+            )
         self.ifaces = ifaces
         self.socket = None
 
         # Store callback information
-        self.cb_fun = cb_fun
-        self.cb_ctx = cb_ctx
+        self.cbFun = cbFun
+        self.cbCtx = cbCtx
 
         self.dumpPacketsFlag = 0
 
     def __str__(self):
         return '%s listening at %s' % \
-               (self.__class__.__name__, self.iface)
+               (self.__class__.__name__, self.ifaces)
 
     def __repr__(self):
         return '%s(%s, %s)' % (self.__class__.__name__, \
-                               (self.cb_fun, self.cb_ctx), self.ifaces)
+                               (self.cbFun, self.cbCtx), self.ifaces)
         
     def get_socket(self):
         """
@@ -264,17 +301,20 @@ class Agent:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         except socket.error, why:
-            raise error.NetworkError('%s: socket() error: %s' % \
-                                     (self.__class__.__name__, why))
-
+            raise error.NetworkError(
+                '%s: socket() error: %s' % (self.__class__.__name__, why)
+            )
+        
         # Bind to specific interfaces at server machine
         for iface in self.ifaces:
             try:
                 self.socket.bind(iface)
 
             except socket.error, why:
-                raise error.NetworkError('%s: bind() error: %s: %s' % \
-                                         (self.__class__.__name__, iface, why))
+                raise error.NetworkError(
+                    '%s: bind() error: %s: %s' % 
+                    (self.__class__.__name__, iface, why)
+                )
 
         return self.socket
 
@@ -287,15 +327,17 @@ class Agent:
         """
         # Make sure the connection is established, open it otherwise
         if not self.socket:
-            raise error.NetworkError('%s socket not initialized' % \
-                                     self.__class__.__name__)
+            raise error.NetworkError(
+                '%s socket not initialized' % self.__class__.__name__
+            )
         
         try:
             self.socket.sendto(message, dst)
                 
         except socket.error, why:
-            raise error.NetworkError('%s: send() error: %s' % \
-                                     (self.__class__.__name__, why))
+            raise error.NetworkError(
+                '%s: send() error: %s' % (self.__class__.__name__, why)
+            )
 
         if self.dumpPacketsFlag: stderr.write('sent: %s\n' % repr(message))
 
@@ -309,15 +351,17 @@ class Agent:
         """   
         # Make sure the connection exists
         if not self.socket:
-            raise error.NetworkError('%s: socket not initialized' %
-                                     self.__class__.__name__)
+            raise error.NetworkError(
+                '%s: socket not initialized' % self.__class__.__name__
+            )
 
         try:
             (message, peer) = self.socket.recvfrom(65536)
 
         except socket.error, why:
-            raise error.NetworkError('%s: recvfrom() error: %s' % \
-                                     (self.__class__.__name__, why))
+            raise error.NetworkError(
+                '%s: recvfrom() error: %s' % (self.__class__.__name__, why)
+            )
 
         if self.dumpPacketsFlag: stderr.write('received: %s\n' % repr(message))
         
@@ -347,36 +391,41 @@ class Agent:
         if r:
             return self.read()
 
-        raise error.IdleTimeoutError('%s: no request arrived before timeout' %
-                                     self.__class__.__name__)
+        raise error.IdleTimeoutError(
+            '%s: no request arrived before timeout' % self.__class__.__name__
+        )
     
-    def receiveAndSend(self, (cb_fun, cb_ctx)=(None, None)):
+    def receiveAndSend(self, (cbFun, cbCtx)=(None, None)):
         """
-           receive_and_send((cb_fun, cb_ctx))
+           receive_and_send((cbFun, cbCtx))
            
            Wait for request from a client process or timeout (and raise
            IdleTimeoutError exception), pass request to the callback function
            to build a response, send response back to client process.
         """
-        if cb_fun is None:
-            (cb_fun, cb_ctx) = (self.cb_fun, self.cb_ctx)
+        if cbFun is None:
+            (cbFun, cbCtx) = (self.cbFun, self.cbCtx)
             
-        if not callable(cb_fun):
-            raise error.BadArgumentError('%s: non-callable callback function' %
-                                         self.__class__.__name__)
+        if not callable(cbFun):
+            raise error.BadArgumentError(
+                '%s: non-callable callback function' % self.__class__.__name__
+            )
 
         while 1:
             # Wait for request to come
             (request, src) = self.receive()
 
             if not request:
-                raise error.IdleTimeoutError('%s: no request arrived before timeout' % self.__class__.__name__)
+                raise error.IdleTimeoutError(
+                    '%s: no request arrived before timeout' %
+                    self.__class__.__name__
+                )
 
             # Invoke callback function
-            (response, dst) = cb_fun(self, cb_ctx, (request, src))
+            (response, dst) = cbFun(self, cbCtx, (request, src))
 
             # Send a response if any
-            if (response):
+            if response:
                 # Reply back by either source address or alternative
                 # destination whenever given
                 if dst:
@@ -398,10 +447,13 @@ class Agent:
                 self.socket.close()
 
             except socket.error, why:
-                raise error.NetworkError('%s: close() error: %s' %
-                                         (self.__class__.__name__, why))
+                raise error.NetworkError(
+                    '%s: close() error: %s' %
+                    (self.__class__.__name__, why)
+                )
 
             # Initialize it to None to indicate it's closed
             self.socket = None  
 
+# Compatibility alias
 agent = Agent

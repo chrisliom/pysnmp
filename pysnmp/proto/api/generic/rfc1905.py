@@ -1,8 +1,8 @@
 """
    An implementation of high-level API to SNMP v.2c message PDU objects
-   (RFC1905)
+   (RFC1905).
 
-   Copyright 1999-2003 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 # Module public names
@@ -11,12 +11,18 @@ __all__ = [ 'GetRequestPduMixIn', 'GetNextRequestPduMixIn',
             'GetBulkRequestPduMixIn', 'InformRequestPduMixIn',
             'ReportPduMixIn', 'SnmpV2TrapPduMixIn', 'registerMixIns' ]
 
-from pysnmp.proto import rfc1905
+from pysnmp.proto import rfc1902, rfc1905
 from pysnmp.proto.api.generic import rfc1157
 import pysnmp.proto.api.alpha
 
-class RequestPduMixIn(rfc1157.RequestPduMixIn): pass
-        
+class RequestPduMixIn(rfc1157.RequestPduMixIn):
+    def apiGenSetVarBind(self, varBinds):
+        tempVarBinds = []
+        for oid, val in varBinds:
+            if val is None: val = rfc1902.Null()
+            tempVarBinds.append((oid, val))
+        apply(self.apiAlphaSetVarBindList, tempVarBinds)
+
 # Request PDU mix-ins
 class GetRequestPduMixIn(RequestPduMixIn): pass
 class GetNextRequestPduMixIn(RequestPduMixIn): pass

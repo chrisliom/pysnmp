@@ -2,7 +2,7 @@
    Deprecated PySNMP 2.0.x compatibility interface to SNMP v.1
    protocol implementation.
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 from pysnmp.proto import v1

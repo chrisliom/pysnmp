@@ -1,18 +1,6 @@
-"""
-   Package exception classes.
-
-   Written by Ilya Etingof <ilya@glas.net>, 2001-2003.
+"""API-level exception classes
 """   
 from pysnmp.proto import error
 
-class ApiError(error.ProtoError):
-    """Base class for api sub-package exceptions
-    """
-    pass
-
-# Common exceptions
-
-class BadArgumentError(ApiError):
-    """Malformed argument
-    """
-    pass
+class ProtoApiError(error.ProtoError): pass
+class BadArgumentError(ProtoApiError): pass

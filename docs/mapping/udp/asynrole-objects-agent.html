@@ -6,33 +6,34 @@
 <BODY BGCOLOR="#ffffff" TEXT="#000000"
       LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
 <H3>
-Objects of the <STRONG>asynrole.agent</STRONG> class
+Objects of the <STRONG>asynrole.Agent</STRONG> class
 </H3>
 
 <P>
-The instances of <STRONG>asynrole.agent</STRONG> class have the following
+The instances of <STRONG>asynrole.Agent</STRONG> class have the following
 methods:
 </P>
 
 <DL>
-<DT><STRONG>send</STRONG>(<STRONG>rsp</STRONG>[, <STRONG>dst</STRONG>])</DT>
+<DT><STRONG>send</STRONG>(<STRONG>rspMsg</STRONG>, <STRONG>dstAddr</STRONG>)</DT>
 <DD>
 <P>
-Attempt to send request data item <STRONG>rsp</STRONG> (string) to remote
-server by either <STRONG>dst</STRONG> address (given in <STRONG>socket</STRONG>
-module notation), if specified, or default destination whenever given on
-<STRONG>asynrole.agent</STRONG> class instaniation.
+Attempt to send response message <STRONG>rspMsg</STRONG> (string) to remote
+client by <STRONG>dstAddr</STRONG> address (given in
+<STRONG>socket</STRONG> module notation).
 </P>
+
 <P>
-The callback function, as specified on <STRONG>agent</STRONG> class
-instanitation, will be invoked on response arrival or error.
+This method will typically be used from <STRONG>cbFun</STRONG>, passed
+on <A HREF="asynrole.html#Agent">Agent</A> instantiation, to reply
+a response message back to SNMP manager.
 </P>
 
 </DD>
 </DL>
 
 <P>
-Objects of <STRONG>asynrole.agent</STRONG> class have no public
+Objects of <STRONG>asynrole.Agent</STRONG> class have no public
 instance variables.
 </P>
 

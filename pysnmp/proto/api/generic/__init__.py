@@ -7,7 +7,7 @@
    NOTICE: this API has been considered obsolete in favor of a more
    accurate pysnmp.proto.api.alpha implementation.
 
-   Copyright 1999-2003 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 from pysnmp.proto.api.generic import rfc1157, rfc1905

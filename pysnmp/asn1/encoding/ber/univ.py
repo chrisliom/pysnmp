@@ -1,212 +1,161 @@
-"""
-   Basic Encoding Rules implementation for "universal" ASN.1 data types.
+"""BER codecs for "universal" ASN.1 data types"""
+__all__ = [ 'BooleanBerCodec', 'IntegerBerCodec', 'OctetStringBerCodec',
+            'BitStringBerCodec', 'NullBerCodec', 'ObjectIdentifierBerCodec',
+            'RealBerCodec', 'EnumeratedBerCodec', 'SequenceBerCodec',
+            'SequenceOfBerCodec', 'SetBerCodec', 'SetOfBerCodec',
+            'ChoiceBerCodec' ]
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
-   details.
-
-   The BER processing part of this code has been partially derived
-   from Simon Leinen's <simon@switch.ch> BER Perl module.
-"""
-# Module public names
-__all__ = [ 'BooleanMixIn', 'IntegerMixIn', 'BitStringMixIn', \
-            'OctetStringMixIn', 'NullMixIn', 'ObjectIdentifierMixIn', \
-            'RealMixIn', 'EnumeratedMixIn', 'SequenceMixIn', \
-            'SequenceOfMixIn', 'SetMixIn', 'SetOfMixIn', 'ChoiceMixIn' ]
-
-import string
+from string import join
 from pysnmp.asn1 import univ
 from pysnmp.asn1.encoding.ber import base, error
+from pysnmp.asn1.error import Asn1Error
 
-class BooleanMixIn(base.SimpleAsn1Object):
-    """Implements BER processing for an ASN.1 boolean object
-    """
-    def _berEncode(self, value):
-        """Encode boolean value
-        """
-        if value:
+class BooleanBerCodec(base.SimpleBerCodecBase):
+    def encodeValue(self, client):        
+        if client.rawAsn1Value:
             return '\377'
         else:
             return '\000'
 
-    def _berDecode(self, input):
-        """Decode input into boolean value
-        """
-        if len(input) != 1:
-            raise error.BadEncodingError('Input of wrong size (%d) for %s' %\
-                                         (len(input), self.__class__.__name__))
-        if ord(input[0]):
-            return 1
-        else:
-            return 0
+    def decodeValue(self, client, oStream):
+        if len(oStream) != 1:
+            raise error.BadEncodingError(
+                'Wrongly sized input (%d != 1) at %s' %
+                (len(oStream), self.__class__.__name__)
+            )
+        value = ord(oStream[0])
+        client.verifyConstraints(value)
+        client.rawAsn1Value = value
 
-class IntegerMixIn(base.SimpleAsn1Object):
-    """Implements BER processing for an ASN.1 integer object
-    """
-    def _berEncode(self, integer):
-        """
-           _berEncode() -> octet stream
-           
-           Encode tagged integer into octet stream.
-        """
-        result = ''
-        
+class IntegerBerCodec(base.SimpleBerCodecBase):
+    def encodeValue(self, client):
+        oStream = ''
+        value = client.rawAsn1Value
+    
         # The 0 and -1 values need to be handled separately since
         # they are the terminating cases of the positive and negative
         # cases repectively.
-        if integer == 0:
-            result = '\000'
-            
-        elif integer == -1:
-            result = '\377'
-            
-        elif integer < 0:
-            while integer <> -1:
-                (integer, result) = integer>>8, chr(integer & 0xff) + result
+        if value == 0:
+            oStream = '\000'
+        elif value == -1:
+            oStream = '\377'
+        elif value < 0:
+            while value <> -1:
+                value, oStream = value>>8, chr(value & 0xff) + oStream
                 
-            if ord(result[0]) & 0x80 == 0:
-                result = chr(0xff) + result
+            if ord(oStream[0]) & 0x80 == 0:
+                oStream = chr(0xff) + oStream
         else:
-            while integer > 0:
-                (integer, result) = integer>>8, chr(integer & 0xff) + result
-                
-            if (ord(result[0]) & 0x80 <> 0):
-                result = chr(0x00) + result
-
-        return result
-
-    def _berDecode(self, input):
-        """
-           _berDecode(input) -> IntValue
-           
-           Decode octet stream into signed ASN.1 integer (of any length).
-        """
-        bytes = map(ord, input)
-        if not len(bytes):
-            raise error.BadEncodingError('Empty value at %s' % \
-                                         self.__class__.__name__)
+            while value > 0:
+                value, oStream = value>>8, chr(value & 0xff) + oStream
+            if ord(oStream[0]) & 0x80 <> 0:
+                oStream = chr(0x00) + oStream
+        return oStream
+    
+    def decodeValue(self, client, oStream):
+        bytes = map(ord, oStream)
+        if not bytes:
+            raise error.BadEncodingError(
+                'Empty octet-stream at %s' % self.__class__.__name__
+            )        
         if bytes[0] & 0x80:
             bytes.insert(0, -1L)
-
-        result = reduce(lambda x,y: x<<8 | y, bytes, 0L)
-
+        value = 0L
+        for byte in bytes:
+            value = value << 8 | byte
         try:
-            return int(result)
-
+            value = int(value)
         except OverflowError:
-            return result
+            pass
+        client.verifyConstraints(value)
+        client.rawAsn1Value = value
 
-class OctetStringMixIn(base.SimpleAsn1Object):
-    """Implements BER processing for an ASN.1 OCTETSTRING object
-    """
-    def _berEncode(self, value):
-        """Encode octet string value
-        """
-        return value
+class OctetStringBerCodec(base.SimpleBerCodecBase):
+    def encodeValue(self, client): return client.rawAsn1Value
+    def decodeValue(self, client, oStream):
+        client.verifyConstraints(oStream)
+        client.rawAsn1Value = oStream
 
-    def _berDecode(self, input):
-        """Decode input into octet string value
-        """
-        return input
+class BitStringBerCodec(OctetStringBerCodec): pass
 
-class BitStringMixIn(OctetStringMixIn):
-    """BER for ASN.1 BITSTRING type
-    """
-    pass
+class NullBerCodec(base.SimpleBerCodecBase):
+    def encodeValue(self, client): return ''
+    def decodeValue(self, client, oStream):
+        if oStream:
+            raise error.BadEncodingError(
+                'Wrongly sized octet-stream (len(%d) > 0) at %r for %r' %
+                (len(oStream), self.__class__.__name__,
+                 client.__class__.__name__)
+            )
 
-class NullMixIn(base.SimpleAsn1Object):
-    """BER for ASN.1 NULL object
-    """
-    def _berEncode(self, value):
-        """Encode ASN.1 NULL value
-        """
-        return ''
+class ObjectIdentifierBerCodec(base.SimpleBerCodecBase):
+    def encodeValue(self, client):
+        oid = client.rawAsn1Value
 
-    def _berDecode(self, input):
-        """Decode input into ASN.1 NULL value
-        """
-        if len(input) != 0:
-            raise error.BadEncodingError('Input of wrong size (%d) for %s' %\
-                                         (len(input), self.__class__.__name__))
-        return ''
-
-class ObjectIdentifierMixIn(base.SimpleAsn1Object):
-    """BER for ASN.1 OBJECTIDENTIFIER object
-    """
-    def _berEncode(self, oid):
-        """
-           _berEncode() -> octet stream
-           
-           Encode ASN.1 Object ID into octet stream.
-        """
         # Make sure the Object ID is long enough
         if len(oid) < 2:
-            raise error.BadArgumentError('Short Object ID for %s' % \
-                                         self.__class__.__name__)
+            raise error.BadArgumentError(
+                'Short Object ID at %r for %r: %s' %
+                (self.__class__.__name__, client.__class__.__name__, oid)
+            )
 
         # Build the first twos
         index = 0
-        result = oid[index] * 40
-        result = result + oid[index+1]
-        try:
-            result = [ '%c' % int(result) ]
-
-        except OverflowError:
-            raise error.BadArgumentError('Initial sub-ID overflow %s for %s'%\
-                                         (str(oid[index:]), \
-                                          self.__class__.__name__))
-
-        # Setup index
+        value = oid[index] * 40
+        value = value + oid[index+1]
+        if 0 > value > 0xff:
+            raise error.BadArgumentError(
+                'Initial sub-ID overflow %s at %r for %r' %
+                (oid[index:],  self.__class__.__name__,
+                 client.__class__.__name__)
+            )
+        value = [ chr(value) ]
         index = index + 2
 
         # Cycle through subids
         for subid in oid[index:]:
             if subid > -1 and subid < 128:
                 # Optimize for the common case
-                result.append('%c' % (subid & 0x7f))
-
+                value.append(chr(subid & 0x7f))
             elif subid < 0 or subid > 0xFFFFFFFFL:
-                raise error.BadArgumentError('SubId overflow %s for %s' %\
-                                             (str(subid), \
-                                              self.__class__.__name__))
-
+                raise error.BadArgumentError(
+                    'SubId overflow %s at %r for %r' %
+                    (subid, self.__class__.__name__,
+                     client.__class__.__name__)
+                )
             else:
                 # Pack large Sub-Object IDs
-                res = [ '%c' % (subid & 0x7f) ]
+                res = [ chr(subid & 0x7f) ]
                 subid = subid >> 7
                 while subid > 0:
-                    res.insert(0, '%c' % (0x80 | (subid & 0x7f)))
+                    res.insert(0, chr(0x80 | (subid & 0x7f)))
                     subid = subid >> 7
 
                 # Convert packed Sub-Object ID to string and add packed
                 # it to resulted Object ID
-                result.append(string.join(res, ''))
+                value.append(join(res, ''))
 
-        # Convert BER encoded Object ID to string and return
-        return string.join(result, '')
+        return join(value, '')
         
-    def _berDecode(self, input):
-        """
-           _berDecode(input)
-           
-           Decode octet stream into ASN.1 Object ID
-        """
+    def decodeValue(self, client, oStream):
         oid = []
         index = 0
 
-        if len(input) == 0:
-            raise error.BadArgumentError('Short Object ID at %s'
-                                         % self.__class__.__name__)
+        if not oStream:
+            raise error.BadArgumentError(
+                'Short octet-stream (<1) at %r for %r' %
+                (self.__class__.__name__, client.__class__.__name__)
+            )
         # Get the first subid
-        subid = ord(input[index])
+        subid = ord(oStream[index])
         oid.append(int(subid / 40))
         oid.append(int(subid % 40))
 
         index = index + 1
-
-        # Loop through the rest
-        while index < len(input):
-            # Get a subid
-            subid = ord(input[index])
+        oStreamLen = len(oStream)
+        
+        while index < oStreamLen:
+            subid = ord(oStream[index])
 
             if subid < 128:
                 oid.append(subid)
@@ -221,74 +170,91 @@ class ObjectIdentifierMixIn(base.SimpleAsn1Object):
 
                     # Take next octet
                     index = index + 1
-                    next = ord(input[index])
+                    next = ord(oStream[index])
 
                     # Just for sure
-                    if index > len(input):
-                        raise error.BadArgumentError('Malformed sub-Object ID at %s'
-                                                     % self.__class__.__name__)
+                    if index > len(oStream):
+                        raise error.BadArgumentError(
+                            'Malformed sub-Object ID at %r for %r' %
+                            (self.__class__.__name__,
+                             client.__class__.__name__)
+                        )
 
                 # Append a subid to oid list
                 subid = (subid << 7) + next
                 oid.append(subid)
                 index = index + 1
 
-        return oid
+        client.verifyConstraints(oid)
+        client.rawAsn1Value = tuple(oid)
 
-class RealMixIn(base.SimpleAsn1Object):
-    """BER for ASN.1 REAL object
-    """
-    pass
-
-class EnumeratedMixIn(IntegerMixIn):
-    """Same as Integer
-    """
-    pass
+class RealBerCodec(base.SimpleBerCodecBase): pass
+class EnumeratedBerCodec(IntegerBerCodec): pass
 
 # BER for structured ASN.1 objects
 
-class SequenceMixIn(base.OrderedFixedTypeAsn1Object):
-    """Implements BER processing for an ASN.1 SEQUENCE object
-    """
-    pass
+codecId = base.codecId
 
-class SequenceOfMixIn(base.OrderedVariableTypeAsn1Object):
-    """Implements BER processing for an ASN.1 SEQUENCE OF object
-    """
-    pass
+class SequenceBerCodec(base.MappingTypeBerCodecBase):
+    def decodeValue(self, client, oStream):
+        for key in client.protoSequence:
+            oStream = client[key].decodeItem(oStream, codecId)
+        return oStream
 
-class SetMixIn(base.UnorderedFixedTypeAsn1Object):
-    """Implements BER processing for an ASN.1 SET object
-    """
-    pass
+class SequenceOfBerCodec(base.SequenceTypeBerCodec): pass
+class SetBerCodec(base.MappingTypeBerCodecBase):
+    def decodeValue(self, client, oStream):
+        while oStream:
+           for key in client.keys():
+               try:
+                   oStream = client[key].decodeItem(oStream, codecId)
+               except Asn1Error:
+                   continue
+               break
+           else:
+               return oStream
+           
+class SetOfBerCodec(base.SequenceTypeBerCodec): pass
 
-class SetOfMixIn(base.UnorderedVariableTypeAsn1Object):
-    """Implements BER processing for an ASN.1 SET OF object
-    """
-    pass
+class ChoiceBerCodec(base.MappingTypeBerCodecBase):
+    def decodeValue(self, client, oStream):
+        # Try current component first
+        try:
+            if client: return client[client.keys()[0]].decodeItem(oStream, codecId)
+        except Asn1Error:
+            pass
+        # Otherwise, try all components one by one
+        for protoName in client.protoComponents.keys():
+            component = client.componentFactoryBorrow(protoName)
+            try:
+                restOfStream = component.decodeItem(oStream, codecId)
+            # XXX narrow exception filter
+            except Asn1Error, why:
+                continue
+            client[protoName] = component
+            return restOfStream
+        else:
+            raise error.TypeMismatchError(
+                'Octet-stream parse error at %r for %r' %
+                (self.__class__.__name__, client.__class__.__name__)
+            )    
 
-class ChoiceMixIn(base.SingleFixedTypeAsn1Object):
-    """Implements BER processing for an ASN.1 CHOICE object
-    """
-    pass
-
-def mixIn():
-    """Register this module's mix-in classes at their bases
-    """
-    mixInComps = [ (univ.Boolean, BooleanMixIn),
-                   (univ.Integer, IntegerMixIn),
-                   (univ.BitString, BitStringMixIn),
-                   (univ.OctetString, OctetStringMixIn),
-                   (univ.Null, NullMixIn),
-                   (univ.ObjectIdentifier, ObjectIdentifierMixIn),
-                   (univ.Real, RealMixIn),
-                   (univ.Enumerated, EnumeratedMixIn),
-                   (univ.Sequence, SequenceMixIn),
-                   (univ.SequenceOf, SequenceOfMixIn),
-                   (univ.Set, SetMixIn),
-                   (univ.SetOf, SetOfMixIn),
-                   (univ.Choice, ChoiceMixIn) ]
-    
-    for (baseClass, mixIn) in mixInComps:
-        if mixIn not in baseClass.__bases__:
-            baseClass.__bases__ = baseClass.__bases__ + (mixIn, )
+# Register codecs at their clients
+for destClass, codecClass in ( (univ.Boolean, BooleanBerCodec),
+                               (univ.Integer, IntegerBerCodec),
+                               (univ.BitString, BitStringBerCodec),
+                               (univ.OctetString, OctetStringBerCodec),
+                               (univ.Null, NullBerCodec),
+                               (univ.ObjectIdentifier,
+                                ObjectIdentifierBerCodec),
+                               (univ.Real, RealBerCodec),
+                               (univ.Enumerated, EnumeratedBerCodec),
+                               (univ.Sequence, SequenceBerCodec),
+                               (univ.SequenceOf, SequenceOfBerCodec),
+                               (univ.Set, SetBerCodec),
+                               (univ.SetOf, SetOfBerCodec),
+                               (univ.Choice, ChoiceBerCodec) ):
+    # XXX
+    destClass.codecs = {}
+    destClass.codecs[codecId] = codecClass()
+    destClass.defaultCodec = codecId

@@ -2,7 +2,7 @@
    Deprecated PySNMP 1.x compatibility interface to SNMP v.1
    protocol implementation.
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 from pysnmp.proto import rfc1155, rfc1157
@@ -35,7 +35,9 @@ class message(ber.ber):
                             [ None ] * (len(oids) - len(vals))))
 
         # Encode bindings
-        return rfc1157.VarBindList(map(lambda x, y: rfc1157.VarBind(name=x, value=y), oids, vals)).encode()
+        return apply(rfc1157.VarBindList, \
+                     map(lambda x, y: rfc1157.VarBind(name=x, value=y), \
+                         oids, vals)).encode()
 
     def encode_bindings(self, encoded_oids, encoded_vals):
         """Compatibility method: BER encode oids & values
@@ -171,7 +173,10 @@ class message(ber.ber):
         self.request_id = pdu['request_id']
         
         # Attach bindings
-        pdu['variable_bindings'] = rfc1157.VarBindList(map(lambda x, y: rfc1157.VarBind(name=x, value=y), oids, vals))
+        pdu['variable_bindings'] = apply(rfc1157.VarBindList, \
+                                         map(lambda x, y: \
+                                             rfc1157.VarBind(name=x, value=y),\
+                                             oids, vals))
 
         # Create a message
         req = rfc1157.Message(pdu=rfc1157.Pdus(somepdu=pdu))
@@ -224,16 +229,21 @@ class message(ber.ber):
         else:
             raise error.BadPDUType('Unexpected PDU type %s/%s' %
                                    (rsp['pdu'].keys()[0], mtype))
-            
+
+        # Handle SNMP errors
+        pdu = rsp['pdu'].values()[0]
+        if pdu['error_status']:
+            raise error.SNMPError(pdu['error_status'].get(),\
+                                  pdu['error_index'].get())
+
         # Make sure request ID's matched
-        if rsp['pdu'].values()[0]['request_id'] != self.request_id:
+        if pdu['request_id'] != self.request_id:
             raise error.BadRequestID ('Unmatched request/response IDs: %d/%d'\
-                                      % (rsp['pdu'].values()[0]['request_id'],
-                                         self.request_id))
+                                      % (pdu['request_id'], self.request_id))
 
         # Build encoded_oids and encoded_vals
-        encoded_oids = map(lambda x: x['name'].encode(), rsp['pdu'].values()[0]['variable_bindings'])
-        encoded_vals = map(lambda x: x['value'].encode(), rsp['pdu'].values()[0]['variable_bindings'])
+        encoded_oids = map(lambda x: x['name'].encode(), pdu['variable_bindings'])
+        encoded_vals = map(lambda x: x['value'].encode(), pdu['variable_bindings'])
 
         return (encoded_oids, encoded_vals)
 
@@ -322,7 +332,10 @@ class message(ber.ber):
         pdu['time_stamp'].set(timeticks)
         
         # Attach bindings
-        pdu['variable_bindings'] = rfc1157.VarBindList(map(lambda x, y: rfc1157.VarBind(name=x, value=y), oids, vals))
+        pdu['variable_bindings'] = apply(rfc1157.VarBindList,\
+                                         map(lambda x, y: \
+                                             rfc1157.VarBind(name=x, value=y),\
+                                             oids, vals))
 
         # Create a message
         req = rfc1157.Message(pdu=rfc1157.Pdus(somepdu=pdu))

@@ -6,29 +6,29 @@
 <BODY BGCOLOR="#ffffff" TEXT="#000000"
       LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
 <H3>
-Objects of the <STRONG>role.agent</STRONG> class
+Objects of the <STRONG>role.Agent</STRONG> class
 </H3>
 
 <P>
-The instances of <STRONG>role.agent</STRONG> class have the following
+The instances of <STRONG>role.Agent</STRONG> class have the following
 methods:
 </P>
 
 <DL>
-<DT><STRONG>receive_and_send</STRONG>([(<STRONG>cb_fun</STRONG>, <STRONG>cb_ctx</STRONG>)])</DT>
+<DT><STRONG>receiveAndSend</STRONG>([(<STRONG>cbFun</STRONG>, <STRONG>cbCtx</STRONG>)])</DT>
 <DD>
 <P>
-Wait for request from a client process or timeout (and raise
+Wait for a message from client process or timeout (and raise
 <A HREF="error.html#IdleTimeoutError">error.IdleTimeoutError</A>
-exception) if no request arrived within the <STRONG>agent.timeout</STRONG>
-seconds. On data arrival, pass data item to the <STRONG>cb_fun</STRONG>
-function, to build a response, and send the response back to client process.
+exception) if no message arrived within the <STRONG>Agent.timeout</STRONG>
+seconds. On data arrival, pass data item to the <STRONG>cbFun</STRONG>
+function to build a response and send the response back to client process.
 </P>
 <P>
-The optional <STRONG>cb_fun</STRONG> and <STRONG>cb_ctx</STRONG> parameters
+The optional <STRONG>cbFun</STRONG> and <STRONG>cbCtx</STRONG> parameters
 may be used to specify alternative user callback function to be invoked on
-<STRONG>question</STRONG> arrival. These parameters, whenever given here,
-override the default settings given on <A HREF=role.html#agent>agent</A>
+<STRONG>reqMsg</STRONG> arrival. These parameters, whenever given here,
+override the default settings given on <A HREF=role.html#Agent>Agent</A>
 class instaniation.
 </P>
 
@@ -49,11 +49,11 @@ Return socket object.
 </DL>
 
 <DL>
-<DT><STRONG>send</STRONG>(<STRONG>answer</STRONG>, <STRONG>dst</STRONG>)</DT>
+<DT><STRONG>send</STRONG>(<STRONG>rspMsg</STRONG>, <STRONG>dstAddr</STRONG>)</DT>
 <DD>
 <P>
-Attempt to send response data <STRONG>answer</STRONG> (string) to remote
-client by <STRONG>dst</STRONG> address (given in <STRONG>socket</STRONG>
+Attempt to send response data <STRONG>rspMsg</STRONG> (string) to remote
+client by <STRONG>dstAddr</STRONG> address (given in <STRONG>socket</STRONG>
 module notation).
 </P>
 </DD>
@@ -65,13 +65,13 @@ module notation).
 <P>
 Wait for and receive request data from a SNMP manager process or timeout (and
 raise <A HREF="error.html#IdleTimeoutError">error.IdleTimeoutError</A>
-exception) if no request arrived within <STRONG>agent.timeout</STRONG>
+exception) if no request arrived within <STRONG>Agent.timeout</STRONG>
 seconds.
 </P>
 <P>
-Return a tuple of (<STRONG>question</STRONG>, <STRONG>src</STRONG>) where
-<STRONG>question</STRONG> (string) is a request data as sent by SNMP manager
-and <STRONG>src</STRONG> is the address of manager endpoint (given in
+Return a tuple of (<STRONG>reqMsg</STRONG>, <STRONG>srcAddr</STRONG>) where
+<STRONG>reqMsg</STRONG> (string) is a request data as sent by SNMP manager
+and <STRONG>srcAddr</STRONG> is the address of manager endpoint (given in
 <STRONG>socket</STRONG> module notation).
 </P>
 </DD>
@@ -87,7 +87,7 @@ Terminate server and release all associated resources.
 </DL>
 
 <P>
-Objects of the <STRONG>role.agent</STRONG> class have the following public
+Objects of the <STRONG>role.Agent</STRONG> class have the following public
 instance variables:
 </P>
 

@@ -1,11 +1,24 @@
+"""A high-level API to SNMP protocol objects.
 """
-    SNMP framework for Python.
+from pysnmp.proto.api.alpha import pdutypes, versions
+from pysnmp.proto.api.alpha import v1, v2c
 
-    The pysnmp.proto.api.alpha sub-package implements a high-level
-    API to various SNMP messages.
+# Protocol versions
+protoVersionId1 = versions.ProtoVersionId1()
+protoVersionId2c = versions.ProtoVersionId2c()
+protoVersions = { protoVersionId1: v1, protoVersionId2c: v2c }
 
-   Copyright 1999-2003 by Ilya Etingof <ilya@glas.net>. See LICENSE for
-   details.
-"""
-from pysnmp.proto.api.alpha import rfc1157, rfc1905
-map(lambda x: x.mixIn(), [ rfc1157, rfc1905 ])
+class MetaMessage(v1.Choice):
+    """A selection of SNMP protocol Messages"""
+    protoComponents = { protoVersionId1: v1.Message(),
+                        protoVersionId2c: v2c.Message() }
+
+# PDU types
+getRequestPduType = pdutypes.GetRequestPduType()
+getNextRequestPduType = pdutypes.GetNextRequestPduType()
+setRequestPduType = pdutypes.SetRequestPduType()
+getResponsePduType = responsePduType = pdutypes.GetResponsePduType()
+trapPduType = pdutypes.TrapPduType()
+getBulkRequestPduType = pdutypes.GetBulkRequestPduType()
+informRequestPduType = pdutypes.InformRequestPduType()
+reportPduType = pdutypes.ReportPduType()

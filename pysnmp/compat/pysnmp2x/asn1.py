@@ -2,7 +2,7 @@
    Deprecated PySNMP 2.0.x compatibility interface to SNMP subset of
    ASN.1 data types.
 
-   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
 import pysnmp.proto.rfc1902, pysnmp.asn1.error, \

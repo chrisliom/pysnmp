@@ -1,30 +1,16 @@
-"""
-   Root exception classes.
-
-   Written by Ilya Etingof <ilya@glas.net>, 2001, 2002. Suggested by
-   Case Van Horsen <case@ironwater.com>.
+"""Top-level exception class
 """   
-import exceptions
+from exceptions import Exception
 
-class PySnmpError(exceptions.Exception):
-    """Base class for PySNMP error handlers
-    """
-    def __init__(self, err_msg=None):
-        """
-        """
-        exceptions.Exception.__init__(self)
+class PySnmpError(Exception):
+    def __init__(self, why=''):
+        Exception.__init__(self)
+        self.why = str(why)
 
-        if err_msg is not None:
-            self.err_msg = str(err_msg)
-        else:
-            self.err_msg = ''
+    def __str__(self): return self.why
+    def __repr__(self): return self.__class__.__name__ + '(' + self.why + ')'
+    def __nonzero__(self):
+        if len(self.why): return 1
+        else: return 0
 
-    def __str__(self):
-        """
-        """
-        return self.err_msg
-
-    def __repr__(self):
-        """
-        """
-        return self.__class__.__name__ + '(' + self.err_msg + ')'
+class PySnmpVersionError(PySnmpError): pass
