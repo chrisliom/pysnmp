@@ -21,6 +21,7 @@ max_bindings = rfc1902.Integer(2147483647)
 class Version(univ.Integer):
     subtypeConstraints = ( subtypes.SingleValueConstraint(1), )
     initialValue = 1
+    namedValues = univ.Integer.namedValues.clone(('version-2c', 1))
     
 class Community(univ.OctetString):
     initialValue = 'public'    
@@ -30,6 +31,15 @@ class RequestId(InitialRequestIdMixIn, rfc1902.Integer32): pass
 class ErrorStatus(univ.Integer):
     initialValue = 0
     subtypeConstraints = ( subtypes.ValueRangeConstraint(0, 18), )
+    namedValues = univ.Integer.namedValues.clone(
+        ('noError', 0), ('tooBig', 1), ('noSuchName', 3), ('badValue', 4),
+        ('readOnly', 5), ('genError', 6), ('noAccess', 7), ('wrongType', 8),
+        ('wrongLength', 9), ('wrongEncoding', 10), ('wrongValue', 11),
+        ('noCreation', 12), ('inconsistentValue', 13),
+        ('resourceUnavailable', 14), ('commitFailed', 15), ('undoFailed', 16),
+        ('authorizationError', 17), ('notWritable', 18),
+        ('inconsistentName', 19)
+        )
     pduErrors = [
         '(noError) No Error',
         '(tooBig) Response message would have been too large',

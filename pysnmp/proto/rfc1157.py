@@ -15,6 +15,7 @@ __all__ = [
 class Version(univ.Integer):
     subtypeConstraints = ( subtypes.SingleValueConstraint(0), )
     initialValue = 0
+    namedValues = univ.Integer.namedValues.clone(('version-1', 0))
     
 class Community(univ.OctetString):
     initialValue = 'public'
@@ -35,12 +36,18 @@ class RequestId(InitialRequestIdMixIn, univ.Integer): pass
 class ErrorStatus(univ.Integer):
     initialValue = 0
     subtypeConstraints = ( subtypes.ValueRangeConstraint(0, 5), )
-    pduErrors = [ '(noError) No Error',
-                  '(tooBig) Response message would have been too large',
-                  '(noSuchName) There is no such variable name in this MIB',
-                  '(badValue) The value given has the wrong type or length',
-                  '(readOnly) No modifications allowed to this object',
-                  '(genError) A general failure occured' ]
+    namedValues = univ.Integer.namedValues.clone(
+        ('noError', 0), ('tooBig', 1), ('noSuchName', 2),
+        ('badValue', 3), ('readOnly', 4), ('genError', 5)
+        )
+    pduErrors = [
+        '(noError) No Error',
+        '(tooBig) Response message would have been too large',
+        '(noSuchName) There is no such variable name in this MIB',
+        '(badValue) The value given has the wrong type or length',
+        '(readOnly) No modifications allowed to this object',
+        '(genError) A general failure occured'
+        ]
     
     def __str__(self):
         return '%s: %d (%s)' % (
@@ -98,17 +105,11 @@ class AgentAddr(rfc1155.NetworkAddress): pass
 class GenericTrap(univ.Integer):
     initialValue = 0
     subtypeConstraints = ( subtypes.ValueRangeConstraint(0, 6), )
-    verboseTraps = [
-        'coldStart', 'warmStart', 'linkDown', 'linkUp', \
-        'authenticationFailure', 'egpNeighborLoss', \
-        'enterpriseSpecific'
-        ]
-
-    def __str__(self):
-        return '%s: %d (%s)' % (
-            self.__class__.__name__, self.get(),
-            self.verboseTraps[self.get()]
-            )
+    namedValues = univ.Integer.namedValues.clone(
+        ('coldStart', 0), ('warmStart', 1), ('linkDown', 2),
+        ('linkUp', 3), ('authenticationFailure', 4), ('egpNeighborLoss', 5),
+        ('enterpriseSpecific', 6)
+        )
 
 class SpecificTrap(univ.Integer):
     initialValue = 0
