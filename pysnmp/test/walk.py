@@ -44,7 +44,7 @@ class GetNextAppMixIn:
                     )
                 for idx in filter(lambda x: x==-1, tblIndices[-1]):
                     del self.mgrOidVals[idx]
-                if len(self.mgrOidVals) == 0:
+                if not self.mgrOidVals:
                     self.__EOM = 1
                     return 1
                 apply(reqPdu.apiAlphaSetVarBindList, \

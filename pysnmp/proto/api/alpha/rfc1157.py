@@ -38,7 +38,7 @@ class PduMixInBase:
                 'Unmatching table head & row size %s vs %s' %
                 (len(headerVars), len(varBindList))
             )
-        if len(headerVars) == 0:
+        if not headerVars:
             raise error.BadArgumentError('Empty table')
         endOfMibIndices = rsp.apiAlphaGetEndOfMibIndices()
         varBindRows = []

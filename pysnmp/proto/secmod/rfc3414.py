@@ -211,7 +211,7 @@ class UserBasedSecurityModule:
         securityStateReference = self.cacheAdd(msgUserName=msgUserName)
 
         # 3.2.3
-        if len(securityEngineID) == 0 or \
+        if not securityEngineID or \
            not self.snmpEngines.has_key(securityEngineID) and \
            snmpEngineBoots != 0 and snmpEngineTime != 0:
             # 3.2.3a XXX
