@@ -15,5 +15,8 @@ class TransportDomainBase:
         raise error.NotImplementedError('Method not implemented')
 
     def transportDomainRegisterCbFun(self, appCbFun):
-        self.__appCbFun = appCbFun
+        self._appCbFun = appCbFun
+
+    def transportDomainUnregisterCbFun(self):
+        self._appCbFun = None
         
