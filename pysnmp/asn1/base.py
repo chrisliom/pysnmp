@@ -148,6 +148,13 @@ class Asn1Object:
                                         self.__class__.__name__)
 
         return (superClass.tagClass, superClass.tagFormat, superClass.tagId)
+
+    def getTerminalComponent(self):
+        raise error.NotImplementedError('Method not implemented at %s' %\
+                                        (self.__class__.__name))
+
+    # XXX compatibility
+    def getTerminal(self): return self.getTerminalComponent
     
 class SimpleAsn1Object(Asn1Object):
     """Base class for a simple ASN.1 object. Defines behaviour and
@@ -247,11 +254,16 @@ class SimpleAsn1Object(Asn1Object):
                 else:
                     value = self.initialValue
 
-        # Allow initalization from instances of the same type
-        if isinstance(value, self.__class__):
-            self._setRawAsn1Value(value.rawAsn1Value)
-            return
-        
+        # Allow initalization from instances
+        if type(value) == InstanceType:
+            # Save on same-type instances
+            if isinstance(value, self.__class__):
+                self._setRawAsn1Value(value.rawAsn1Value)
+                return
+            if isinstance(value, Asn1Object):
+                self.set(value.get())
+                return
+
         if hasattr(self, '_type_constraint'):
             self._type_constraint(value)
 
@@ -268,9 +280,7 @@ class SimpleAsn1Object(Asn1Object):
         
         return self.rawAsn1Value
 
-    def getTerminal(self):
-        # Already a terminal
-        return self
+    def getTerminalComponent(self): return self
 
 class StructuredAsn1Object(Asn1Object):
     """Base class for structured ASN.1 objects
@@ -280,10 +290,6 @@ class StructuredAsn1Object(Asn1Object):
     # Disable not applicible constraints
     _subtype_value_range_constraint = None
     _subtype_permitted_alphabet_constraint = None
-
-    def getTerminal(self):
-        raise error.ObjectTypeError('Ambigious type %s for operation' % \
-                                    (self.__class__.__name__))
 
 class FixedTypeAsn1Object(StructuredAsn1Object):
     """Base class for fixed-type ASN.1 objects
@@ -461,17 +467,15 @@ class ChoiceTypeAsn1Object(FixedTypeAsn1Object):
             kwargs[''] = self.initialComponent()
         self.update(kwargs)
 
-    def getTerminal(self):
-        """Attempt to fetch and return terminal component recursively
-        """
+    def getTerminalComponent(self):
         if len(self.keys()) == 0:
             raise error.BadArgumentError('No initialized component at %s'\
                                          % (self.__class__.__name__))
         component = self.values()[0]
-        if isinstance(component, ChoiceTypeAsn1Object):
-            return component.getTerminal()
+        if hasattr(component, 'getTerminalComponent'):
+            return component.getTerminalComponent()
         return component
-
+    
     def getInnerComponent(self, valType):
         """Search for value type over the component tree.
         """
