@@ -215,7 +215,7 @@ class CompatBase:
                                 [ None ] * (len(oids) - len(vals))))
 
             # Re-commit OID-value pairs
-            self.msg['pdu'].values()[0]['variable_bindings'] = v1.VarBindList(map(lambda x, y: v1.VarBind(name=x, value=y), oids, vals))
+            self.msg['pdu'].values()[0]['variable_bindings'] = apply(v1.VarBindList, map(lambda x, y: v1.VarBind(name=x, value=y), oids, vals))
 
         elif key == 'encoded_vals':
             # Fetch OIDs
@@ -232,7 +232,7 @@ class CompatBase:
                                 ['.1.3'] * (len(vals) - len(oids))))
             
             # Re-commit OID-value pairs
-            self.msg['pdu'].values()[0]['variable_bindings'] = v1.VarBindList(map(lambda x, y: v1.VarBind(name=x, value=y), oids, vals))
+            self.msg['pdu'].values()[0]['variable_bindings'] = apply(v1.VarBindList, map(lambda x, y: v1.VarBind(name=x, value=y), oids, vals))
 
         elif key == 'request_id' or key == 'error_status' or \
              key == 'error_index':

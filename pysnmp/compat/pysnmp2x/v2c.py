@@ -64,7 +64,7 @@ class CompatBase(v1.CompatBase):
                                 [ None ] * (len(oids) - len(vals))))
 
             # Re-commit OID-value pairs
-            self.msg['pdu'].values()[0]['variable_bindings'] = v2c.VarBindList(map(lambda x, y: v2c.VarBind(name=x, value=v2c.BindValue(value=y)), oids, vals))
+            self.msg['pdu'].values()[0]['variable_bindings'] = apply(v2c.VarBindList, map(lambda x, y: v2c.VarBind(name=x, value=v2c.BindValue(value=y)), oids, vals))
 
         elif key == 'encoded_vals':
             # Fetch OIDs
@@ -82,7 +82,7 @@ class CompatBase(v1.CompatBase):
                                 ['.1.3'] * (len(vals) - len(oids))))
             
             # Re-commit OID-value pairs
-            self.msg['pdu'].values()[0]['variable_bindings'] = v2c.VarBindList(map(lambda x, y: v2c.VarBind(name=x, value=v2c.BindValue(value=y)), oids, vals))
+            self.msg['pdu'].values()[0]['variable_bindings'] = apply(v2c.VarBindList, map(lambda x, y: v2c.VarBind(name=x, value=v2c.BindValue(value=y)), oids, vals))
         else:
             v1.CompatBase._setitem_fun(self, key, value)
 
