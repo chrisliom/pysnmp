@@ -14,6 +14,7 @@ from types import StringType
 from string import join
 from pysnmp.asn1.encoding.ber import error
 from pysnmp.asn1.base import tagCategories
+from pysnmp.asn1.error import Asn1Error
 
 def decodeTag(input, where='decodeTag'):
     """Decode first octet of input octet stream into int tag
@@ -220,20 +221,19 @@ class StructuredAsn1Object(SimpleAsn1Object):
         """Decode BER header, return (data, rest)
         """
         if self.tagCategory == tagCategories['UNTAGGED']:
-            return (input, '')
-        else:
-            if decodeTag(input, self.__class__.__name__) != \
-               self.tagClass | self.tagFormat | self.tagId:
-                raise error.TypeMismatchError('Tag mismatch %o at %s' %\
-                                              (decodeTag(input), \
-                                               self.__class__.__name__))
+            return (input, '')            
+        if decodeTag(input, self.__class__.__name__) != \
+           self.tagClass | self.tagFormat | self.tagId:
+            raise error.TypeMismatchError('Tag mismatch %o at %s' %\
+                                          (decodeTag(input), \
+                                           self.__class__.__name__))
         
-            (length, size) = self.berDecodeLength(input[1:])
-            if len(input) - 1 - size < length:
-                raise error.UnderRunError('Short input for %s' % \
-                                          self.__class__.__name__)
+        (length, size) = self.berDecodeLength(input[1:])
+        if len(input) - 1 - size < length:
+            raise error.UnderRunError('Short input for %s' % \
+                                      self.__class__.__name__)
 
-            return (input[1+size:1+size+length], input[1+size+length:])
+        return (input[1+size:1+size+length], input[1+size+length:])
 
 class FixedTypeAsn1Object(StructuredAsn1Object):
     """BER for fixed-type ASN.1 objects
@@ -268,7 +268,7 @@ class OrderedFixedTypeAsn1Object(FixedTypeAsn1Object):
             return the rest of input stream.
         """
         (input, rest) = self.berUnwrapHeader(input)
-        
+            
         if hasattr(self, '_berDecode'):
             input = self._berDecode(input)
         else:
@@ -276,8 +276,9 @@ class OrderedFixedTypeAsn1Object(FixedTypeAsn1Object):
                 input = self[key].berDecode(input)
 
         if len(input):
-            raise error.TypeMismatchError('Extra data in wire at %s' % \
-                                          self.__class__.__name__)
+            raise error.TypeMismatchError('Extra data in wire at %s: %s'%
+                                          (self.__class__.__name__,
+                                           repr(input)))
         return rest
 
     decode = berDecode
@@ -302,6 +303,7 @@ class UnorderedFixedTypeAsn1Object(FixedTypeAsn1Object):
                 for key in keys:
                     try:
                         input = self[key].berDecode(input)
+
                     except Asn1Error:
                         continue
 
@@ -311,7 +313,9 @@ class UnorderedFixedTypeAsn1Object(FixedTypeAsn1Object):
                     raise error.TypeMismatchError('Octet-stream parse error at %s'\
                                                   % self.__class__.__name__)
         if len(input):
-            raise error.TypeMismatchError('Extra data in wire at %s' % self.__class__.__name__)
+            raise error.TypeMismatchError('Extra data in wire at %s: %s'%
+                                          (self.__class__.__name__,
+                                           repr(input)))
         return rest
 
     decode = berDecode
@@ -320,12 +324,6 @@ class SingleFixedTypeAsn1Object(FixedTypeAsn1Object):
     """BER for a single, fixed-type ASN.1 objects
     """
     def berDecode(self, input):
-        """
-            berDecode(input) -> rest
-            
-            BER decode input (octet string) into ASN1 object payload,
-            return the rest of input stream.
-        """
         (input, rest) = self.berUnwrapHeader(input)            
         if hasattr(self, '_berDecode'):
             input = self._berDecode(input)
@@ -379,7 +377,7 @@ class SingleFixedTypeAsn1Object(FixedTypeAsn1Object):
                                               % self.__class__.__name__)
 
     decode = berDecode
-    
+
 class VariableTypeAsn1Object(StructuredAsn1Object):
     """BER for variable-type ASN.1 objects
     """
@@ -404,8 +402,6 @@ class VariableTypeAsn1Object(StructuredAsn1Object):
 
     def berDecode(self, input):
         """
-            berDecode(input) -> rest
-            
             BER decode input (octet string) into ASN1 object payload,
             return the rest of input stream.
         """
