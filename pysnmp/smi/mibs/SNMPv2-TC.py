@@ -192,7 +192,7 @@ class TestAndIncr(Integer):
         value = value + 1
         if value > 2147483646:
             value = 0
-        Integer.set(self, value)
+        return Integer.set(self, value)
 
 class AutonomousType(TextualConvention, ObjectIdentifier): pass
 class InstancePointer(TextualConvention,ObjectIdentifier):
@@ -304,6 +304,7 @@ class RowStatus(TextualConvention, Integer):
             Integer.set(self, val)        
         if err is not None:
             raise err
+        return self
 
 class TimeStamp(TextualConvention, TimeTicks): pass
 
