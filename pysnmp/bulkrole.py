@@ -202,7 +202,8 @@ class manager:
                 try:
                     self.transport.send(req.encode(), dst)
                     
-                except error.SNMPEngineError:
+                except role.Error:
+                    # Ignore transport errors
                     pass
 
             # Collect responses from agents
