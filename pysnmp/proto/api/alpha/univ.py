@@ -1,6 +1,6 @@
 """An implementation of high-level API to SNMP data types (RFC1155)"""
 from types import InstanceType
-from pysnmp.proto import rfc1155
+from pysnmp.asn1 import univ
 from pysnmp.proto.api import error
 from pysnmp.asn1.error import BadArgumentError
 
@@ -58,8 +58,8 @@ class ChoiceMixIn:
                 (value, self.__class__.__name__)
             )
 
-mixInComps = [ (rfc1155.Sequence, SequenceMixIn),               
-               (rfc1155.Choice, ChoiceMixIn) ]
+mixInComps = [ (univ.Sequence, SequenceMixIn),               
+               (univ.Choice, ChoiceMixIn) ]
 
 for (baseClass, mixIn) in mixInComps:
     if mixIn not in baseClass.__bases__:
