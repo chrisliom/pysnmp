@@ -1,35 +1,28 @@
 # MIB modules loader
-import os, sys
+import os
 from pysnmp.smi import error
+try:
+    import pysnmp_mibs
+except ImportError:
+    pysnmp_mibs = None
+    
+__all__ = [ 'MibBuilder' ]
 
-__all__ = [ 'MibBuilder', 'getMibCacheDir' ]
-
-def getMibCacheDir():
-    for t in ('PYSNMPTMPDIR', 'TMPDIR', 'TEMP', 'TMP'):
-        tempdir = os.getenv(t)
-        if tempdir:
-            break
-    else:
-        tempdir  = os.path.join('/', 'usr', 'tmp')
-        try:
-            os.stat(tempdir)
-        except OSError:
-            tempdir = os.path.join('.')
-    try:
-        uid = os.getuid()
-    except:
-        uid = 0
-    return os.path.join(tempdir, 'pysnmp', 'mibs', '%s' % uid)
-        
 class MibBuilder:
     def __init__(self, execContext=None):
         self.lastBuildId = 0L
         self.execContext = execContext
         self.mibSymbols = {}
-        os.path.split(error.__file__)[0]
-        apply(self.setMibPath, (
-            os.path.join(os.path.split(error.__file__)[0], 'mibs'),
-            getMibCacheDir()))
+        paths = (os.path.join(os.path.split(error.__file__)[0], 'mibs'),)
+        if os.getenv('PYSNMPMIBDIR'):
+            paths = paths + (
+                os.path.join(os.path.split(os.getenv('PYSNMPMIBDIR'))[0]),
+                )
+        if pysnmp_mibs:
+            paths = paths + (
+                os.path.join(os.path.split(pysnmp_mibs.__file__)[0]),
+                )
+        apply(self.setMibPath, paths)
         
     # MIB modules management
     
