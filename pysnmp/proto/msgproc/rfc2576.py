@@ -59,7 +59,10 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
                             rfc3411.WriteClassMixIn,
                             rfc3411.NotificationClassMixIn)):
             # rfc3412: 7.1.1b
-            smInParams['msgID'] = pdu['request_id'].get()
+            if pdu.has_key('request_id'):
+                smInParams['msgID'] = pdu['request_id'].get()
+            else:
+                smInParams['msgID'] = 0 # XXX a workaround?
 
             # Just copy destination address (no re-write available at v1/2c)
             smOutParams = {
@@ -101,9 +104,12 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
             )
 
         # rfc3412: 7.1.7
-        smInParams['globalData'] = {
-            'msgID': pdu['request_id'].get()
-            }
+        if pdu.has_key('request_id'):
+            smInParams['globalData'] = {
+                'msgID': pdu['request_id'].get()
+                }
+        else:
+            smInParams['globalData'] = { 'msgID': 0 } # XXX a workaround?
 
         # rfc3412: 7.1.8
         if isinstance(pdu, (rfc3411.ResponseClassMixIn,
