@@ -126,7 +126,9 @@ class Enterprise(rfc1155.ObjectIdentifier):
 class AgentAddr(rfc1155.NetworkAddress):
     """Trap PDU agent address
     """
-    pass
+    class IpAddress(rfc1155.IpAddress): pass
+    choiceComponents = [ IpAddress ]
+    initialComponent = choiceComponents[0]
 
 class GenericTrap(rfc1155.Integer):
     """Trap PDU generic trap

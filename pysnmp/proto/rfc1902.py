@@ -13,6 +13,7 @@ __all__ = [ 'Integer', 'Integer32', 'OctetString', 'Null', \
 
 from pysnmp.proto import rfc1155, error
 from pysnmp.asn1.base import tagCategories
+from pysnmp.asn1 import univ
 
 # SimpleSyntax
 
@@ -24,6 +25,11 @@ class Integer(rfc1155.Integer):
 
 class Integer32(Integer):
     """SMI INTEGER32 data type
+    """
+    pass
+
+class BitString(univ.BitString):
+    """SMI BITS data type
     """
     pass
 
@@ -108,8 +114,9 @@ class ObjectName(ObjectIdentifier):
 class SimpleSyntax(Choice):
     """Simple (non-constructed) objects
     """
-    choiceNames = [ 'integer_value', 'string_value', 'objectID_value' ]
-    choiceComponents = [ Integer, OctetString, ObjectIdentifier ]
+    choiceNames = [ 'integer_value', 'string_value', \
+                    'objectID_value', 'bits_value' ]
+    choiceComponents = [ Integer, OctetString, ObjectIdentifier, BitString ]
 
 class ApplicationSyntax(Choice):
     """Constructed objects
