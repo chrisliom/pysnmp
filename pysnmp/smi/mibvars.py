@@ -90,7 +90,7 @@ class AbstractMibVariable(MibVariablePattern):
             if self.maxAccess != 'readwrite' and \
                self.maxAccess != 'readcreate':
                 raise error.NotWritableError(
-                    'No write access to variable %r' % str(name)
+                    'No write access to variable %r at %r' % (name, self)
                     )
         else:
             raise error.NoSuchInstanceError(
@@ -249,7 +249,7 @@ class AbstractMibSubtree(MibSubtreePattern):
             if self.maxAccess != 'readwrite' and \
                    self.maxAccess != 'readcreate':
                 raise error.NotWritableError(
-                    'No write access to variable %r' % str(name)
+                    'No write access to variable %r at %r' % (name, self)
                     )
         else:
             self._passToSubtree('writeCheck', name, val)                
@@ -540,7 +540,7 @@ class TableRow(AbstractMibSubtree):
     def __manageColumns(self, action, statusColumnName):
         for name, var in self._vars.items():
             getattr(var, action)(
-                name+(statusColumnName[-1],), None
+                name+statusColumnName[len(name):], None
                 )
 
     def __delegate(self, subAction, name, val):
@@ -683,10 +683,10 @@ if __name__ == '__main__':
 
     try:
         print mv.flipFlopFsm(mv.fsmWriteVar,
-                             ((1,3,1,2,1,1,1), Integer(4)),
+                             ((1,3,1,2,1,1,127,0,0,1,1), Integer(4)),
                              )
         print mv.flipFlopFsm(mv.fsmWriteVar,
-                             ((1,3,1,2,1,1,1), Integer(6))
+                             ((1,3,1,2,1,1,127,0,0,1,1), Integer(6))
                              )
     except error.SmiError, why:
         print why
