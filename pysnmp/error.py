@@ -3,14 +3,13 @@
 from exceptions import Exception
 
 class PySnmpError(Exception):
-    def __init__(self, why=''):
+    def __init__(self, why=None):
         Exception.__init__(self)
-        self.why = str(why)
-
-    def __str__(self): return self.why
-    def __repr__(self): return self.__class__.__name__ + '(' + self.why + ')'
+        self.why = why
+    def __str__(self): return str(self.why)
+    def __repr__(self): return self.__class__.__name__ + '(' + repr(self.why) + ')'
     def __nonzero__(self):
-        if len(self.why): return 1
+        if self.why: return 1
         else: return 0
 
 class PySnmpVersionError(PySnmpError): pass
