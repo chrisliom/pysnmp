@@ -1,21 +1,23 @@
-"""Package exception classes"""
-from pysnmp import error
+from pysnmp.error import PySnmpError
 
-class SmiError(error.PySnmpError): pass
-class SmiImportError(SmiError): pass
-class BadArgumentError(SmiError): pass
-class NotImplementedError(SmiError): pass
-class MibError(SmiError): pass
+__all__ = [
+    'SmiError', 'NotInitializedError', 'NoSuchInstanceError',
+    'InconsistentValueError', 'WrongValueError',
+    'NoAccessError', 'ReadOnlyError', 'NotWritableError',
+    'NoCreationError', 'RowCreationWanted', 'RowDestructionWanted'
+    ]
 
+class SmiError(PySnmpError): pass
+class NotInitializedError(SmiError): pass
+class NoSuchModuleError(SmiError): pass
 class MibVariableError(SmiError): pass
-class NotInitializedError(MibVariableError): pass
 class NoSuchInstanceError(MibVariableError): pass
 class InconsistentValueError(MibVariableError): pass
 class WrongValueError(MibVariableError): pass
 class NoAccessError(MibVariableError): pass
-class ReadOnlyError(NoAccessError): pass
-class NotWritableError(NoAccessError): pass
-class NoCreationError(NoAccessError): pass
+class ReadOnlyError(MibVariableError): pass
+class NotWritableError(MibVariableError): pass
+class NoCreationError(MibVariableError): pass
 # Row management
 class RowCreationWanted(MibVariableError): pass
 class RowDestructionWanted(MibVariableError): pass
