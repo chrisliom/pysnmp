@@ -1,9 +1,13 @@
 """Defines standard API to asyncore-based transport"""
+try:
+    from sys import version_info
+except ImportError:
+    version_info = ( 0, 0 )   # a really early version
 import socket, sys
-from asyncore import dispatcher
+import asyncore
 from pysnmp.carrier import error
 
-class AbstractSocketTransport(dispatcher):
+class AbstractSocketTransport(asyncore.dispatcher):
     sockFamily = sockType = None
     retryCount = 0; retryInterval = 0
     def __init__(self):
@@ -11,8 +15,21 @@ class AbstractSocketTransport(dispatcher):
             s = socket.socket(self.sockFamily, self.sockType)
         except socket.error, why:
             raise error.CarrierError('socket() failed: %s' % why)
-        dispatcher.__init__(self, s)
+        asyncore.dispatcher.__init__(self, s)
 
+    # Old asyncore doesn't allow socket_map param
+    if version_info < (2, 0):
+        def add_channel (self, map=None):
+            if map is None:
+                map=asyncore.socket_map
+            map[self] = self
+
+        def del_channel (self, map=None):
+            if map is None:
+                map=asyncore.socket_map
+            if map.has_key(self):
+                del map[self]
+        
     def registerSocket(self, sockMap=None):
         self.del_channel()
         self.add_channel(sockMap)
