@@ -1,984 +1,513 @@
-"""
-   Message Processing and Dispatching for the SNMP v.3 (RFC3412).
-
-   Written by Ilya Etingof <ilya@glas.net>, 2002-2003.
-"""
-# Module public names
-__all__ = [ 'SnmpV3Message', 'probeVersion' ]
-
-from time import time
-from pysnmp.asn1 import oidtree
-from pysnmp.proto import rfc1157, rfc1902, rfc1905, rfc3411, rfc3414, error
-#import pysnmp.smi.rfc1907, pysnmp.smi.rfc3411, pysnmp.smi.rfc3412
-import pysnmp.asn1.error
-
-class SnmpV3Message(rfc1902.Sequence):
-    """SNMP v.3 message object
-    """
-    class HeaderData(rfc1902.Sequence):
-        """Message administrative parameters
-        """
-        class Id(rfc1902.Integer):
-            """Message ID
-            """
-            valueRangeConstraint = (0, 2147483647)
-            initialValue = 0
-            globalRequestId = 0L
-
-            def __init__(self, value=None):
-                """Update initial value to autoincrement request-id
-                """
-                if value is not None:
-                    rfc1902.Integer.__init__(self, value)
-                    return
-
-                value = self.globalRequestId
-                self.globalRequestId = self.globalRequestId + 1
-                try:
-                    rfc1902.Integer.__init__(self, value)
-
-                except pysnmp.asn1.error.ValueConstraintError:
-                    self.globalRequestId = 0L
-                    value = self.globalRequestId
-                    rfc1902.Integer.__init__(self, value)
-
-        class MaxSize(rfc1902.Integer):
-            """Message max size
-            """
-            valueRangeConstraint = (484, 2147483647)
-            initialValue = 65535
-
-        class Flags(rfc1902.OctetString):
-            """Message flags
-            """
-            sizeConstraint = (1, 1)
-            singleValueConstraint = [ '\000', '\001', '\003', '\004',
-                                      '\005', '\007' ]
-            initialValue = singleValueConstraint[0]
-
-            flagNames = { 'NoAuthNoPriv':    0x00,
-                          'AuthNoPriv':      0x01,
-                          'AuthPriv':        0x03,
-                          'ReportableFlag':  0x04 }
-
-            # A partial mapping interface
-    
-            def __setitem__(self, key, value):
-                if key == 'securityLevel':
-                    self.set(chr(ord(self.get()) | self.flagNames[value]))
-                elif key == 'expectResponse':
-                    if value is not None:
-                        self.set(chr(ord(self.get()) |
-                                     self.flagNames['ReportableFlag']))
-                else:
-                    raise KeyError, key
-
-            def __getitem__(self, key):
-                if key == 'securityLevel':
-                    value = ord(self.get()) & ~0x03
-                    for key in self.flagNames.keys():
-                        if self.flagNames[key] == value:
-                            return key
-                    else:
-                        raise
-                elif key == 'expectResponse':
-                    if ord(self.get()) & 0x04:
-                        return 1
-                    else:
-                        return 0
-                else:
-                    raise KeyError, key
-
-            def keys(self): return [ 'securityLevel', 'expectResponse']
-
-        class SecurityModel(rfc1902.Integer):
-            """Message security model
-            """
-            valueRangeConstraint = (0, 2147483647)
-            
-        fixedNames = [ 'msgId', 'msgMaxSize', 'msgFlags', 'msgSecurityModel' ]
-        fixedComponents = [ Id, MaxSize, Flags, SecurityModel ]
-
-    class Version(rfc1902.Integer):
-        """Message version
-        """
-        singleValueConstraint = [ 3 ]
-        initialValue = singleValueConstraint[0]
-
-    class SecurityParameters(rfc1902.OctetString):
-        """Security model-specific parameters, format
-           defined by Security Model
-        """
-        pass
-
-    class ScopedPduData(rfc1902.Choice):
-        """Plaintext or encrypted scoped PDU data
-        """
-        class ScopedPdu(rfc1902.Sequence):
-            """Scoped PDU structure
-            """
-            class ContextEngineId(rfc1902.OctetString):
-                """Uniquely identifies an SNMP entity that may realize an
-                   instance of a context with a particular contextName
-                """   
-                pass
-
-            class ContextName(rfc1902.OctetString):
-                """Identifies the particular context associated with the
-                   management information contained in the PDU portion of
-                   the message
-                """
-                pass
-
-            class Data(rfc1902.Choice):
-                """Opaque PDU data (specific to message processing
-                   subsystem). XXX
-                """
-                # This renders ANY type to a CHOICE of known PDUs XXX
-                choiceNames = [ 'get_request', 'get_next_request',
-                                'get_bulk_request', 'response', 'set_request',
-                                'inform_request', 'snmpV2_trap', 'report' ]
-                choiceComponents = [ rfc3411.GetRequestPdu,
-                                     rfc3411.GetNextRequestPdu,
-                                     rfc3411.GetBulkRequestPdu,
-                                     rfc3411.ResponsePdu,
-                                     rfc3411.SetRequestPdu,
-                                     rfc3411.InformRequestPdu,
-                                     rfc3411.SnmpV2TrapPdu,
-                                     rfc3411.ReportPdu ]
-        
-            fixedNames = [ 'contextEngineId', 'contextName', 'data' ]
-            fixedComponents = [ ContextEngineId, ContextName, Data ]
-
-        class EncryptedPdu(rfc1902.Sequence):
-            """Encrypted scopedPDU value
-            """
-            pass
-        
-        choiceNames = [ 'plaintext', 'encryptedPdu' ]
-        choiceComponents = [ ScopedPdu, EncryptedPdu ]
-        initialComponent = choiceComponents[0]
-
-    fixedNames = [ 'msgVersion', 'msgGlobalData', 'msgSecurityParameters',
-                   'msgData' ]
-    fixedComponents = [ Version, HeaderData, SecurityParameters,
-                        ScopedPduData ]
-
-def probeMessageVersion(wholeMsg):
-    class SnmpV3MessageHead(SnmpV3Message):
-        fixedNames = [ 'msgVersion' ]
-        fixedComponents = [ rfc1902.Integer ]
-
-    msg = SnmpV3MessageHead()
-    msg.decode(wholeMsg)
-    if msg['msgVersion'] == SnmpV3Message.Version():
-        return 1
-
-# Security Models
-
-class SnmpV1SecurityModel:
-    def __init__(self, mib=None): pass
-    def generateRequestMsg(self, msg, **kwargs):
-        raise error.NotImplementedError('Security model ' + \
-                                        self.__class__.__name__ + \
-                                        ' not implemented')
-
-class SnmpV2cSecurityModel:
-    def __init__(self, mib=None): pass
-    def generateRequestMsg(self, msg, **kwargs):
-        raise error.NotImplementedError('Security model ' + \
-                                        self.__class__.__name__ + \
-                                        ' not implemented')
-
-class SnmpV3SecurityModel:
-    def __init__(self, mib=None): pass
-    def generateRequestMsg(self, msg, **kwargs):
-        raise error.NotImplementedError('Security model ' + \
-                                        self.__class__.__name__ + \
-                                        ' not implemented')
-
-# Message processing subsystems
-
-class v1MP:
-    """Message processing subsystem for SNMP version 1
-    """
-    def __init__(self, mib=None):
-        self.securityModel = SnmpV1SecurityModel(mib)
-        self.__cacheEntries = {}
-    
-    def prepareOutgoingMessage(self, **kwargs):
-        expectResponse = kwargs.get('expectResponse', None)
-        sendPduHandle = kwargs.get('sendPduHandle', None)
-        if sendPduHandle is None:
-            raise error.BadArgumentError('Missing sendPduHandle at %s' %\
-                                         (self.__class__.__name__))
-
-        msg = rfc1157.Message()
-
-# XXX
-
-        (errorIndication, wholeMsg) = self.securityModel.generateRequestMsg(msgCommunity=msgCommunity, msgPdu=msgPdu)
-        
-        return (None, \
-                kwargs.get('transportDomain', None), \
-                kwargs.get('transportAddress', None), \
-                kwargs.get('wholeMsg', None))
-
-    def prepareResponseMessage(self, **kwargs):
-        return (None, \
-                kwargs.get('transportDomain', None), \
-                kwargs.get('transportAddress', None), \
-                kwargs.get('wholeMsg', None))
-
-    def prepareDataElements(self, wholeMsg):
-        msg = rfc1157.Message()
-        try:
-            rest = msg.decode(wholeMsg)
-        except pysnmp.asn1.error.Asn1Error, why:
-            return { 'statusInformation': 'parseError' }
-            
-        msgVersion = msg['version']
-        msgCommunity = msg['community']
-        msgPdu = msg['pdu']
-
-        errorIndication = self.securityModel.processIncomingMsg(messageProcessingModel=msgVersion, msgCommunity=msgCommunity, pdu=msgPdu)
-
-        if errorIndication is not None:
-            return { 'errorIndication': errorIndication }
-
-        if isinstance(msgPdu, rfc1157.GetResponsePdu):
-            cacheEntry = self.cachePop(requestId=msgPdu['request_id'])
-            if cacheEntry is None:
-                return { 'errorIndication': \
-                         ('No request found in cache for %s' % msg, None) }
-
-            sendPduHandle = cacheEntry.get('sendPduHandle', None)
-
-            return { 'messageProcessingModel': 1,
-                     'sendPduHandle': sendPduHandle, 'pdu': msgPdu }
-        
-        if isinstance(pdu, rfc1157.TrapPdu):
-            return { 'messageProcessingModel': 1, 'pdu': msgPdu }
-
-        stateReference = self.cacheAdd(requestId=msg['request_id'], \
-                                       msgPdu=msgPdu)
-
-        return { 'messageProcessingModel': 1, 'pdu': msgPdu }
-
-    # Cache handling
-    
-    def cachePush(self, requestId, msgPdu):
-        if self.__cacheEntries.has_key(requestId):
-            raise error.InternalError('Duplicate request ID %s' % pdu)
-        if not has_key(self, '__stateHandleSource'):
-            self.__stateHandleSource = rfc1155.Integer()
-        stateHandle = self.__stateHandleSource.inc(1).get()
-        self.__cacheEntries[requestId] = (stateHandle, msgPdu)
-        return stateHandle
-
-    def cachePop(self, requestId):
-        (stateHandle, msgPdu) = self.__cacheEntries.get(requestId, \
-                                                        (None, None))
-        if stateHandle: del self.__cacheEntries[requestId]
-        return (stateHandle, msgPdu)
-    
-class v2cMP(v1MP): pass
-
-class v3MP:
-    """Message processing subsystem for SNMP version 3
-    """
-    def __init__(self, mib=None):
-        """
-        """
-        self.mib = mib
-
-        # Pre-defined security models
-        self.securityModels = { 1:  SnmpV1SecurityModel(),
-                                2:  SnmpV2cSecurityModel(),
-                                3:  SnmpV3SecurityModel() }
-#                                3:  rfc3414.UserBasedSecurityModel() }
-
-        # Global source for stateReference and cache repositories
-        self.__stateRefCounter = rfc1902.Integer(0L)
-        self.__stateRefsByStateRef = {}
-        self.__stateRefsByMsgId = {}
-
-    # Outstanding requests cache manipulation routines
-    
-    def cacheAdd(self, **kwargs):
-        stateReference = self.__stateRefCounter.inc(1L).get()
-        if self.__stateRefsByStateRef.has_key(stateReference):
-            raise error.InternalError('stateReference already exists %s' %
-                                      str(stateReference))
-        msgId = kwargs.get('msgId', None)
-        if msgId is None:
-            raise error.BadArgumentError('msgId is missing on cache input %s'\
-                                         % str(kwargs))
-        self.__stateRefsByStateRef[stateReference] = kwargs
-        self.__stateRefsByMsgId[msgId] = kwargs
-        return stateReference
-
-    def cachePop(self, **kwargs):
-        stateReference = kwargs.get('stateReference', None)
-        if stateReference is None:
-            msgId = kwargs.get('msgId', None)
-            if msgId is None:
-                raise error.BadArgumentError('No cache search args given')
-            cacheEntry = self.__stateRefsByMsgId.get(msgId, None)
-        else:
-            cacheEntry = self.__stateRefsByStateRef.get(stateReference, None)
-        if cacheEntry is None:
-            return
-        stateReference = cacheEntry['stateReference']
-        msgId = cacheEntry['msgId']
-        del self.__stateRefsByMsgId.has_key[msgId]
-        del self.__stateRefsByStateRef[stateReference]
-        return cacheEntry
-
-#    def cacheExpire(self, timeNow=time()):
-#        pass
-        
-    # 7.1.1.a
-    
-    def prepareOutgoingMessage(self, **kwargs):
-        """Prepare either Read, Write or Notification Class PDU for
-           sending
-        """
-        return apply(self._prepareOutgoingOrResponseMessage, [ None ], kwargs)
-
-    # 7.1.2.a
-    
-    def prepareResponseMessage(self, **kwargs):
-        """Prepare either Response or Internal Class PDU for sending
-        """
-        return apply(self._prepareOutgoingOrResponseMessage, [ 1 ], kwargs)
-
-    def _prepareOutgoingOrResponseMessage(self, responseFlag, **kwargs):
-        """Prepare outgoing or response message for sending
-        """
-        # Extract input values and initialize defaults
-        messageProcessingModel = kwargs.get('messageProcessingModel',
-                                            SnmpV3Message.Version().get())
-        securityModel = kwargs.get('securityModel', 3)
-        securityName = kwargs.get('securityName', 'pysnmp')
-        securityLevel = kwargs.get('securityLevel', 'NoAuthNoPriv')
-        contextEngineId = kwargs.get('contextEngineId', None)
-        contextName = kwargs.get('contextName', None)
-        pduVersion = kwargs.get('pduVersion', SnmpV3Message.Version().get())
-        pdu = kwargs.get('pdu', None)
-        snmpEngineId = self.mib.searchNode('1.3.6.1.6.3.10.2.1.1')['type'].getTerminal().get()
-        
-        if responseFlag:
-            maxSizeResponseScopedPdu = kwargs.get('maxSizeResponseScopedPdu', 65535)
-            stateReference = kwargs.get('stateReference', None)
-            statusInformation = kwargs.get('statusInformation', (None, None))
-        else:
-            transportDomain = kwargs.get('transportDomain', '')
-            transportAddress = kwargs.get('transportAddress', '')
-            expectResponse = kwargs.get('expectResponse', None)
-            sendPduHandle = kwargs.get('sendPduHandle', None)
-            if sendPduHandle is None:
-                raise error.BadArgumentError('Missing sendPduHandle at %s' %\
-                                             (self.__class__.__name__))
-        
-        # 7.1.7{a,c}
-        msg = SnmpV3Message()
-
-        if not responseFlag:
-            # 7.1.1b
-            msg['msgGlobalData']['msgId'].inc(self.mib.searchNode('1.3.6.1.6.3.10.2.1.2')['type'].getTerminal().get() << 16 & 0x7fff0000)
-            msgId = msg['msgGlobalData']['msgId']
-        else:
-            # 7.7.2b
-            cacheEntry = self.cachePop(stateReference=stateReference)
-            if cacheEntry is None:
-                raise error.CacheExpiredError('Request information expired in cache for stateReference %s at %s' % (str(stateReference), self.__class__.__name__))
-            msgId = cacheEntry['msgId']
-            contextEngineId = cacheEntry['contextEngineId']
-            contextName = cacheEntry['contextName']
-            securityModel = cacheEntry['securityModel']
-            securityName = cacheEntry['securityName']
-            securityLevel = cacheEntry['securityLevel']
-            securityStateReference = cacheEntry['securityStateReference']
-            reportableFlag = cacheEntry['reportableFlag']
-            transportDomain = cacheEntry['transportDomain']
-            transportAddress = cacheEntry['transportAddress']
-
-            # 7.1.3
-            (errorIndication, errorVarBind) = statusInformation
-            if errorVarBind is not None:
-                # 7.1.3.a
-                if reportableFlag == 0:
-                    return (statusInformation, None, None, None)
-
-                # 7.1.3.b
-                if pdu is not None:
-                    requestId = pdu['request_id']
-                else:
-                    requestId = 0
-
-                    # 7.1.3.c
-                    reportPdu = rfc3411.ReportPdu()
-
-                    # 7.1.3.c.1
-                    reportPdu['variable_bindings'].append(errorVarBind)
-
-                    # 7.1.3.c.2
-                    reportPdu['error_status'] = 0
-            
-                    # 7.1.3.c.3
-                    reportPdu['error_index'] = 0
-
-                    # 7.1.3.c.4
-                    reportPdu['request_id'] = requestId
-
-                    # 7.1.3.d
-                    (errSecurityLevel, errContextEngineId, errContextName) = \
-                                       errorIndication
-
-                    # 7.1.3.d.1
-                    if errSecurityLevel is not None:
-                        securityLevel = errSecurityLevel
-                    else:
-                        securityLevel = 'NoAuthNoPriv'
-
-                    # 7.1.3.d.2
-                    if errContextEngineId is not None:
-                        contextEngineId = errContextEngineId
-                    else:
-                        contextEngineId = snmpEngineId
-                        
-                    # 7.1.3.d.3
-                    if errContextName is not None:
-                        contextName = errContextName
-                    else:
-                        # set to default context
-                        contextName = ''
-
-                    # 7.1.3.e
-                    pdu = reportPdu
-
-        # 7.1.4
-        if contextEngineId is None:
-            contextEngineId = '%s/%s/%d' % (transportDomain,
-                                            transportAddress,
-                                            id(self))
-        # 7.1.5
-        if contextName is None:
-            contextName = ''
-
-        # 7.1.6
-        msg['msgData']['plaintext']['contextEngineId'].set(contextEngineId)
-        msg['msgData']['plaintext']['contextName'].set(contextName)
-        msg['msgData']['plaintext']['data'][None] = pdu
-
-        # 7.1.7.d
-        msg['msgGlobalData']['msgFlags']['securityLevel'] = securityLevel
-
-        # 7.1.7e
-        msg['msgGlobalData']['msgSecurityModel'].set(securityModel)
-
-        # 7.1.8
-        
-        # Make sure we support this securityModel
-        securityModule = self.securityModels.get(securityModel, None)
-        if securityModule is None:
-            raise error.BadArgumentError('Unsupported securityModel: %s'\
-                                         % str(securityModel))        
-        # set to snmpEngineId        
-        securityEngineId = self.mib.searchNode('1.3.6.1.6.3.10.2.1.1')['type'].getTerminal().get()
-
-        # XXX check pdu class
-        if responseFlag:
-            # 7.1.8.a
-            (statusInformation, securityParameters, wholeMsg) = securityModule.generateRequestMsg(msg, messageProcessingModel=messageProcessingModel, securityModel=securityModel, securityEngineId=securityEngineId, securityName=securityName, securityLevel=securityLevel, securityStateReference=securityStateReference)
-            (errorIndication, errorVarBind) = statusInformation
-            if errorIndication is not None:
-                return (statusInformation, None, None, None)
-            else:
-                # 7.1.8.b
-                return (None, transportDomain, transportAddress, wholeMsg)
-        # 7.1.9
-        else:
-            # 7.1.9.a
-            if isinstance(pdu, rfc3411.UnconfirmedClass):
-                # set to snmpEngineId        
-                securityEngineId = self.mib.searchNode('1.3.6.1.6.3.10.2.1.1')['type'].getTerminal().get()
-            else:
-                snmpEngineId = '%s/%s/%d' % (transportDomain,
-                                             transportAddress,
-                                             id(self))
-                securityEngineId = snmpEngineId
-
-            # 7.1.9.b
-            (statusInformation, securityParameters, wholeMsg) = securityModule.generateRequestMsg(msg, messageProcessingModel=messageProcessingModel, securityModel=securityModel, securityEngineId=securityEngineId, securityName=securityName, securityLevel=securityLevel)
-            (errorIndication, errorVarBind) = statusInformation
-            if errorIndication is not None:
-                return (statusInformation, None, None, None)
-            else:
-                # 7.1.9.c
-                if isinstance(pdu, rfc3411.ConfirmedClass):
-                    # Cache request information
-                    self.cacheAdd(sendPduHandle=sendPduHandle,
-                                  msgId=msgId, snmpEngineId=snmpEngineId,
-                                  securityModel=securityModel,
-                                  securityName=securityName,
-                                  securityLevel=securityLevel,
-                                  contextEngineId=contextEngineId,
-                                  contextName=contextName)
-
-                # 7.1.9.d
-                return (None, transportDomain, transportAddress, wholeMsg)
-
-    def prepareDataElements(self, transportDomain, transportAddress, wholeMsg):
-        # 7.2.2
-        msg = SnmpV3Message()
-        try:
-            rest = msg.decode(wholeMsg)
-        except pysnmp.asn1.error.Asn1Error, why:
-            # snmpInASNParseErrs
-            self.mib.searchNode('1.3.6.1.1.2.1.11.8')['type'].getTerminal().inc(1)
-            return ( 'parseError', None )
-            
-        # 7.2.3
-        msgVersion = msg['msgVersion']
-        msgId = msg['msgGlobalData']['msgId']
-        msgMaxSize = msg['msgGlobalData']['msgMaxSize']
-        msgFlags = msg['msgGlobalData']['msgFlags']
-        msgSecurityModel = msg['msgGlobalData']['msgSecurityModel']
-        msgSecurityParameters = msg['msgSecurityParameters']
-        msgData = msg['msgData']
-
-        # 7.2.4
-        securityModule = self.securityModels.get(msgSecurityModel, None)
-        if securityModule is None:
-            # snmpUnknownSecurityModels
-            self.mib.searchNode('1.3.6.1.6.3.11.2.1.1')['type'].getTerminal().inc(1)
-            raise error.BadArgumentError('Unsupported securityModel: %s'\
-                                         % str(msgSecurityModel))
-
-        # 7.2.5
-        securityLevel = msgFlags['securityLevel']
-        if securityLevel is None:
-            # 7.2.5d (snmpInvalidMsgs)
-            self.mib.searchNode('1.3.6.1.6.3.11.2.1.2')['type'].getTerminal().inc(1)
-            raise error.BadArgumentError('Strange securityLevel: %s' % \
-                                         msgFlags)
-
-        # 7.2.6
-        (statusInformation, securityEngineId, securityName, scopedPdu, maxSizeResponseScopedPdu, maxSizeResponseScopedPdu, securityStateReference) = securityModule.processIncomingMsg(messageProcessingModel=SnmpV3Message.Version().get(), maxMessageSize=msgMaxSize, securityParameters=msgSecurityParameters, securityModel=msgSecurityModel, securityLevel=securityLevel, wholeMsg=wholeMsg)
-
-        if statusInformation is not None:
-            # 7.2.6a
-            (errorIndication, errorVarBind) = statusInformation
-            if errorIndication is not None and errorVarBind is not None:
-                # 7.2.6a.1
-                if scopedPdu is not None:
-                    contextEngineId = scopedPdu['contextEngineId']
-                    contextName = scopedPdu['contextName']
-                    pdu = scopedPdu['data']
-
-                    # 7.2.6a.2
-                    stateReference = self.cacheAdd(msgVersion=msgVersion, msgId=msgId, securityLevel=securityLevel, msgFlags=msgFlags, msgMaxSize=msgMaxSize, securityModel=securityModel, maxSizeResponseScopedPdu=maxSizeResponseScopedPeu, securityStateReference=securityStateReference)
-
-                    # 7.2.6a.3
-                    # XXX link up to dispatcher?
-
-                    # 7.2.6b
-                    raise error.MessageProcessingError('Security module returned failure %s for %s' % (str(errorIndication), str(msg)))
-
-        # 7.2.7
-        contextEngineId = scopedPdu['contextEngineId']
-        contextName = scopedPdu['contextName']
-        pdu = scopedPdu['data']
-
-        # 7.2.8
-        pduVersion = pdu.__module__   # Not used
-
-        # 7.2.9
-        pduType = pdu.__class__       # Not used
-
-        # 7.2.10
-        if isinstance(pdu, rfc3411.ResponseClass) or \
-           isinstance(pdu, rfc3411.InternalClass):
-            # 7.2.10a
-            cacheEntry = self.cachePop(msgId=msgId)
-            if cacheEntry is None:
-                raise error.MessageProcessingError('No request found in cache for %s' % (str(msg)))
-
-            # 7.2.10b
-            sendPduHandle = cacheEntry.get('sendPduHandle', None)
-
-            # 7.2.11
-            if isinstance(pdu, rfc3411.InternalClass):
-                # 7.2.11a
-                statusInformation = (1, pdu['variable_bindings'])
-
-                # 7.2.11b
-                cacheEntry = self.cachePop(stateReference=stateReference)
-                if cacheEntry is None:
-                    raise error.MessageProcessingError('No request found in cache for %s' % (str(msg)))
-                if cacheEntry['securityModel'] != securityModel or \
-                   cacheEntry['securityLevel'] != securityLevel:
-                    raise error.MessageProcessingError('securityModel and/or securityLevel mismatch cached request: %s vs %s' % (str(msg), str(cacheEntry)))
-
-                # 7.2.11c
-                securityStateReference = None
-
-                # 7.2.11d
-                stateReference = None
-                
-                # 7.2.11e
-                return (messageProcessingModel, securityModel, securityName, securityLevel, contextEngineId, contextName, pduVersion, pdu, pduType, sendPduHandle, maxSizeResponseScopedPdu, statusInformation, stateReference)
-
-            # 7.2.12
-            if isinstance(pdu, rfc3411.ResponseClass):
-                # 7.2.12a
-                cacheEntry = self.cachePop(stateReference=stateReference)
-                if cacheEntry is None:
-                    raise error.MessageProcessingError('No request found in cache for %s' % (str(msg)))
-                snmpEngineId = cacheEntry['']
-
-                # 7.2.12b
-                if snmpEngineId != cacheEntry['snmpEngineId'] or \
-                   securityModel != cacheEntry['securityModel'] or \
-                   securityName != cacheEntry['securityName'] or \
-                   securityLevel != cacheEntry['securityLevel'] or \
-                   contextEngineId != cacheEntry['contextEngineId'] or \
-                   contextName != cacheEntry['contextName']:
-                    raise error.MessageProcessingError('Cached req mismatches response: %s vs %s' % (str(msg), str(cacheEntry)))
-                    
-                # 7.2.12c
-                stateReference = None
-
-                # 7.2.12d
-                return (messageProcessingModel, securityModel, securityName, securityLevel, contextEngineId, contextName, pduVersion, pdu, pduType, sendPduHandle, maxSizeResponseScopedPdu, statusInformation, stateReference)
-
-        # 7.2.13
-        if isinstance(pdu, rfc3411.ConfirmedClass):
-            # 7.2.13a
-            if securityEngineId != snmpEngineId:
-                self.cachePop(msgId=msgId)
-                self.cachePop(stateReference=stateReference)
-                raise error.MessageProcessingError('securityEngineId != snmpEngineId %s != %s: %s' % (str(securityEngineId), str(snmpEngineId), str(msg)))
-                
-            # 7.2.13b
-            stateReference = self.cacheAdd(msgVersion=msgVersion, msgId=msgId, securityLevel=securityLevel, msgFlags=msgFlags, msgMaxSize=msgMaxSize, securityModel=securityModel, maxSizeResponseScopedPdu=maxSizeResponseScopedPdu, securityStateReference=securityStateReference)
-
-            # 7.2.13c
-            return (messageProcessingModel, securityModel, securityName, securityLevel, contextEngineId, contextName, pduVersion, pdu, pduType, sendPduHandle, maxSizeResponseScopedPdu, statusInformation, stateReference)
-            
-        # 7.2.14
-        if isinstance(pdu, rfc3411.UnconfirmedClass):
-            return (messageProcessingModel, securityModel, securityName, securityLevel, contextEngineId, contextName, pduVersion, pdu, pduType, sendPduHandle, maxSizeResponseScopedPdu, statusInformation, stateReference)
+"""SNMP v3 Message Processing and Dispatching (RFC3412)"""
+from pysnmp.smi import builder, control
+from pysnmp.smi.error import NoSuchInstanceError
+from pysnmp.proto import error
+from pysnmp.proto.msgproc import rfc2576, demux
+from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
+from pysnmp.carrier.asynsock.dgram.udp import UdpSocketTransport
+from pysnmp.error import PySnmpError
+
+__all__ = [ 'MsgAndPduDispatcher' ]
+
+# Defaults
+defaultMessageProcessingVersion = rfc2576.snmpV1MessageProcessingModelId
+
+class AbstractApplication:
+    # Dispatcher registration protocol
+    contextEngineId = None
+    # ((pduVersion, pduType), ...)
+    pduTypes = (())        
+
+    def processPdu(self, dsp, **kwargs):
+        raise error.NotImplementedError(
+            'App %r doesn\'t accept request PDUs' % (self)
+            )
+    def processResponsePdu(self, dsp, **kwargs):
+        raise error.NotImplementedError(
+            'App %r doesn\'t accept response PDUs' % (self)
+            )
 
 class MsgAndPduDispatcher:
     """SNMP engine PDU & message dispatcher. Exchanges SNMP PDU's with
        applications and serialized messages with transport level.
     """
-    def __init__(self, transport=None, mib=None):
-            
-# Not implemented
-#         if mib is None:
-#             # Initialize SMI tree
-#             self.mib = oidtree.Root()
+    def __init__(self, transportDispatcher=None, mibInstrController=None):
+        self.transportDispatcher = None
 
-#             # ...MIBII
-#             self.mib.attachNode(pysnmp.smi.rfc1907.Snmp())
-#             # ...SNMP management
-#             self.mib.attachNode(pysnmp.smi.rfc3411.SnmpFrameworkMib())
-#             # ...statistics for SNMP Messages        
-#             self.mib.attachNode(pysnmp.smi.rfc3412.SnmpMpdMib())
-#         else:
-#             self.mib = mib
+        if transportDispatcher is None:
+            # XXX load all available transports by default
+            # Default is Manager (client) mode over UDP
+            self.registerTransportDispatcher(
+                AsynsockDispatcher(udp=UdpSocketTransport())
+                )
+        else:
+            self.registerTransportDispatcher(transportDispatcher)
 
-        self.mib = None
-
+        if mibInstrController is None:
+            self.mibInstrController = control.MibInstrumentationController(
+                builder.MibBuilder().loadModules()
+                )
+        else:
+            self.mibInstrController = mibInstrController
+                          
         # Versions to subsystems mapping
-        self.messageProcessingSubsystems = { rfc1157.Version().get()
-                                             : v1MP(self.mib),
-                                             rfc1905.Version().get()
-                                             : v2cMP(self.mib) }
-#                                             SnmpV3Message.Version().get()
-#                                             : v3MP(self.mib) }
+        self.messageProcessingSubsystems = {
+            rfc2576.snmpV1MessageProcessingModelId:
+            rfc2576.SnmpV1MessageProcessingModel(self.mibInstrController),
+            rfc2576.snmpV2cMessageProcessingModelId:
+            rfc2576.SnmpV2cMessageProcessingModel(self.mibInstrController),
+            }
 
-        # Versions to octet-stream probers mapping
-        self.messageProcessingModels = { rfc1157.Version().get()
-                                         : rfc1157.probeMessageVersion,
-                                         rfc1905.Version().get()
-                                         : rfc1905.probeMessageVersion }
-#                                         SnmpV3Message.Version().get()
-#                                         : probeMessageVersion }
-
+        self.__msgDemuxer = demux.SnmpMsgDemuxer()
+        
         # Registered context engine IDs
-        self.__contextEngineIdSet = {}
+        self.__appsRegistration = {}
 
         # Source of sendPduHandle and cache of requesting apps
-        self.__sendPduHandle = rfc1902.Counter32(0)
-        self.__sendPduHandles = {}
+        self.__sendPduHandle = 0L
+        self.__cacheRepository = {}
 
-        # Transport object
-        self.__transport = None
-
-        if transport is not None:
-            self.registerTransportDispatcher(transport)
-        
     # Register/unregister with transport dispatcher
-    def registerTransportDispatcher(self, transport):
-        if self.__transport is not None:
-            raise error.BadArgumentError('Transport disp already registered')
-        transport.transportDispatcherRegisterCbFun(self.receiveMessage)
-        self.__transport = transport
+    def registerTransportDispatcher(self, transportDispatcher):
+        if self.transportDispatcher is not None:
+            raise error.BadArgumentError(
+                'Transport dispatcher already registered'
+                )
+        transportDispatcher.registerRecvCbFun(
+            self.receiveMessage
+            )
+        transportDispatcher.registerTimerCbFun(
+            self.__receiveTimerTick
+            )        
+        self.transportDispatcher = transportDispatcher
 
     def unregisterTransportDispatcher(self):
-        if self.__transport is None:
-            raise error.BadArgumentError('Transport dispatcher not registered')
-        self.__transport.snmpTransportUnregisterCbFun()
-        self.__transport = None
+        if self.transportDispatcher is None:
+            raise error.BadArgumentError(
+                'Transport dispatcher not registered'
+                )
+        self.transportDispatcher.unregisterRecvCbFun()
+        self.transportDispatcher.unregisterTimerCbFun()
+        self.transportDispatcher = None
 
     def runTransportDispatcher(self):
-        self.__transport.transportDispatcherDispatch()
-    
-    def closeTransportDispatcher(self):
-        self.__transport.transportDispatcherClose()
-        sekf.unregisterTransportDispatcher()
-        
-    # These routines manage cache of management apps
-    def cacheAdd(self, expectResponse):
-        sendPduHandle = self.__sendPduHandle.inc(1).get()
-        if expectResponse is None:
-            return sendPduHandle
-        if not has_attr(expectResponse, 'processResponsePdu'):
-            raise error.BadArgumentError('Bad callback object: %s' % (str(expectResponse)))
-        if self.__sendPduHandles.has_key(sendPduHandle):
-            raise error.BadArgumentError('Attempt to re-use sendPduHandle: %s' % str(sendPduHandle))
-        self.__sendPduHandles[sendPduHandle] = expectResponse
-        return sendPduHandle
+        self.transportDispatcher.runDispatcher()
 
-    def cachePop(sendPduHandle):
-        expectResponse = self.__sendPduHandles.get(sendPduHandle)
-        if expectResponse is None:
+    # These routines manage cache of management apps
+
+    def __newSendPduHandle(self):
+        sendPduHandle = self.__sendPduHandle = self.__sendPduHandle + 1
+        return sendPduHandle
+    
+    def __cacheAdd(self, index, **kwargs):
+        self.__cacheRepository[index] = kwargs
+        return index
+
+    def __cachePop(self, index):
+        cachedParams = self.__cacheRepository.get(index)
+        if cachedParams is None:
             return
-        del self.__sendPduHandles[sendPduHandle]
-        return expectResponse
+        del self.__cacheRepository[index]
+        return cachedParams
+
+    def __cacheUpdate(self, index, **kwargs):
+        if not self.__cacheRepository.has_key(index):
+            raise error.BadArgumentError(
+                'Cache miss on update for %r' % kwargs
+                )
+        self.__cacheRepository[index].update(kwargs)
             
+    def __cacheExpire(self, cbFun):
+        for index, cachedParams in self.__cacheRepository.items():
+            if cbFun:
+                if cbFun(cachedParams):
+                    del self.__cacheRepository[index]                    
+
     # Application registration with dispatcher
 
     # 4.3.1
-    def registerContextEngineId(self, contextEngineId, pduType, app):
-        """Register contextEngineId/pduType pair with dispatcher
-        """
-        # 4.3.2
-        if contextEngineId is None or pduType is None:
-            raise error.BadArgumentError('Bad contextEngineId/pduType values')
+    def registerContextEngineId(self, app):
+        """Register application with dispatcher"""
+        # 4.3.2 -> noop
 
-        if not hasattr(app, 'processResponsePdu'):
-            raise error.BadArgumentError('Missing processResponsePdu() in application object')
-        processResponsePdu = getattr(app, 'processResponsePdu')
-        if not callable(processResponsePdu):
-            raise error.BadArgumentError('Bad processResponsePdu() in app')
+        contextEngineId = app.contextEngineId
+        if contextEngineId is None:
+            # Default to local snmpEngineId
+            contextEngineId,= self.mibInstrController.mibBuilder.importSymbols(
+                'SNMP-FRAMEWORK-MIB', 'snmpEngineID'
+                )
+            contextEngineId = contextEngineId.syntax.get()
 
         # 4.3.3
-        if self.__contextEngineIdSet.has_key((contextEngineId, pduType)):
-            raise error.BadArgumentError('Duplicate contextEngineId/pduType pair: ' + str((contextEngineId, pduType)))
+        for pduVersion, pduType in app.pduTypes:
+            if self.__appsRegistration.has_key(
+                (contextEngineId, pduVersion, pduType)
+                ):
+                raise error.BadArgumentError(
+                    'Duplicate registration %s/%s/%s' %
+                    (contextEngineId, pduVersion, pduType)
+                    )
 
         # 4.3.4
-        self.__contextEngineIdSet[(contextEngineId, pduType)] = app
-
-    # 4.4.1
-    def unregisterContextEngineId(self, contextEngineId, pduType):
-        """Unregister contextEngineId/pduType pair with dispatcher
-        """
-        # 4.4.2
-        if contextEngineId is None or pduType is None:
-            raise error.BadArgumentError('Bad contextEngineId/pduType values')
-
-        del self.__contextEngineIdSet.has_key[(contextEngineId, pduType)]
-
-    def getRegisteredApp(self, contextEngineId, pduType):
-        return self.__contextEngineIdSet.get((contextEngineId, pduType), None)
+        self.__appsRegistration[(contextEngineId, pduVersion, pduType)] = app
         
+    # 4.4.1
+    def unregisterContextEngineId(self, app):
+        """Unregister application with dispatcher"""
+        # 4.3.4
+        contextEngineId = app.contextEngineId
+        if contextEngineId is None:
+            # Default to local snmpEngineId
+            contextEngineId, = self.mibInstrController.mibBuilder.importSymbols(
+                'SNMP-FRAMEWORK-MIB', 'snmpEngineID'
+                ).syntax.get()
+
+        for pduVersion, pduType in app.pduTypes:
+            if self.__appsRegistration.has_key(
+                (contextEngineId, pduVersion, pduType)
+                ):
+                del self.__appsRegistration[
+                    (contextEngineId, pduVersion, pduType)
+                    ]
+
+    def getRegisteredApp(self, contextEngineId, pduVersion, pduType):
+        return self.__appsRegistration.get(
+            (contextEngineId, pduVersion, pduType)
+            )
+
+    # Dispatcher <-> application API
+    
     # 4.1.1
     
     def sendPdu(self, **kwargs):
-        """PDU dispatcher -- prepare and serialize a request or notification
-        """
-        # Extract input values and initialize defaults
-        messageProcessingModel = kwargs.get('messageProcessingModel',
-                                            SnmpV3Message.Version().get())
-        
+        """PDU dispatcher -- prepare and serialize a request or notification"""
         # 4.1.1.2
-        if self.messageProcessingSubsystems.has_key(messageProcessingModel):
-            mpHdl = self.messageProcessingSubsystems[messageProcessingModel]
-        else:
-            raise error.BadArgumentError('Unknown messageProcessingModel: %s'\
-                                         % str(messageProcessingModel))
+        messageProcessingModel = kwargs.get(
+            'messageProcessingModel', defaultMessageProcessingVersion
+            )
+        mpHdl = self.messageProcessingSubsystems.get(messageProcessingModel)
+        if mpHdl is None:
+            raise error.BadArgumentError(
+                'Unknown messageProcessingModel: %s' % messageProcessingModel
+                )
 
+        mpInParams = {}
+        mpInParams.update(kwargs)
+        
         # 4.1.1.3
-        sendPduHandle = self.cacheAdd(kwargs.get('expectResponse', None))
-        kwargs['sendPduHandle'] = sendPduHandle
+        mpInParams['sendPduHandle'] = self.__cacheAdd(
+            self.__newSendPduHandle(),
+            expectResponse=kwargs.get('expectResponse')
+            )
 
-        # 4.1.1.4
-        (statusInformation, transportDomain, \
-         transportAddress, wholeMsg) = apply(mpHdl.prepareOutgoingMessage,
-                                             [], kwargs)
+        # 4.1.1.4 & 4.1.1.5
+        try:
+            mpOutParams = apply(
+                mpHdl.prepareOutgoingMessage, (), mpInParams
+                )
+        except PySnmpError:
+            if mpInParams.has_key('statePduHandle'):
+                self.__cachePop(mpInParams['statePduHandle'])
+            raise
         
-        # 4.1.1.5
-        if statusInformation is not None:
-            (errorIndication, errorVarBind) = statusInformation
-            if errorIndication is not None:
-                return statusInformation['errorIndication']
-
         # 4.1.1.6
-        self.__transport.transportDispatcherSend(wholeMsg, \
-                                                 transportDomain, \
-                                                 transportAddress)
-        
-        return (statusInformation, sendPduHandle)
+        self.transportDispatcher.sendMessage(
+            mpOutParams['wholeMsg'],
+            mpOutParams['destTransportDomain'],
+            mpOutParams['destTransportAddress']
+            )
+
+        # Update cache with transport details (used for retrying)
+        self.__cacheUpdate(
+            mpInParams['sendPduHandle'],
+            wholeMsg=mpOutParams['wholeMsg'],
+            destTransportDomain=mpOutParams['destTransportDomain'],
+            destTransportAddress=mpOutParams['destTransportAddress'],
+            sendPduHandle=mpInParams['sendPduHandle']
+            )
+
+        return mpOutParams.get('sendPduHandle')
 
     # 4.1.2.1
     def returnResponsePdu(self, **kwargs):
-        """PDU dispatcher -- prepare and serialize a response
-        """
+        """PDU dispatcher -- prepare and serialize a response"""
         # Extract input values and initialize defaults
-        messageProcessingModel = kwargs.get('messageProcessingModel',
-                                            SnmpV3Message.Version().get())
-        securityModel = kwargs.get('securityModel', 3)
-        securityName = kwargs.get('securityName', 'pysnmp')
-        securityLevel = kwargs.get('securityLevel', 'NoAuthNoPriv')
-        contextEngineId = kwargs.get('contextEngineId', None)
-        contextName = kwargs.get('contextName', None)
-        pduVersion = kwargs.get('pduVersion', SnmpV3Message.Version().get())
-        pdu = kwargs.get('pdu', None)
-        maxSizeResponseScopedPdu = kwargs.get('maxSizeResponseScopedPdu',
-                                              65535)
-        stateReference = kwargs.get('stateReference', None)
-        statusInformation = kwargs.get('statusInformation', (None, None))
-
-        mpHdl = self.messageProcessingSubsystems.get(messageProcessingModel, \
-                                                     None)
+        messageProcessingModel = kwargs.get(
+            'messageProcessingModel', defaultMessageProcessingVersion
+            )
+        mpHdl = self.messageProcessingSubsystems.get(messageProcessingModel)
         if mpHdl is None:
-            raise error.BadArgumentError('Unknown messageProcessingModel: %s'\
-                                         % str(messageProcessingModel))
+            raise error.BadArgumentError(
+                'Unknown messageProcessingModel: %s' % messageProcessingModel
+                )
 
-        # 4.1.2.2
-        (statusInformation, transportDomain, transportAddress, wholeMsg) = mpHdl.prepareResponseMessage(messageProcessingModel=messageProcessingModel, securityModel=securityModel, securityName=securityName, securityLevel=securityLevel, contextEngineId=contextEngineId, contextName=contextName, pduVersion=pduVersion, pdu=pdu, maxSizeResponseScopedPdu=maxSizeResponseScopedPdu, stateReference=stateReference, statusInformation=statusInformation)
-        
-        # 4.1.2.3
-        if statusInformation is not None:
-            (errorIndication, errorVarBind) = statusInformation
-            if errorIndication is not None:
-                return errorIndication
+        # 4.1.2.2, 4.1.2.3
+        # Defaults
+        mpInParams = {
+            'securityModel': 3,
+            'securityName': 'pluto',
+            'securityLevel': 'NoAuthNoPriv',
+            'pduVersion': defaultMessageProcessingVersion,
+            'maxSizeResponseScopedPdu': 65000,
+            'messageProcessingModel': messageProcessingModel
+            }
+        mpInParams.update(kwargs)
+        mpOutParams = apply(
+            mpHdl.prepareResponseMessage, (), mpInParams
+            )
         
         # 4.1.2.4
-        # N/A at this level
-        
-        return (result, wholeMsg)
+        self.transportDispatcher.sendMessage(
+            mpOutParams['wholeMsg'],
+            mpOutParams['destTransportDomain'],
+            mpOutParams['destTransportAddress']
+            )
 
     # 4.2.1    
-    def receiveMessage(self, transportDomain, transportAddress, wholeMsg):
-        """Message dispatcher -- de-serialize message into PDU
-        """
+    def receiveMessage(
+        self, tspDsp, transportDomain, transportAddress, wholeMsg
+        ):
+        """Message dispatcher -- de-serialize message into PDU"""
         # 4.2.1.1
-        
-        # snmpInPkts
-        if self.mib: self.mib.searchNode('1.3.6.1.1.2.1.11.1')['type'].getTerminal().inc(1)
+        snmpInPkts, = self.mibInstrController.mibBuilder.importSymbols(
+            'SNMPv2-MIB', 'snmpInPkts'
+            )
+        snmpInPkts.syntax.inc(1)
 
         # 4.2.1.2
-        for (messageProcessingModel, proberFun) in \
-            self.messageProcessingModels.items():
-            try:
-                if proberFun(wholeMsg):
-                    break
-            except error.Asn1Error:
-                if self.mib: self.mib.searchNode('1.3.6.1.1.2.1.11.6')['type'].getTerminal().inc(1)
-                return ( 'parseError', None )
-        else:
-            # snmpInBadVersions
-            if self.mib: self.mib.searchNode('1.3.6.1.1.2.1.11.3')['type'].getTerminal().inc(1)
-            return ( 'parseError', None )
+        try:
+            self.__msgDemuxer.decodeItem(wholeMsg)
+        except PySnmpError:
+            snmpInAsn1ParseErrs, = self.mibInstrController.mibBuilder.importSymbols('SNMPv2-MIB', 'snmpInAsn1ParseErrs')
+            snmpInAsn1ParseErrs.syntax.inc(1)
+            raise MessageProcessingError(
+                'Message (ASN.1) parse error at %r' % self
+                )            
+        messageProcessingModel = self.__msgDemuxer['version'].get()
+        mpHandler = self.messageProcessingSubsystems.get(
+            messageProcessingModel
+            )
+        if mpHandler is None:
+            snmpInBadVersions, = self.mibInstrController.mibBuilder.importSymbols(
+                'SNMPv2-MIB', 'snmpInBadVersions'
+                )
+            snmpInBadVersions.syntax.inc(1)
+            raise MessageProcessingError(
+                'Unsupported MP version %s at %r' %
+                (messageProcessingModel, self)
+                )
 
         # 4.2.1.3 -- no-op
 
         # 4.2.1.4
-        mpHdl = self.messageProcessingSubsystems[messageProcessingModel]
-        (messageProcessingModel, securityModel, securityName, securityLevel, contextEngineId, contextName, pduVersion, pdu, pduType, sendPduHandle, maxSizeResponseScopedPdu, statusInformation, stateReference) = mpHdl.prepareDataElements(transportDomain, transportAddress, wholeMsg)
-
-        # 4.2.1.5
-        if statusInformation is not None:
-            (errorIndication, errorVarBind) = statusInformation
-            if errorIndication is not None:
-                return
-
-        # 4.2.1.6 no-op
-
+        mpOutParams = mpHandler.prepareDataElements(
+            transportDomain=transportDomain,
+            transportAddress=transportAddress,
+            wholeMsg=wholeMsg
+            )        
+                
         # 4.2.2
-        if sendPduHandle is None:
+        if mpOutParams.get('sendPduHandle') is None:
             # 4.2.2.1 (request or notification)
 
             # 4.2.2.1.1
-            app = self.getRegisteredApp(contextEngineId, pduType)
+            app = self.getRegisteredApp(
+                mpOutParams['contextEngineID'],
+                mpOutParams['pduVersion'],
+                mpOutParams['pduType']
+                )
             
             # 4.2.2.1.2
             if app is None:
                 # 4.2.2.1.2.a
-                if self.mib: self.mib.searchNode('1.3.6.1.6.3.11.2.1.3')['type'].getTerminal().inc(1)
-                # 4.2.2.1.2.b
-                if self.mib:
-                    statusInformation = (1, rfc1905.VarBind(name=self.mib.searchNode('1.3.6.1.6.3.11.2.1.3')['type'].getTerminal()['value']))
-                else:
-                    statusInformation = (1, rfc1905.VarBind()) # XXX
-                
-                (statusInformation, transportDomain, transportAddress, wholeMsg) = mpHdl.prepareResponseMessage(messageProcessingModel=messageProcessingModel, securityModel=securityModel, securityName=securityName, securityLevel=securityLevel, contextEngineId=contextEngineId, contextName=contextName, pduVersion=pduVersion, pdu=pdu, maxSizeResponseScopedPdu=maxSizeResponseScopedPdu, stateReference=stateReference, statusInformation=statusInformation)
+                snmpUnknownPDUHandlers, = self.mibInstrController.mibBuilder.importSymbols('SNMP-MPD-MIB', 'snmpUnknownPDUHandlers')
+                snmpUnknownPDUHandlers.syntax.inc(1)
 
+                # 4.2.2.1.2.b                
+                statusInformation = (1, rfc1905.VarBind(
+                    name=snmpUnknownPDUHandlers.name
+                    )) # XXX pdu gen, oid-value?
+
+                mpInParams = {}
+                mpInParams.update(mpOutParams)
+                mpInParams['statusInformation'] = statusInformation
+                # XXX rfc bug? -- cant send req pdu to responseMessage()
+                mpOutParams = apply(
+                    mpHdl.prepareResponseMessage, (), mpInParams
+                    )
+                
                 # 4.2.2.1.2.c
-                if statusInformation is not None:
-                    # XXX send to originator
-                    (errorIndication, errorVarBind) = statusInformation
+                try:
+                    self.transportDispatcher.sendMessage(
+                        mpOutParams['wholeMsg'],
+                        mpOutParams['destTransportDomain'],
+                        mpOutParams['destTransportAddress']
+                        )
+                except PySnmpError:
+                    pass
 
                 # 4.2.2.1.2.d
                 return
             else:
                 # 4.2.2.1.3
-                app.processPdu(messageProcessingModel=messageProcessingModel, securityModel=securityModel, securityName=securityName, securityLevel=securityLevel, contextEngineId=contextEngineId, contextName=contextName, pduVersion=pduVersion, pdu=pdu, maxSizeResponseScopedPdu=maxSizeResponseScopedPdu, stateReference=stateReference)
+                apply(app.processPdu, (self,), mpOutParams)
                 return
         else:
             # 4.2.2.2 (response)
             
             # 4.2.2.2.1
-            app = self.cachePop(sendPduHandle)
+            cachedParams = self.__cachePop(mpOutParams.get('sendPduHandle'))
 
             # 4.2.2.2.2
-            if app is None:
-                if self.mib: self.mib.searchNode('1.3.6.1.6.3.11.2.1.3')['type'].getTerminal().inc(1)
+            if cachedParams is None:
+                snmpUnknownPDUHandlers, = self.mibInstrController.mibBuilder.importSymbols('SNMP-MPD-MIB', 'snmpUnknownPDUHandlers')
+                snmpUnknownPDUHandlers.syntax.inc(1)
                 return
-                
+
             # 4.2.2.2.3
             # no-op ? XXX
 
             # 4.2.2.2.4
-            app.processResponsePdu(messageProcessingModel=messageProcessingModel, securityModel=securityModel, securityName=securityName, securityLevel=securityLevel, contextEngineId=contextEngineId, contextName=contextName, pduVersion=pduVersion, pdu=pdu, statusInformation=statusInformation, sendPduHandle=sendPduHandle)
+            apply(cachedParams['expectResponse'].processResponsePdu,
+                  (self,), mpOutParams)
 
+    # Cache expiration stuff
+
+    def __receiveTimerTick(self, timeNow):
+        def retryRequest(cachedParams):
+            # Initialize retry params
+            if not cachedParams.has_key('retryCount'):
+                # Default retry params to transport-specific values
+                tsp = self.transportDispatcher.getTransport(
+                    cachedParams['destTransportDomain']
+                    )
+                cachedParams['retryCount']=tsp.retryCount
+                cachedParams['retryInterval']=tsp.retryInterval
+                # Initialize retry params from MIB table
+                snmpTargetAddrTAddress, \
+                snmpTargetAddrTDomain, \
+                snmpTargetAddrRetryCount, \
+                snmpTargetAddrTimeout = self.mibInstrController.mibBuilder.importSymbols(
+                    'SNMP-TARGET-MIB',
+                    'snmpTargetAddrTAddress',
+                    'snmpTargetAddrTDomain',
+                    'snmpTargetAddrRetryCount',
+                    'snmpTargetAddrTimeout'
+                    )
+                mibNodeIdx = snmpTargetAddrTAddress
+                while 1:
+                    try:
+                        mibNodeIdx = snmpTargetAddrTAddress.getNextNode(
+                            mibNodeIdx.name
+                            )
+                    except NoSuchInstanceError:
+                        break
+                    if mibNodeIdx.syntax != cachedParams.get(
+                        'destTransportAddress'
+                        ): continue
+                    instId = mibNodeIdx.name[len(snmpTargetAddrTAddress.name):]
+                    mibNode = snmpTargetAddrTDomain.getNode(
+                        snmpTargetAddrTDomain.name + instId
+                        )
+                    if mibNode.syntax != cachedParams.get(
+                        'destTransportDomain'
+                        ): continue
+                    cachedParams['retryCount'] = snmpTargetAddrRetryCount.getNode(snmpTargetAddrRetryCount.name + instId)
+                    cachedParams['retryInterval'] = snmpTargetAddrTimeout.getNode(snmpTargetAddrTimeout.name + instId)
+                    break                
+            # Fail timed-out requests
+            if cachedParams['retryCount'] == 0:
+                cachedParams['expectResponse'].processResponsePdu(
+                    self,
+                    statusInformation={
+                    'errorIndication': error.RequestTimeout()
+                    },
+                    sendPduHandle=cachedParams['sendPduHandle']
+                    )
+                return 1
+            # Re-calculate resend time
+            if not cachedParams.has_key('__lastRetryTime'):
+                cachedParams['__lastRetryTime'] = timeNow + \
+                                                  cachedParams['retryInterval']
+            if cachedParams['__lastRetryTime'] > timeNow:
+                return
+            # Update retry params
+            cachedParams['__lastRetryTime'] = timeNow + \
+                                              cachedParams['retryInterval']
+            cachedParams['retryCount'] = cachedParams['retryCount'] - 1
+            # Re-send request message
+            try:
+                self.transportDispatcher.sendMessage(
+                    cachedParams['wholeMsg'],
+                    cachedParams['destTransportDomain'],
+                    cachedParams['destTransportAddress']
+                    )
+            except PySnmpError:
+                pass
+
+        self.__cacheExpire(retryRequest)
+
+    # XXX
+    receiveTimerTick = __receiveTimerTick
+    
 if __name__ == '__main__':
-    class Application:
-        def processResponsePdu(self, **kwargs):
-            print repr(kwargs)
+    from pysnmp.proto import rfc1157, rfc3411
+
+    class ManagerApplication(AbstractApplication):
+        def sendReq(self, dsp):
+            sendPduHandle = dsp.sendPdu(
+                transportDomain='udp',
+                transportAddress=('127.0.0.1', 1161),
+                securityName='mynmsname',
+                PDU=rfc1157.GetRequestPdu(),
+                expectResponse=self
+                )
             
-    mgrDisp = MsgAndPduDispatcher()
-    agentDisp = MsgAndPduDispatcher()
-    agentDisp.registerContextEngineId('myCtxEngId', rfc1905.GetRequestPdu,
-                                      Application())
+        def processResponsePdu(self, dsp, **kwargs):
+            print self, repr(kwargs)
+            raise "STOP"
 
-    # Send msg
-    (statusInformation, sendPduHandle, wholeMsg) = mgrDisp.sendPdu(pdu=rfc3411.GetRequestPdu())
-    print repr((statusInformation, sendPduHandle, wholeMsg))
+    class AgentApplication(AbstractApplication):
+        pduTypes = ((rfc1157.Version().get(), rfc1157.GetRequestPdu().tagId),)
+        def processPdu(self, dsp, **kwargs):
+            print self, repr(kwargs)
 
-    # Recv msg XXX
-    agentDisp.receiveMessage(None, None, wholeMsg)
+            pdu = rfc1157.GetResponsePdu()
+            pdu['request_id'].set(kwargs['PDU']['request_id'])
+            
+            # Send response
+            dsp.returnResponsePdu(
+                PDU=pdu,
+                stateReference=kwargs['stateReference']
+                )
+            
+    tspDsp = AsynsockDispatcher(
+        udp=UdpSocketTransport().openClientMode(),
+        udpd=UdpSocketTransport().openServerMode(('127.0.0.1', 1161)),
+            )
+    
+    dsp = MsgAndPduDispatcher(transportDispatcher=tspDsp)
 
-    # Send response
-    (result, wholeMsg) = agentDisp.returnResponsePdu(pdu=rfc3411.ResponsePdu(),  sendPduHandle=sendPduHandle)
-    print repr((result, wholeMsg))
+    snmpCommunityEntry, = dsp.mibInstrController.mibBuilder.importSymbols(
+        'SNMP-COMMUNITY-MIB', 'snmpCommunityEntry'
+        )
+    dsp.mibInstrController.writeVars(
+        (snmpCommunityEntry.getInstNameByIndex(2, 'mynms'), 'mycomm'),
+        (snmpCommunityEntry.getInstNameByIndex(3, 'mynms'), 'mynmsname'),
+        # XXX register ContextEngineIds
+    )
 
-    # Receive response XXX
-    mgrDisp.receiveMessage(None, None, wholeMsg)
+    dsp.registerContextEngineId(AgentApplication())
+
+    ManagerApplication().sendReq(dsp)
+
+    try:
+        dsp.runTransportDispatcher()
+    except "STOP":
+        dsp.unregisterTransportDispatcher()
+    
+# XXX
+# LCD may be used to cache frequently accessed MIB variables
+# message version ID <-> MP IDs rewriting (PDU req-id re-write for v1/2 MPM)
+# rework cache expiration to index ents to be expired
+# rework transport in a loadable fashion
