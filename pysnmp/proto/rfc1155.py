@@ -14,21 +14,14 @@ from pysnmp.proto import error
 
 # SimpleSyntax
 
-class Integer(univ.Integer): pass
-class OctetString(univ.OctetString): pass
-class Null(univ.Null): pass
-class ObjectIdentifier(univ.ObjectIdentifier): pass
+Integer = univ.Integer
+OctetString = univ.OctetString
+Null = univ.Null
+ObjectIdentifier = univ.ObjectIdentifier
 
 # ApplicationSyntax
 
-class IpAddress(univ.OctetString):
-    tagSet = univ.OctetString.tagSet.clone(
-        tagClass=tags.tagClassApplication, tagId=0x00
-        )
-    # Subtyping -- size constraint
-    subtypeConstraints = ( subtypes.ValueSizeConstraint(4, 4), )
-    initialValue = '\000\000\000\000'
-    
+class IpAddressInterfaceMixIn:
     def _iconv(self, value):
         # Convert IP address given in dotted notation into an unsigned
         # int value
@@ -65,7 +58,15 @@ class IpAddress(univ.OctetString):
             return '%d.%d.%d.%d' % (ord(value[0]), ord(value[1]), \
                                     ord(value[2]), ord(value[3]))
         else: return value
-
+    
+class IpAddress(IpAddressInterfaceMixIn, univ.OctetString):
+    tagSet = univ.OctetString.tagSet.clone(
+        tagClass=tags.tagClassApplication, tagId=0x00
+        )
+    # Subtyping -- size constraint
+    subtypeConstraints = ( subtypes.ValueSizeConstraint(4, 4), )
+    initialValue = '\000\000\000\000'
+    
 class Counter(univ.Integer):
     tagSet = univ.Integer.tagSet.clone(
         tagClass=tags.tagClassApplication, tagId=0x01
@@ -92,34 +93,34 @@ class Opaque(univ.OctetString):
         tagClass=tags.tagClassApplication, tagId=0x04
         )
 
-class Sequence(univ.Sequence): pass
-class SequenceOf(univ.SequenceOf): pass
-class Choice(univ.Choice): pass
+Sequence = univ.Sequence
+SequenceOf = univ.SequenceOf
+Choice = univ.Choice
 
-class NetworkAddress(Choice):
+class NetworkAddress(univ.Choice):
     protoComponents = { 'internet': IpAddress() }
 
     # Initialize to Internet address
     initialComponentKey = 'internet'
 
-class ObjectName(ObjectIdentifier): pass
+ObjectName = univ.ObjectIdentifier
 
-class SimpleSyntax(Choice):
+class SimpleSyntax(univ.Choice):
     protoComponents = { 'number': Integer(),
                         'string': OctetString(),
                         'object': ObjectIdentifier(),
                         'empty': Null() }
     initialComponentKey = 'empty'
 
-class ApplicationSyntax(Choice):
+class ApplicationSyntax(univ.Choice):
     protoComponents = { 'address': NetworkAddress(),
                         'counter': Counter(),
                         'gauge': Gauge(),
                         'ticks': TimeTicks(),
                         'arbitrary': Opaque() }
 
-class ObjectSyntax(Choice):
-    class TableSyntax(Choice):
+class ObjectSyntax(univ.Choice):
+    class TableSyntax(univ.Choice):
         protoComponents = { 'table': SequenceOf(),
                             'row': Sequence() }
     protoComponents = { 'simple': SimpleSyntax(),

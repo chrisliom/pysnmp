@@ -1,21 +1,22 @@
 """Implementation of SNMP v.1 (RFC1157)"""
-
-__all__ = [ 'Version', 'Community', 'RequestId', 'ErrorStatus', 'ErrorIndex',\
-            'VarBind', 'VarBindList', 'GetRequestPdu', 'GetNextRequestPdu',\
-            'GetResponsePdu', 'SetRequestPdu', 'Enterprise', 'AgentAddr',\
-            'GenericTrap', 'SpecificTrap', 'TimeStamp', 'TrapPdu', 'Pdus',\
-            'Message' ]
-
 from time import time
-from pysnmp.asn1 import tags, subtypes
+from pysnmp.asn1 import univ, tags, subtypes
 from pysnmp.proto import rfc1155, error
 import pysnmp.asn1.error
 
-class Version(rfc1155.Integer):
+__all__ = [
+    'Version', 'Community', 'RequestId', 'ErrorStatus', 'ErrorIndex',
+    'VarBind', 'VarBindList', 'GetRequestPdu', 'GetNextRequestPdu',
+    'GetResponsePdu', 'SetRequestPdu', 'Enterprise', 'AgentAddr',
+    'GenericTrap', 'SpecificTrap', 'TimeStamp', 'TrapPdu', 'Pdus',
+    'Message'
+    ]
+
+class Version(univ.Integer):
     subtypeConstraints = ( subtypes.SingleValueConstraint(0), )
     initialValue = 0
     
-class Community(rfc1155.OctetString):
+class Community(univ.OctetString):
     initialValue = 'public'
 
 class InitialRequestIdMixIn:
@@ -29,9 +30,9 @@ class InitialRequestIdMixIn:
         else:
             InitialRequestIdMixIn.globalRequestId = InitialRequestIdMixIn.globalRequestId + 1
             
-class RequestId(InitialRequestIdMixIn, rfc1155.Integer): pass
+class RequestId(InitialRequestIdMixIn, univ.Integer): pass
     
-class ErrorStatus(rfc1155.Integer):
+class ErrorStatus(univ.Integer):
     initialValue = 0
     subtypeConstraints = ( subtypes.ValueRangeConstraint(0, 5), )
     pduErrors = [ '(noError) No Error',
@@ -42,34 +43,38 @@ class ErrorStatus(rfc1155.Integer):
                   '(genError) A general failure occured' ]
     
     def __str__(self):
-        """Return verbose error message if known
-        """
-        return '%s: %d (%s)' % (self.__class__.__name__, self.get(),
-                                self.pduErrors[self.get()])
+        return '%s: %d (%s)' % (
+            self.__class__.__name__, self.get(), self.pduErrors[self.get()]
+            )
 
-class ErrorIndex(rfc1155.Integer):
+class ErrorIndex(univ.Integer):
     initialValue = 0
 
-class VarBind(rfc1155.Sequence):
+class VarBind(univ.Sequence):
     # Bind structure
-    protoComponents = { 'name': rfc1155.ObjectName(),
-                        'value': rfc1155.ObjectSyntax() }
+    protoComponents = {
+        'name': rfc1155.ObjectName(),
+        'value': rfc1155.ObjectSyntax()
+        }
     protoSequence = ( 'name', 'value' )
         
-class VarBindList(rfc1155.SequenceOf):
+class VarBindList(univ.SequenceOf):
     protoComponent = VarBind()
     
-class RequestPdu(rfc1155.Sequence):
-    tagSet = rfc1155.Sequence.tagSet.clone(
+class RequestPdu(univ.Sequence):
+    tagSet = univ.Sequence.tagSet.clone(
         tagClass=tags.tagClassContext
         )
     # PDU structure
-    protoComponents = { 'request_id': RequestId(),
-                        'error_status': ErrorStatus(),
-                        'error_index': ErrorIndex(),
-                        'variable_bindings': VarBindList() }
-    protoSequence = ( 'request_id', 'error_status', 'error_index',
-                      'variable_bindings' )
+    protoComponents = {
+        'request_id': RequestId(),
+        'error_status': ErrorStatus(),
+        'error_index': ErrorIndex(),
+        'variable_bindings': VarBindList()
+        }
+    protoSequence = (
+        'request_id', 'error_status', 'error_index', 'variable_bindings'
+        )
 
 class GetRequestPdu(RequestPdu):
     tagSet = RequestPdu.tagSet.clone(tagId=0x00)
@@ -85,56 +90,70 @@ class SetRequestPdu(RequestPdu):
 
 # Trap stuff
 
-class Enterprise(rfc1155.ObjectIdentifier):
+class Enterprise(univ.ObjectIdentifier):
     initialValue = (1,3,6,1,1,2,3,4,1)
 
 class AgentAddr(rfc1155.NetworkAddress): pass
 
-class GenericTrap(rfc1155.Integer):
+class GenericTrap(univ.Integer):
     initialValue = 0
     subtypeConstraints = ( subtypes.ValueRangeConstraint(0, 6), )
-    verboseTraps = [ 'coldStart', 'warmStart', 'linkDown', 'linkUp', \
-                     'authenticationFailure', 'egpNeighborLoss', \
-                     'enterpriseSpecific' ]
+    verboseTraps = [
+        'coldStart', 'warmStart', 'linkDown', 'linkUp', \
+        'authenticationFailure', 'egpNeighborLoss', \
+        'enterpriseSpecific'
+        ]
 
     def __str__(self):
-        return '%s: %d (%s)' % (self.__class__.__name__, self.get(),
-                           self.verboseTraps[self.get()])
+        return '%s: %d (%s)' % (
+            self.__class__.__name__, self.get(),
+            self.verboseTraps[self.get()]
+            )
 
-class SpecificTrap(rfc1155.Integer):
+class SpecificTrap(univ.Integer):
     initialValue = 0
 
 class TimeStamp(rfc1155.TimeTicks):
     def __init__(self, value=int(time())):
         rfc1155.TimeTicks.__init__(self, value)
 
-class TrapPdu(rfc1155.Sequence):
-    tagSet = rfc1155.Sequence.tagSet.clone(
+class TrapPdu(univ.Sequence):
+    tagSet = univ.Sequence.tagSet.clone(
         tagClass=tags.tagClassContext, tagId=0x04
         )
     # PDU structure
-    protoComponents = { 'enterprise': Enterprise(),
-                        'agent_addr': AgentAddr(),
-                        'generic_trap': GenericTrap(),
-                        'specific_trap': SpecificTrap(),
-                        'time_stamp': TimeStamp(),
-                        'variable_bindings': VarBindList() }
-    protoSequence = ( 'enterprise', 'agent_addr', 'generic_trap',
-                      'specific_trap', 'time_stamp', 'variable_bindings' )
+    protoComponents = {
+        'enterprise': Enterprise(),
+        'agent_addr': AgentAddr(),
+        'generic_trap': GenericTrap(),
+        'specific_trap': SpecificTrap(),
+        'time_stamp': TimeStamp(),
+        'variable_bindings': VarBindList()
+        }
+    protoSequence = (
+        'enterprise', 'agent_addr', 'generic_trap',
+        'specific_trap', 'time_stamp', 'variable_bindings'
+        )
 
-class Pdus(rfc1155.Choice):
-    protoComponents = { 'get_request': GetRequestPdu(),
-                        'get_next_request': GetNextRequestPdu(),
-                        'get_response': GetResponsePdu(),
-                        'set_request': SetRequestPdu(),
-                        'trap': TrapPdu() }
-    protoSequence = ( 'get_request', 'get_next_request', 'get_response',
-                      'set_request', 'trap' )
+class Pdus(univ.Choice):
+    protoComponents = {
+        'get_request': GetRequestPdu(),
+        'get_next_request': GetNextRequestPdu(),
+        'get_response': GetResponsePdu(),
+        'set_request': SetRequestPdu(),
+        'trap': TrapPdu()
+        }
+    protoSequence = (
+        'get_request', 'get_next_request', 'get_response',
+        'set_request', 'trap'
+        )
     
-class Message(rfc1155.Sequence):
-    protoComponents = { 'version': Version(),
-                        'community': Community(),
-                        'pdu': Pdus() }
+class Message(univ.Sequence):
+    protoComponents = {
+        'version': Version(),
+        'community': Community(),
+        'pdu': Pdus()
+        }
     protoSequence = ( 'version', 'community', 'pdu' )
 
 
