@@ -143,7 +143,7 @@ class SetRequest(rfc1157.Message, _RequestSpecifics):
         choiceComponents = [ SetRequestPdu ]
         initialComponent = choiceComponents[0]
     
-    fixedComponents = [ rfc1157.Version, rfc1157.Community, Pdus ]
+    fixedComponents = [ rfc1157.Version, Community, Pdus ]
 
 # Trap message
 

@@ -124,6 +124,11 @@ class GetNextRequest(rfc1905.Message, _RequestSpecifics):
 class SetRequest(rfc1905.Message, _RequestSpecifics):
     """Strictly typed v.2c SETREQUEST
     """
+    class Community(rfc1905.Community):
+        """SETREQUEST specific community name
+        """
+        initialValue = 'private'
+
     class Pdus(rfc1905.Pdus):
         """SETREQUEST specific selection of applicible PDUs
         """
@@ -139,7 +144,7 @@ class SetRequest(rfc1905.Message, _RequestSpecifics):
         choiceComponents = [ SetRequestPdu ]
         initialComponent = choiceComponents[0]
 
-    fixedComponents = [ rfc1905.Version, rfc1905.Community, Pdus ]
+    fixedComponents = [ rfc1905.Version, Community, Pdus ]
 
 # Inform request
 
