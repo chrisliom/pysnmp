@@ -86,6 +86,13 @@ class SnmpV1MessageProcessingModel(AbstractMessageProcessingModel):
                 'Unsupported PDU class %s at %s' % (pdu, self)
                 )
 
+        # rfc3412: 7.1.3
+        if kwargs.get('statusInformation'):
+            # rfc3412: 7.1.3a (N/A)
+            
+            # rfc3412: 7.1.3b (always discard)
+            return { 'result': -1 }
+
         # rfc3412: 7.1.4
         # Since there's no SNMP engine identification in v1/2c,
         # set destination contextEngineID to ours
