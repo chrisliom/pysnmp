@@ -7,8 +7,5 @@
    Copyright 1999-2003 by Ilya Etingof <ilya@glas.net>. See LICENSE
    for details.
 """
-from pysnmp.proto.api import generic
-from pysnmp.proto.cli.ucd import v1, v2c, rfc1157, rfc1905
-
-# Mix-in all UCD CLI classes to their bases
-for mod in [ rfc1157, rfc1905, v1, v2c]: mod.mixIn()
+from pysnmp.proto.cli.ucd import rfc1155, rfc1157, rfc1902, rfc1905
+map(lambda x: x.mixIn(), [ rfc1155, rfc1157, rfc1902, rfc1905 ])
