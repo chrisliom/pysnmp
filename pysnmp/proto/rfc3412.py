@@ -45,10 +45,15 @@ class MsgAndPduDispatcher:
 
         if mibInstrController is None:
             self.mibInstrController = control.MibInstrumentationController(
-                builder.MibBuilder().loadModules()
+                builder.MibBuilder()
                 )
         else:
             self.mibInstrController = mibInstrController
+            
+        self.mibInstrController.mibBuilder.loadModules(
+            'SNMP-MPD-MIB', 'SNMP-COMMUNITY-MIB', 'SNMP-TARGET-MIB',
+            'SNMP-USER-BASED-SM-MIB'
+            )
                           
         # Versions to subsystems mapping
         {
