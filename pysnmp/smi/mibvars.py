@@ -1,5 +1,6 @@
 """MIB variables management"""
-from pysnmp.asn1.univ import Integer
+from string import join, split
+from pysnmp.proto import rfc1155
 from pysnmp.smi.indices import OidOrderedDict
 from pysnmp.smi import error
 
@@ -162,6 +163,10 @@ class MibSubtreePattern(MibVariablePattern):
                 return subName
             subName = subName[:-1]
 
+    # Mapping interface to subtree
+    
+    def get(self, key, defVal=None): return self._vars.get(key, defVal)
+
 class AbstractMibSubtree(MibSubtreePattern):
     # Implements AbstractMibVariable API at the tree management class.
     # Basically, this acts as a proxy to scalar tree leaves.
@@ -288,13 +293,15 @@ class TableColumn(AbstractMibSubtree):
         return self
 
     # Column creation (this should probably be converted into some state
-    # machine for clarity)
+    # machine for clarity). Also, it might be a good idea to inidicate
+    # defaulted cols creation in a clearer way than just a val == None.
     
     def createCheck(self, name, val=None):
         # Make sure creation allowed
         if self._vars.has_key(name):
             return
-        if val is not None and self.columnInitializer.maxAccess != 'readcreate':
+        if val is not None and \
+               self.columnInitializer.maxAccess != 'readcreate':
             raise error.NoCreationError(
                 'Column instance creation prohibited at %r' % self
                 )
@@ -496,7 +503,7 @@ class RowStatus(AbstractMibVariable):
         )
         }
     defaultName = ''
-    defaultSyntax = Integer(stNotExists)
+    defaultSyntax = rfc1155.Integer(stNotExists)
     maxAccess = 'readcreate'
                                     
     def writeCheck(self, name, val):
@@ -532,26 +539,165 @@ class RowStatus(AbstractMibVariable):
                 (self.syntax, val, self)
                 )            
         AbstractMibVariable.writeReserve(self, name, val)
-        
+
+# Table indices
+
+class IntegerIndex(rfc1155.Integer):
+    def setFromName(self, value):
+        self.set(value[0])
+        return value[1:]
+    
+    def getAsName(self):
+        return (self.get())
+
+class ImpliedOctetStringIndex(rfc1155.OctetString):
+    def setFromName(self, value):
+        s = reduce(lambda x,y: x+y, map(lambda x: chr(x), value))
+        valueLength = 1
+        while valueLength < len(s):
+            try:
+                self.set(s[:valueLength])
+                return s[valueLength:]
+            except ValueConstraintError:
+                valueLength = valueLength + 1
+        raise error.SmiError(
+            'Instance ID %s does not fit INDEX %r' % (value, self)
+            )
+    
+    def getAsName(self):
+        return reduce(lambda x,y: x+y, map(lambda x: ord(x), tuple(self.get())))
+
+class ExpressedOctetStringIndex(rfc1155.OctetString):
+    def setFromName(self, value):
+        self.set(
+            reduce(lambda x,y: x+y, map(lambda x: chr(x), value[1:]))
+            )
+        return ()
+
+    def getAsName(self):
+        return reduce(
+            lambda x,y: x+y, map(lambda x: ord(x), self), ord(len(self))
+            )
+
+class ImpliedObjectIdentifierIndex(rfc1155.ObjectIdentifier):
+    def setFromName(self, value):
+        self.set(value)
+        return ()
+
+    def getAsName(self):
+        return tuple(self)
+
+class ExpressedObjectIdentifierIndex(rfc1155.ObjectIdentifier):
+    def setFromName(self, value):
+        self.set(value[1:])
+        return ()
+
+    def getAsName(self):
+        return (len(self),) + tuple(self)
+
+class IpAddressIndex(rfc1155.IpAddress):
+    def setFromName(self, value):
+        self.set(join(map(str, value), '.'))
+        return value[4:]
+
+    def getAsName(self):
+        return tuple(map(int, split(self.get(), '.')))    
+
+# Table row (AKA Entry)
+
 class TableRow(AbstractMibSubtree):
     """MIB table row. Manages a set of table columns. Implements row
        creation/destruction.
     """
-    def __manageColumns(self, action, statusColumnName):
-        for name, var in self._vars.items():
-            getattr(var, action)(
-                name+statusColumnName[len(name):], None
+    defaultIndexNames = None
+    __augmentingRows = {}
+    
+    def __init__(self, name=None, *vars):
+        apply(AbstractMibSubtree.__init__, (self, name) + vars)
+        if self.defaultIndexNames is not None:
+            self.setIndexNames(tuple(self.defaultIndexNames))
+        else:
+            self.indexNames = None
+        self.__augmentingRows[id(self)] = self
+
+    def destroyRow(self):
+        del self.__augmentingRows[id(self)]
+        
+    # Fate sharing mechanics
+
+    def registerAugmentation(self):
+        self.__augmentingRows[id(self)] = self
+
+    def unregisterAugmentation(self):
+        # This must be called prior to row object deletion
+        del self.__augmentingRows[id(self)]
+
+    def announceManagementEvent(self, action, name):
+        # Convert OID suffix into index vals
+        suffix = name[len(self.name)+1:]
+        baseIndices = ()
+        for indexName in self.indexNames:
+            indexValue = self.get(indexName)
+            if indexValue is None:
+                # External index
+                for rowId, rowValue in self.__augmentingRows.items():
+                    for rowIndexName in rowValue.indexNames:
+                        if rowIndexName == indexName:
+                          indexValue = rowValue.get(indexName)
+                          if indexValue is not None:
+                              break
+                    if indexValue is not None:
+                        break
+                if indexValue is None:
+                    raise error.SmiError(
+                        'Unresolved INDEX %r at %r' % (indexName, self)
+                        )
+            indexValue = indexValue.columnInitializer.clone()
+            suffix = indexValue.syntax.setFromName(suffix)
+            if self._vars.has_key(indexName):
+                baseIndices = baseIndices + (indexValue, )
+        if suffix:
+            raise error.SmiError(
+                'Exsessive instance identifier sub-OIDs left at %r: %r' %
+                (self, suffix)
                 )
+        if not baseIndices:
+            return
+        myId = id(self)
+        for rowId, rowVal in self.__augmentingRows.items():
+            if myId != rowId:
+                rowVal.receiveManagementEvent(action, baseIndices)
+            
+    def receiveManagementEvent(self, action, baseIndices):
+        # The default inplementation supports one-to-one rows dependency
+        newSuffix = ()
+        # Resolve indices intersection
+        for myIndexName in self.indexNames:
+            for baseIndex in baseIndices:
+                if baseIndex.name == myIndexName:
+                    newSuffix = newSuffix + baseIndex.syntax.getAsName()
+        if newSuffix:
+            self.__manageColumns(action, newSuffix)
+
+    def setIndexNames(self, *names):
+        self.indexNames = tuple(names)
+        return self
+                             
+    def __manageColumns(self, action, nameSuffix):
+        for name, var in self._vars.items():
+            getattr(var, action)(name + nameSuffix, None)
 
     def __delegate(self, subAction, name, val):
         # Relay operation request to column, expect row operation request.
         try:
             self._passToSubtree('write'+subAction, name, val)
         except error.RowCreationWanted, why:
-            self.__manageColumns('create'+subAction, name)
+            self.__manageColumns('create'+subAction, name[len(self.name)+1:])
+            self.announceManagementEvent('create'+subAction, name)
         except error.RowDestructionWanted, why:
-            self.__manageColumns('destroy'+subAction, name)
-
+            self.__manageColumns('destroy'+subAction, name[len(self.name)+1:])
+            self.announceManagementEvent('destroy'+subAction, name)
+    
     def writeCheck(self, name, val): self.__delegate('Check', name, val)
     def writeReserve(self, name, val): self.__delegate('Reserve', name, val)
     def writeCommit(self, name, val): self.__delegate('Commit', name, val)
@@ -671,23 +817,30 @@ if __name__ == '__main__':
                  TableRow((1,3,1,2,1),
                           TableColumn((1,3,1,2,1,1)
                                       ).setColumnInitializer(RowStatus()),
-                          # read-write var
+                          # read-write var & index
                           TableColumn((1,3,1,2,1,2)
                                       ).setColumnInitializer(MibVariable(
-        (1,3,1,2,1,2), Integer(123)).setAccess('readcreate')
-                                                             )
-                          )
-                 )
-        )
-    )
+        (1,3,1,2,1,2), IpAddressIndex()).setAccess('readcreate')),
+                          ).setIndexNames((1,3,1,2,1,2))
+                 ),
+         # Augmenting table
+         MibTable((1,3,1,3),
+                  TableRow((1,3,1,3,1),
+                           # read-write var
+                           TableColumn((1,3,1,3,1,2)
+                                       ).setColumnInitializer(MibVariable(
+        (1,3,1,3,1,2), Integer(7871340)).setAccess('readcreate'))
+                           ).setIndexNames((1,3,1,2,1,2))
+                  )
+         ))
 
     try:
         print mv.flipFlopFsm(mv.fsmWriteVar,
-                             ((1,3,1,2,1,1,127,0,0,1,1), Integer(4)),
+                             ((1,3,1,2,1,1,127,0,0,1), Integer(4)),
                              )
-        print mv.flipFlopFsm(mv.fsmWriteVar,
-                             ((1,3,1,2,1,1,127,0,0,1,1), Integer(6))
-                             )
+#        print mv.flipFlopFsm(mv.fsmWriteVar,
+#                             ((1,3,1,2,1,1,127,0,0,1,1), Integer(6))
+#                             )
     except error.SmiError, why:
         print why
 #    print mv.flipFlopFsm(mv.fsmReadNextVar, ((1,3,1,2,1), None))
@@ -701,3 +854,16 @@ if __name__ == '__main__':
         print name, val
 
 # Column needs fsm for instance management
+# inter-table deps:
+# * row class keeps refs to row instances
+# * on row management op, orig row builds index vals from name suffix and
+#   walks other row instances and notifies them about this op
+#   (indexName, indexVal), ...
+# * notification handler checks that its row has dependency of any of these
+#   indices. then builds its column instance identifiers from passed vals and
+#   calls its correnspoding management op method.
+
+# XXX
+# index methods to all rfc1155 types
+# method names -> agentx terms
+# layout changes: rfc1155 types and RowStatus into separate modules
