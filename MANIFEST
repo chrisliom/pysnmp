@@ -17,7 +17,6 @@ examples/v1arch/manager/nextgen.py
 examples/v1arch/manager/setgen.py
 examples/v1arch/manager/traprecv.py
 pysnmp/__init__.py
-pysnmp/apiver.py
 pysnmp/v4/__init__.py
 pysnmp/v4/asn1/__init__.py
 pysnmp/v4/asn1/base.py
@@ -26,6 +25,8 @@ pysnmp/v4/asn1/namedval.py
 pysnmp/v4/asn1/subtypes.py
 pysnmp/v4/asn1/tags.py
 pysnmp/v4/asn1/univ.py
+pysnmp/v4/asn1/encoding
+pysnmp/v4/asn1/encoding/ber
 pysnmp/v4/asn1/encoding/ber/__init__.py
 pysnmp/v4/asn1/encoding/ber/base.py
 pysnmp/v4/asn1/encoding/ber/error.py
