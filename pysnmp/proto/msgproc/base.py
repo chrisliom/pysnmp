@@ -86,10 +86,10 @@ class AbstractMessageProcessingModel:
         if self.__expirationQueue.has_key(self.__expirationTimer):
             cacheInfo = self.__expirationQueue[self.__expirationTimer]
             if cacheInfo.has_key('stateReference'):
-                for stateReference in cacheInfo['stateReference']:
+                for stateReference in cacheInfo['stateReference'].keys():
                     del self.__stateReferenceIndex[stateReference]
             if cacheInfo.has_key('msgId'):
-                for msgId in cacheInfo['msgId']:
+                for msgId in cacheInfo['msgId'].keys():
                     del self.__msgIdIndex[msgId]
             del self.__expirationQueue[self.__expirationTimer]
         self.__expirationTimer = self.__expirationTimer + 1
