@@ -4,7 +4,7 @@ from pysnmp.asn1.encoding import error
 
 # Some code is dup'ed inline here for performance reasons
     
-class AbstractCodec:
+class CodecDecorator:
     # Codecs registry
     codecs = {}
     defaultCodec = None
@@ -35,7 +35,7 @@ class AbstractCodec:
     encode = berEncode = encodeItem
     decode = berDecode = decodeItem
 
-class CachingCodec(AbstractCodec):
+class CachingCodecDecorator(CodecDecorator):
     # Cache encoded values. Applicible to immutable types only.
     def encodeItem(self, codecId=None):
         if codecId is None:
@@ -73,18 +73,18 @@ class CachingCodec(AbstractCodec):
     encode = berEncode = encodeItem
     
 # Mix-in codec interface classes into ASN.1 type classes
-for baseClass, mixInClass in ( (univ.Boolean, CachingCodec),
-                               (univ.Integer, CachingCodec),
-                               (univ.BitString, CachingCodec),
-                               (univ.OctetString, CachingCodec),
-                               (univ.Null, CachingCodec),
-                               (univ.ObjectIdentifier, CachingCodec),
-                               (univ.Real, CachingCodec),
-                               (univ.Enumerated, CachingCodec),
-                               (univ.Sequence, AbstractCodec),
-                               (univ.SequenceOf, AbstractCodec),
-                               (univ.Set, AbstractCodec),
-                               (univ.SetOf, AbstractCodec),
-                               (univ.Choice, AbstractCodec) ):
+for baseClass, mixInClass in ( (univ.Boolean, CachingCodecDecorator),
+                               (univ.Integer, CachingCodecDecorator),
+                               (univ.BitString, CachingCodecDecorator),
+                               (univ.OctetString, CachingCodecDecorator),
+                               (univ.Null, CachingCodecDecorator),
+                               (univ.ObjectIdentifier, CachingCodecDecorator),
+                               (univ.Real, CachingCodecDecorator),
+                               (univ.Enumerated, CachingCodecDecorator),
+                               (univ.Sequence, CodecDecorator),
+                               (univ.SequenceOf, CodecDecorator),
+                               (univ.Set, CodecDecorator),
+                               (univ.SetOf, CodecDecorator),
+                               (univ.Choice, CodecDecorator) ):
     if mixInClass not in baseClass.__bases__:
         baseClass.__bases__ = baseClass.__bases__ + (mixInClass, )
