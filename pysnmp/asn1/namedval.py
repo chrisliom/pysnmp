@@ -1,4 +1,4 @@
-# ASN.1 named integers
+1# ASN.1 named integers
 from  types import TupleType
 from pysnmp.asn1 import error
 
@@ -32,8 +32,8 @@ class NamedValues:
     def getValue(self, name):
         return self.nameToValIdx.get(name)
 
-    def __getitem__(self, i):
-        return self.namedValues[i]
+    def __getitem__(self, i): return self.namedValues[i]
+    def __len__(self): return len(self.namedValues)
         
     def clone(self, *namedValues):
         return apply(self.__class__, tuple(self) + namedValues)
