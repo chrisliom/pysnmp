@@ -54,7 +54,7 @@ sysORLastChange = MibVariable(system.name + (8,), TimeStamp()).setMaxAccess('rea
 # sysORTable
 
 sysORTable = MibTable(system.name + (9,))
-sysOREntry = MibTableRow(sysORTable.name + (1,)).setIndexNames((0, modName, 'sysORIndex'))
+sysOREntry = MibTableRow(sysORTable.name + (1,)).setIndexNames((0, 'SNMPv2-MIB', 'sysORIndex'))
 
 sysORIndex = MibTableColumn(sysOREntry.name + (1,)).setColumnInitializer(MibVariable((), Integer().addConstraints(subtypes.ValueRangeConstraint(1, 2147483647))).setMaxAccess('noaccess'))
 
@@ -109,7 +109,7 @@ snmpSet = MibIdentifier(snmpMIBObjects.name + (6,))
 snmpSetSerialNo = MibVariable(snmpSet.name + (1,), TestAndIncr()).setMaxAccess('readwrite')
 
 mibBuilder.exportSymbols(
-    modName,
+    'SNMPv2-MIB',
     snmpMIB=snmpMIB,
     snmpMIBObjects=snmpMIBObjects,
     system=system,
