@@ -1,0 +1,108 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: BER engine: SNMP trap: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of <STRONG>trap</STRONG> class
+</H3>
+
+<P>
+Instances of <STRONG>trap</STRONG> class have the following methods:
+</P>
+
+<DL>
+<DT><STRONG>encode_snmp_trap_pdu</STRONG>(<STRONG>enterprise</STRONG>, <STRONG>address</STRONG>, <STRONG>generic</STRONG>, <STRONG>specific</STRONG>, <STRONG>timeticks</STRONG>, <STRONG>bindings</STRONG>)</DT>
+<DT><STRONG>decode_snmp_trap_pdu</STRONG>(<STRONG>pdu</STRONG>)</DT>
+<DD>
+
+<P>
+The <STRONG>encode_snmp_trap_pdu</STRONG> method takes the
+<STRONG>enterpise</STRONG> Object-ID (given as a list of integer sub-IDs),
+agent IP <STRONG>address</STRONG> (string), <STRONG>generic</STRONG> trap
+type (integer), <STRONG>specific</STRONG> trap type (integer),
+<STRONG>timeticks</STRONG> (integer) and variable <STRONG>bindings</STRONG>
+(as produced by <STRONG>generic.encode_bindings</STRONG> method) and
+returns SNMP trap PDU (as string).
+</P>
+
+<P>
+The <STRONG>decode_snmp_trap_pdu</STRONG> method takes the SNMP PDU (as
+produced by <STRONG>encode_snmp_trap_pdu</STRONG> method), applies BER
+decoder to it, and returns a tuple of the following layout
+(<STRONG>enterprise</STRONG>, <STRONG>address</STRONG>,
+<STRONG>generic</STRONG>, <STRONG>specific</STRONG>,
+<STRONG>timeticks</STRONG>, <STRONG>bindings</STRONG>). Please, consult
+the <STRONG>encode_snmp_trap_pdu</STRONG> method description for
+more descriptive names of these tuple components.
+</P>
+
+<P>
+Please, refer to
+<A HREF="http://www.ietf.org/rfc/rfc1157.txt">SNMP protocol specification</A> for more information on the components of the SNMP trap PDU.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>encode_trap</STRONG>(<STRONG>enterprise</STRONG>, <STRONG>address</STRONG>, <STRONG>generic</STRONG>, <STRONG>specific</STRONG>, <STRONG>timeticks</STRONG>, [<STRONG>encoded_oids</STRONG>[, <STRONG>encoded_vals</STRONG>]])</DT>
+<DT><STRONG>decode_trap</STRONG>(<STRONG>trap</STRONG>)</DT>
+<DD>
+
+<P>
+The <STRONG>encode_trap</STRONG> method takes the lists of
+<STRONG>enterpise</STRONG> Object-ID (given as a list of integer sub-IDs),
+agent IP <STRONG>address</STRONG> (string), <STRONG>generic</STRONG> trap
+type (integer), <STRONG>specific</STRONG> trap type (integer),
+<STRONG>timeticks</STRONG> (integer) and BER encoded Object IDs
+<STRONG>encoded_oids</STRONG> along with their associated values
+<STRONG>encoded_vals</STRONG> and builds complete SNMP trap message
+by applying <STRONG>generic.encode_bindings</STRONG>,
+<STRONG>encode_snmp_trap_pdu</STRONG> and
+<STRONG>generic.encode_message_sequence</STRONG> methods to the input data.
+</P>
+
+<P>
+The <STRONG>encode_trap</STRONG> method returns complete SNMP trap message
+as a string.
+</P>
+
+<P>
+The <STRONG>decode_trap</STRONG> method takes complete SNMP trap
+message (as produced by <STRONG>encode_trap</STRONG> method)
+parses out and returns a tuple of the following layout
+(<STRONG>enterprise</STRONG>, <STRONG>address</STRONG>,
+<STRONG>generic</STRONG>, <STRONG>specific</STRONG>,
+<STRONG>timeticks</STRONG>, <STRONG>encoded_oids</STRONG>,
+<STRONG>encoded_vals</STRONG>) by applying the
+<STRONG>generic.decode_message_sequence</STRONG>,
+<STRONG>decode_snmp_trap_pdu</STRONG>
+and <STRONG>generic.decode_bindings</STRONG> methods to the input data.
+
+<P> Please, consult the <STRONG>encode_trap</STRONG> method description for
+more information on these tuple components.
+</P>
+
+<P>
+Returned Object IDs and their respective values are matched against each other
+by their positions in the <STRONG>encoded_oids</STRONG> and
+<STRONG>encoded_vals</STRONG> lists.
+</P>
+
+</DD>
+</DL>
+
+<P>
+Objects of <STRONG>trap</STRONG> class have no public instance variables.
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

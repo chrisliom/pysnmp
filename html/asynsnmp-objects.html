@@ -1,0 +1,117 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: SNMP engine: Asynchronous: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of async_session class
+</H3>
+
+<P>
+The instances of <STRONG>async_session</STRONG> class have the following
+methods:
+</P>
+
+<DL>
+<DT><STRONG>open</STRONG>()</DT>
+<DD>
+<P>
+Create a socket to be used for communication with remote SNMP process,
+and pass it to asyncore I/O engine.
+</P>
+<P>
+This method must be called once upon class instance creation.
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>send_request</STRONG>(<STRONG>encoded_oids</STRONG>, <STRONG>encoded_vals</STRONG>[, <STRONG>type</STRONG>])</DT>
+<DD>
+<P>
+Build and send SNMP message of optionally specified <STRONG>type</STRONG>
+and put lists of BER encoded Object IDs <STRONG>encoded_oids</STRONG>
+and their associated values <STRONG>encoded_vals</STRONG> into the message.
+</P>
+
+<P>
+Object IDs and their respective values are matched against each other by
+their positions in the <STRONG>encoded_oids</STRONG> and
+<STRONG>encoded_vals</STRONG> lists.
+</P>
+
+<P>
+The payload for <STRONG>type</STRONG>, <STRONG>encoded_oids</STRONG> and
+<STRONG>encoded_vals </STRONG> lists can be build with methods, inherited from
+<A HREF="session.html">session</A> superclass.
+</P>
+
+<P>
+The default value for <STRONG>type</STRONG> is `<STRONG>GETREQUEST</STRONG>'.
+</P>
+
+<P>
+User specified <STRONG>callback_fun</STRONG> will be invoked by asynchronous
+SNMP manager upon SNMP reply arrival.
+</P>
+
+</DD>
+</DL>
+
+<P>
+Objects of <STRONG>async_session</STRONG> class have the following public
+instance variables:
+</P>
+
+<DL>
+<DT><STRONG>port</STRONG></DT>
+<DD>
+<P>
+Specify the UDP <STRONG>port</STRONG> of remote SNMP process. The <STRONG>
+port</STRONG> variable is of type integer.
+</P>
+<P>
+The value of the <STRONG>port</STRONG> variable takes effect only if 
+specified before <STRONG>open</STRONG>() method is invoked.
+</P>
+<P>
+The default value for UDP port is 161.
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>iface</STRONG></DT>
+<DD>
+<P>
+Specify the IP number of local interface SNMP engine is to bind to. All
+SNMP requests would be originated from the interfaces SNMP engine binds
+to.
+</P>
+<P>
+The value of the <STRONG>iface</STRONG> variable takes effect only if 
+specified before <STRONG>open</STRONG>() method is invoked.
+</P>
+<P>
+The <STRONG>iface</STRONG> attribute should be a list of strings where
+each string should represent either FQDN or IP number of desired local
+interface.
+</P>
+<P>
+The default value is None what means to bind to all the local interfaces
+and originate SNMP request from primary system interface.
+</P>
+<P>
+XXX: current implementation binds ONLY to the first interface of the list.
+</P>
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

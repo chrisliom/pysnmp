@@ -1,0 +1,104 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: SNMP engine: Asynchronous</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Asynchronous SNMP engine
+</H3>
+<P>
+The pysnmp.asynsnmp module defines the <STRONG>async_session</STRONG> class,
+which implements SNMP engine within Sam Rushing's asyncore framework. For
+more information on the asynchronous, non-blocking I/O techniques and their
+Python implementation, please, see Sam's
+<A HREF="http://www.nightmare.com/medusa.html">tutorial</A>.
+</P>
+
+<P>
+The most important feature of asynchronous SNMP engine is that it can
+send and receive a number of SNMP requests virtually simultaneously, as
+well as handling some other, file descriptor based input/output activity at
+the same time. See examples/async_snmpget.py tool (supplied with PySNMP
+distribution) as an example of binding SNMP manager into Telnet server.
+</P>
+
+<P>
+The <STRONG>async_session</STRONG> class subclasses the
+<A HREF="session.html">session</A> class (which implements basic SNMP engine)
+so public attributes of <STRONG>session</STRONG> class become available to user
+of <STRONG>async_session</STRONG> class.
+</P>
+
+<P>
+The pysnmp.async_session module itself defines the following items:
+</P>
+
+<DL>
+<DT>
+<STRONG>async_session</STRONG>(<STRONG>agent</STRONG>, <STRONG>community</STRONG>, <STRONG>callback_fun</STRONG>[, <STRONG>callback_data</STRONG>])<BR>
+</DT>
+<DD>
+<P>
+Returns a new instance of the <STRONG>async_session</STRONG> class,
+representing asynchronous SNMP engine suitable for sending SNMP messages
+to and receiving from SNMP process running on host <STRONG>agent</STRONG>,
+with SNMP <STRONG>community</STRONG> name.
+</P>
+
+<P>
+The <STRONG>callback_fun</STRONG> and optional <STRONG>callback_data</STRONG>
+arguments are references to user function and execution context respectively.
+</P>
+
+<P>
+The <STRONG>callback_fun</STRONG> function will be invoked by SNMP engine upon
+SNMP response arrival.
+</P>
+
+<P>
+The following arguments will be passed alone with the
+<STRONG>callback_fun</STRONG>(<STRONG>callback_data</STRONG>, <STRONG>encoded_oids</STRONG>, <STRONG>encoded_vals</STRONG>) function upon invocation:
+
+<UL>
+<LI>
+<STRONG>callback_data</STRONG> holds a reference to user execution context
+as specified on class instance creation
+<LI>
+<STRONG>encoded_oids</STRONG> a list of BER encoded SNMP Object IDs received
+with SNMP response
+<LI>
+<STRONG>encoded_vals</STRONG> a list of BER encoded values associated with
+SNMP Object IDs <STRONG>encoded_oids</STRONG>. Object IDs and their respective
+values are matched by their positions in the lists.
+</UL>
+</P>
+
+<P>
+Unsuccessful requests are indicated by empty entries in the
+<STRONG>encoded_oids</STRONG> and <STRONG>encoded_vals</STRONG> lists
+returned.
+</P>
+
+<P>
+Instances of the <STRONG>async_session</STRONG> class can be reused for
+performing a number of SNMP requests to the same SNMP party.
+</P>
+
+</DD>
+</DL>
+
+<UL>
+<LI><A HREF="asynsnmp-objects.html">Objects</A> of the
+<STRONG>async_session</STRONG> class</A>
+</UL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

@@ -1,0 +1,139 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: BER engine: SNMP message</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+BER encoders & decoders for SNMP message
+</H3>
+<P>
+The pysnmp.message module defines <STRONG>manager</STRONG>,
+<STRONG>agent</STRONG> and <STRONG>trap</STRONG> classes,
+that implement BER encoders and decoders suitable for building
+and parsing SNMP messages specific to corresponding SNMP role.
+</P>
+
+<P>
+These three classes can be safely subclassed in any combination whenever
+user application plays several roles at once. For example, a SNMP manager
+that also expects receiving traps might subclass the <STRONG>manager</STRONG>
+and <STRONG>trap</STRONG> classes.
+</P>
+
+<P>
+The <STRONG>manager</STRONG>, <STRONG>agent</STRONG> and <STRONG>trap</STRONG>
+classes all rely on the <STRONG>generic</STRONG> class also defined in
+pysnmp.message module. This <STRONG>generic</STRONG> class implements
+BER encoders & decoders for common SNMP message components such as PDU
+and variable bindings. It, in turn, subclasses the <STRONG>ber.ber</STRONG>
+class (holding a set of BER encoders & decoders for SNMP subset of ASN.1 data
+types) so public attributes of <STRONG>ber.ber</STRONG> class become available
+to a user of these classes defined in pysnmp.message module.
+</P>
+
+<P>
+The pysnmp.message module defines the following items:
+</P>
+
+<DL>
+
+<DT>
+<STRONG>manager</STRONG>([<STRONG>community</STRONG>[, <STRONG>version</STRONG>]])<BR>
+</DT>
+<DD>
+<P>
+Returns a new instance of <STRONG>manager</STRONG> class, representing
+a BER engine capable to build SNMP request and parse SNMP response messages.
+</P>
+<P>
+The default value for SNMP community name <STRONG>community</STRONG>
+is "public".
+</P>
+<P>
+The default for SNMP <STRONG>version</STRONG> is 0 (what indicates
+SNMP version 1).
+</P>
+</DD>
+
+<DT>
+<STRONG>agent</STRONG>([<STRONG>community</STRONG>[, <STRONG>version</STRONG>]])<BR>
+</DT>
+<DD>
+<P>
+Returns a new instance of <STRONG>agent</STRONG> class, representing
+a BER engine capable to parse SNMP request and build SNMP response messages.
+</P>
+<P>
+The default value for SNMP community name <STRONG>community</STRONG>
+is "public".
+</P>
+<P>
+The default for SNMP <STRONG>version</STRONG> is 0 (what indicates
+SNMP version 1).
+</P>
+</DD>
+
+<DT>
+<STRONG>trap</STRONG>([<STRONG>community</STRONG>[, <STRONG>version</STRONG>]])<BR>
+</DT>
+<DD>
+<P>
+Returns a new instance of <STRONG>trap</STRONG> class, representing
+a BER engine capable to build SNMP trap request and parse SNMP trap response
+messages.
+</P>
+<P>
+The default value for SNMP community name <STRONG>community</STRONG>
+is "public".
+</P>
+<P>
+The default for SNMP <STRONG>version</STRONG> is 0 (what indicates
+SNMP version 1).
+</P>
+</DD>
+
+<DT>
+<STRONG>generic</STRONG>()<BR>
+</DT>
+<DD>
+<P>
+Returns a new instance of <STRONG>generic</STRONG> class, representing
+a BER engine capable to build and parse SNMP message components (such
+as PDU, variables bindings).
+</P>
+</DD>
+
+</DL>
+
+<P>
+Please, note that the names and functionality of the methods described in
+the following sections, often mimic corresponding parts of the
+<A HREF="http://www.ietf.org/rfc/rfc1157.txt"> SNMP protocol specification</A>
+and the layout of SNMP message.
+</P>
+
+<UL>
+<LI>Objects of the <A HREF="message-manager-objects.html">manager</A>
+class</A>
+<LI>Objects of the <A HREF="message-agent-objects.html">agent</A>
+class</A>
+<LI>Objects of the <A HREF="message-trap-objects.html">trap</A>
+class</A>
+<LI>Objects of the <A HREF="message-generic-objects.html">generic</A>
+class</A>
+</UL>
+
+<P>
+XXX: No SNMP versions other than version 1 is supported at the moment.
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

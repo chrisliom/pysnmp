@@ -1,0 +1,76 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: BER engine: SNMP agent: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of <STRONG>agent</STRONG> class
+</H3>
+
+<P>
+Instances of <STRONG>agent</STRONG> class have the following methods:
+</P>
+
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>encode_response</STRONG>(<STRONG>encoded_oids</STRONG>, <STRONG>encoded_vals</STRONG>)</DT>
+<DT><STRONG>decode_request</STRONG>(<STRONG>message</STRONG>)</DT>
+<DD>
+
+<P>
+The <STRONG>encode_response</STRONG> method takes the lists of
+BER encoded Object IDs <STRONG>encoded_oids</STRONG> alone with their
+associated values <STRONG>encoded_vals</STRONG> and builds complete
+SNMP message of type '<STRONG>GETRESPONSE</STRONG>' by applying
+<STRONG>generic.encode_bindings</STRONG>,
+<STRONG>generic.encode_snmp_pdu</STRONG> and
+<STRONG>generic.encode_message_sequence</STRONG> methods to the input data.
+</P>
+
+<P>
+The <STRONG>encode_request</STRONG> method returns complete SNMP message
+as a string.
+</P>
+
+<P>
+The <STRONG>decode_request</STRONG> method takes complete SNMP
+request (as produced by <STRONG>manager.encode_request</STRONG> method)
+parses out and returns a tuple of (<STRONG>type</STRONG>,
+<STRONG>encoded_oids</STRONG>, <STRONG>encoded_vals</STRONG>)
+by applying the <STRONG>generic.decode_message_sequence</STRONG>,
+<STRONG>generic.decode_snmp_pdu</STRONG> and
+<STRONG>generic.decode_bindings</STRONG> methods to the input data.
+</P>
+<P>
+The returned values are of the same semantic and data type
+as used in <STRONG>manager.encode_request</STRONG> method.
+</P>
+
+<P>
+Returned Object IDs and their respective values are matched against each other
+by their positions in the <STRONG>encoded_oids</STRONG> and
+<STRONG>encoded_vals</STRONG> lists.
+</P>
+
+</DD>
+</DL>
+
+</DD>
+</DL>
+
+<P>
+Objects of <STRONG>agent</STRONG> class have no public instance variables.
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

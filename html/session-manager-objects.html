@@ -1,0 +1,133 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: SNMP engine: Basic: Manager: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of <STRONG>manager</STRONG> class
+</H3>
+
+<P>
+The instances of <STRONG>manager</STRONG> class have the following methods:
+</P>
+
+<DL>
+<DT><STRONG>open</STRONG>()</DT>
+<DD>
+<P>
+Create and return connected socket object to be used for communication
+with remote SNMP process.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>send_and_receive</STRONG>(<STRONG>message</STRONG>)</DT>
+<DD>
+<P>
+Attempt to send SNMP <STRONG>message</STRONG> and receive SNMP response
+from remote SNMP process or time out in <STRONG>timeout</STRONG> seconds.
+Accept and return BER encoded SNMP message
+(as string).
+</P>
+
+<P>
+For more information on building / parsing SNMP <STRONG>message</STRONG>,
+please, refer to the <A HREF="message.html">pysnmp.message</A> module
+documentation.
+</P>
+
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>send</STRONG>(<STRONG>message</STRONG>)</DT>
+<DD>
+<P>
+Attempt to send SNMP <STRONG>message</STRONG> to remote SNMP process
+using socket previously initialized with <STRONG>open</STRONG> method.
+Accept BER encoded SNMP message (given as string).
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>receive</STRONG>()</DT>
+<DD>
+<P>
+Return BER encoded SNMP response message (as string) as received
+from remote SNMP process or time out in <STRONG>timeout</STRONG> seconds.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>close</STRONG>()</DT>
+<DD>
+<P>
+Terminate SNMP session previously established with remote SNMP process.
+</P>
+</DD>
+</DL>
+
+<P>
+Objects of session class have the following public instance
+variables:
+</P>
+
+<DL>
+<DT><STRONG>iface</STRONG></DT>
+<DD>
+<P>
+Specify the IP number of local interface SNMP engine should bind to.
+SNMP requests would then be originated from the interface given.
+</P>
+<P>
+The value of the <STRONG>iface</STRONG> variable takes effect only if 
+specified before <STRONG>open</STRONG>() method is invoked.
+</P>
+<P>
+The <STRONG>iface</STRONG> attribute is a string representing either
+FQDN or IP number of desired local interface.
+</P>
+<P>
+The default value is None what means to bind to primary local interface.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>timeout</STRONG></DT>
+<DD>
+<P>
+Specify for how many seconds to wait for response from SNMP agent. The
+<STRONG>timeout</STRONG> attribute is of floating point type.
+</P>
+<P>
+The default is 1.0 second.
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>retries</STRONG></DT>
+<DD>
+<P>
+Specify the number of request re-transmissions. The <STRONG>retries</STRONG>
+attribute is of integer type.
+</P>
+<P>
+The default is 3 retries.
+</P>
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>
