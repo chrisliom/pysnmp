@@ -184,6 +184,18 @@ while 1:
                     break
             else:
                 break
+            
+        # Make sure OIDs are increasing
+        if chkIncOidFlag:
+            bOids = filter(lambda (x, y): \
+                           snmp.ObjectIdentifier(x) > snmp.ObjectIdentifier(y),
+                           map(None, \
+                               map(lambda x: x[0], vars), \
+                               map(lambda x: x[0], \
+                                   rsp.apiGenGetPdu().apiGenGetVarBind())))
+            if len(bOids):
+                print 'Error: OID not increasing: ', str(bOids)
+                sys.exit(-1)
     else:
         for (oid, val) in vars:
             print oid, ' ---> ',
