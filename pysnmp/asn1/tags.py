@@ -48,6 +48,12 @@ class TagSet:
         return self.tagClass[idx], self.tagFormat[idx], \
                self.tagId[idx], self.tagCategory[idx]
 
+    def __cmp__(self, other):
+        return cmp(
+            (self.tagClass, self.tagFormat, self.tagId, self.tagCategory),
+            (other.tagClass, other.tagFormat, other.tagId, other.tagCategory)
+            )
+    
     def __hash__(self):
         return hash(
             (self.tagClass, self.tagFormat, self.tagId, self.tagCategory)
