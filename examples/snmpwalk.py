@@ -1,7 +1,7 @@
 #!/usr/local/bin/python -O
 """
    Retrieve a subtree of lexicographically greater Object IDs starting from
-   user specifed SNMP Object ID till from arbitrary SNMP agent.
+   user specifed SNMP Object ID from arbitrary SNMP agent.
 
    Since MIB parser is not yet implemented in Python, this script takes and
    reports Object IDs in dotted numeric representation only.
