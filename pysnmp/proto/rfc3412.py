@@ -131,7 +131,6 @@ class MsgAndPduDispatcher:
     def registerContextEngineId(self, app):
         """Register application with dispatcher"""
         # 4.3.2 -> noop
-
         contextEngineId = app.contextEngineId
         if contextEngineId is None:
             # Default to local snmpEngineId
@@ -142,16 +141,15 @@ class MsgAndPduDispatcher:
 
         # 4.3.3
         for pduVersion, pduType in app.pduTypes:
-            if self.__appsRegistration.has_key(
-                (contextEngineId, pduVersion, pduType)
-                ):
+            k = (contextEngineId, pduVersion, pduType)
+            if self.__appsRegistration.has_key(k):
                 raise error.BadArgumentError(
                     'Duplicate registration %s/%s/%s' %
                     (contextEngineId, pduVersion, pduType)
                     )
 
-        # 4.3.4
-        self.__appsRegistration[(contextEngineId, pduVersion, pduType)] = app
+            # 4.3.4
+            self.__appsRegistration[k] = app
         
     # 4.4.1
     def unregisterContextEngineId(self, app):
@@ -165,12 +163,9 @@ class MsgAndPduDispatcher:
                 ).syntax.get()
 
         for pduVersion, pduType in app.pduTypes:
-            if self.__appsRegistration.has_key(
-                (contextEngineId, pduVersion, pduType)
-                ):
-                del self.__appsRegistration[
-                    (contextEngineId, pduVersion, pduType)
-                    ]
+            k = (contextEngineId, pduVersion, pduType)
+            if self.__appsRegistration.has_key(k):
+                del self.__appsRegistration[k]
 
     def getRegisteredApp(self, contextEngineId, pduVersion, pduType):
         return self.__appsRegistration.get(
@@ -306,7 +301,7 @@ class MsgAndPduDispatcher:
             transportAddress=transportAddress,
             wholeMsg=wholeMsg
             )        
-                
+
         # 4.2.2
         if mpOutParams.get('sendPduHandle') is None:
             # 4.2.2.1 (request or notification)
@@ -317,7 +312,7 @@ class MsgAndPduDispatcher:
                 mpOutParams['pduVersion'],
                 mpOutParams['pduType']
                 )
-            
+
             # 4.2.2.1.2
             if app is None:
                 # 4.2.2.1.2.a
@@ -325,17 +320,22 @@ class MsgAndPduDispatcher:
                 snmpUnknownPDUHandlers.syntax.inc(1)
 
                 # 4.2.2.1.2.b                
-                statusInformation = (1, rfc1905.VarBind(
-                    name=snmpUnknownPDUHandlers.name
-                    )) # XXX pdu gen, oid-value?
+                statusInformation = {
+                    'oid': snmpUnknownPDUHandlers.name,
+                    'value': snmpUnknownPDUHandlers.syntax
+                    }
 
-                mpInParams = {}
+                mpInParams = {
+                    'transportDomain': transportDomain,
+                    'transportAddress': transportAddress
+                    }
                 mpInParams.update(mpOutParams)
                 mpInParams['statusInformation'] = statusInformation
-                # XXX rfc bug? -- cant send req pdu to responseMessage()
                 mpOutParams = apply(
-                    mpHdl.prepareResponseMessage, (), mpInParams
+                    mpHandler.prepareResponseMessage, (), mpInParams
                     )
+                if mpOutParams.get('result'):
+                    return
                 
                 # 4.2.2.1.2.c
                 try:
@@ -420,7 +420,7 @@ class MsgAndPduDispatcher:
             if cachedParams['retryCount'] == 0:
                 cachedParams['expectResponse'].processResponsePdu(
                     self,
-                    statusInformation={
+                    statusInformation = {
                     'errorIndication': error.RequestTimeout()
                     },
                     sendPduHandle=cachedParams['sendPduHandle']
