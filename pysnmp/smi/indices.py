@@ -59,7 +59,17 @@ if version_info < (2, 2):
             self.__dirty = 0
         def setSortingFun(self, fun):
             self.__sortingFun = fun
-            self.__dirty = 1            
+            self.__dirty = 1
+        def nextKey(self, key):
+            keys = self.keys()
+            if self.has_key(key):
+                nextIdx = keys.index(key) + 1            
+            else:
+                nextIdx = bisect(keys, key)
+            if nextIdx < len(keys):
+                return keys[nextIdx]
+            else:
+                raise KeyError(key)            
 else:
     class OrderedDict(DictType):
         def __init__(self, **kwargs):
@@ -107,7 +117,17 @@ else:
             self.__dirty = 0
         def setSortingFun(self, fun):
             self.__sortingFun = fun
-            self.__dirty = 1
+            self.__dirty = 1            
+        def nextKey(self, key):
+            keys = self.keys()
+            if self.has_key(key):
+                nextIdx = keys.index(key) + 1            
+            else:
+                nextIdx = bisect(keys, key)
+            if nextIdx < len(keys):
+                return keys[nextIdx]
+            else:
+                raise KeyError(key)
 
 class OidOrderedDict(OrderedDict):
     def __init__(self, **kwargs):
@@ -126,17 +146,8 @@ class OidOrderedDict(OrderedDict):
                     )
         OrderedDict.__setitem__(self, key, value)
 
-        def __delitem__(self, key):
-            if self.__keysCache.has_key(key):
-                del self.__keysCache[key]
-            OrderedDict.__delitem__(self, key)
-        __delattr__ = __delitem__
-
-    def nextKey(self, key):
-        keys = self.keys()
-        if self.has_key(key):
-            nextIdx = keys.index(key) + 1            
-        else:
-            nextIdx = bisect(keys, key)
-        if nextIdx < len(keys):
-            return keys[nextIdx]
+    def __delitem__(self, key):
+        if self.__keysCache.has_key(key):
+            del self.__keysCache[key]
+        OrderedDict.__delitem__(self, key)
+    __delattr__ = __delitem__
