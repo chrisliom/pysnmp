@@ -381,7 +381,7 @@ class MsgAndPduDispatcher:
     # Cache expiration stuff
 
     def __receiveTimerTick(self, timeNow):
-        def retryRequest(cachedParams, self=self):
+        def retryRequest(cachedParams, self=self, timeNow=timeNow):
             # Initialize retry params
             if not cachedParams.has_key('retryCount'):
                 # Default retry params to transport-specific values
