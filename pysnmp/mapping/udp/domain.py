@@ -1,5 +1,6 @@
 import socket
 from pysnmp.mapping.sockbase import SocketBase
+from pysnmp.mapping.udp.error import NetworkError
 
 class UdpDomain(SocketBase):
     def __init__(self):
@@ -13,22 +14,26 @@ class UdpDomain(SocketBase):
 
     def handle_read(self):
         (incomingMessage, transportAddress) = self.socket.recvfrom(65535)
-        self.__appCbFun((self, transportAddress), incomingMessage)
+        self._appCbFun((self, transportAddress), incomingMessage)
 
-class UdpDomainManager(UdpDomain):
-    def __init__(self, transport, transportAddress=None):
-        UdpDomain.__init__(self, transport)
-        self.transportAddress=transportAddress
-
-    def send(self, outgoingMessage, transportAddress=None):
-        if transportAddress is None:
-            transportAddress = self.transportAddress
-        UdpDomain.send(self, outgoingMessage, transportAddress)
-             
 class UdpDomainAgent(UdpDomain):
-    def __init__(self, transport, iface=('0.0.0.0', 161)):
-        UdpDomain.__init__(self, transport)
+    def __init__(self, iface=('0.0.0.0', 161)):
+        UdpDomain.__init__(self)
+        self._iface = iface
+
+    def transportDomainOpen(self, transportDispatcher):
+        SocketBase.transportDomainOpen(self, transportDispatcher)
         try:
-            self.bind(iface)
+            self.bind(self._iface)
         except socket.error, why:
-            raise error.NetworkError('bind() failed: ' + why)
+            raise NetworkError('bind() failed: %s' % why)
+    
+class UdpDomainManager(UdpDomainAgent):
+    def __init__(self, transportAddress=None, iface=('0.0.0.0', 0)):
+        UdpDomainAgent.__init__(self, iface)
+        self._transportAddress = transportAddress
+
+    def transportDomainSend(self, outgoingMessage, transportAddress=None):
+        if transportAddress is None:
+            transportAddress = self._transportAddress
+        UdpDomainAgent.transportDomainSend(self, outgoingMessage, transportAddress)
