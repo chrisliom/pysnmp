@@ -11,7 +11,6 @@ __all__ = [ 'GetRequestPduMixIn', 'GetNextRequestPduMixIn',
             'ResponsePduMixIn', 'TrapPduMixIn', 'MessageMixIn',
             'registerMixIns' ]
 
-
 import pysnmp.proto.api.alpha.rfc1157
 from pysnmp.proto import rfc1157
 
@@ -19,8 +18,9 @@ class RequestPduMixIn:
     def apiGenGetRequestId(self): return self.apiAlphaGetRequestId().get()
     def apiGenSetRequestId(self, value): self.apiAlphaSetRequestId(value)
     def apiGenGetVarBind(self):
-        return map(lambda x: (x[0].get(), x[1]), self.apiAlphaGetVarBind())
-    def apiGenSetVarBind(self, inVars): self.apiAlphaSetVarBind(inVars)
+        return map(lambda x: (x[0].get(), x[1]), self.apiAlphaGetVarBinds())
+    def apiGenSetVarBind(self, varBinds):
+        apply(self.apiAlphaSetVarBinds, varBinds)
     
 # Request PDU mix-ins
 class GetRequestPduMixIn(RequestPduMixIn): pass
