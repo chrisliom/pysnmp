@@ -1,10 +1,14 @@
-"""
-   SNMP framework for Python.
+"""Various components of SNMP applications"""
+from pysnmp import apiver
 
-   Includes generic ASN.1 framework, an implementation of SNMP engines for
-   protocol versions 1 and 2c as well as a UDP/IP based transport mapping
-   for SNMP entities.
+def getAvailableApiVersions():
+    return apiver.listAvailable(__path__[0])
 
-   Copyright 1999-2004 by Ilya Etingof <ilya@glas.net>. See LICENSE
-   for details.
-"""
+_gCurrentVersion = ''
+
+def setApiVersion(newVer):
+    global _gCurrentVersion
+    _gCurrentVersion = apiver.importNew(__path__[0], _gCurrentVersion, newVer)
+
+def getApiVersion():
+    return _gCurrentVersion
