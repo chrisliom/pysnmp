@@ -10,7 +10,7 @@ from types import ClassType
 import asyncore
 
 # Import PySNMP components
-import role
+import role, error
 
 class Error(role.Error):
     """Base class for asynrole module
@@ -94,8 +94,8 @@ class manager(asyncore.dispatcher):
         """
         # In case of PySNMP exception, invoke the callback function
         # and pass it an empty result. Otherwise,just pass the exception on.
-        if type(exc_type) == ClassType \
-           and issubclass(exc_type, error.PySNMPError):
+        if type(exc_type) == ClassType and \
+           issubclass(exc_type, error.Generic):
             self.callback_fun(self, self.callback_ctx,\
                               (None, None), (exc_type, \
                                              exc_value, exc_traceback))
@@ -171,7 +171,7 @@ class agent(asyncore.dispatcher):
         # In case of PySNMP exception, invoke the callback function
         # and pass it an empty result. Otherwise,just pass the exception on.
         if type(exc_type) == ClassType \
-           and issubclass(exc_type, error.PySNMPError):
+           and issubclass(exc_type, error.Generic):
             self.callback_fun(self, self.callback_ctx,\
                               (None, None), (exc_type, \
                                              exc_value, exc_traceback))
