@@ -1,6 +1,5 @@
 from pysnmp.mapping import error
 
-# XXX dict api?
 class TransportDispatcherBase:
     """Specifies mandatory transport API and some basic features
     """
@@ -10,11 +9,18 @@ class TransportDispatcherBase:
         self.__appCbFun = None
         apply(self.registerTransports, [], kwargs)
 
+    # Mapping object interface
+
+    def __getattr__(self, attr):
+        if attr in dir(self.__transports):
+            return getattr(self.__transports, attr)
+        raise AttributeError('%s object has no attr %s' % (self, attr))
+
     # Transport API
     
     def transportDispatcherSend(self, outgoingMessage, \
                           (transportDomain, transportAddress)):
-        transport = self.__transports.get(transportDomain, None)
+        transport = self.get(transportDomain, None)
         if transport is None:
             raise error.BadArgumentError('Unknown transport domain %s' \
                                          % transportDomain)
@@ -34,32 +40,32 @@ class TransportDispatcherBase:
         raise error.NotImplementedError('Method not implemented')
 
     def transportDispatcherClose(self):
-        map(lambda x: x.transportDomainClose(), self.__transports.values())
+        map(lambda x: x.transportDomainClose(), self.values())
         self.unregisterTransports()
         
     # Some basic functionality
     
     def registerTransports(self, **kwargs):
         for (name, transport) in kwargs.items():
-            if self.__transports.has_key(name):
+            if self.has_key(name):
                 raise error.BadArgumentError('Already registered %s' % name)
             transport.transportDomainOpen(self)
             transport.transportDomainRegisterCbFun(self.__cbFun)
-            self.__transports[name] = transport
+            self[name] = transport
 
     def unregisterTransports(self):
         self.transportDispatcherUnregisterCbFun()
-        self.__transports = {}
+        self.clear()
         
     def __cbFun(self, (transportDomain, transportAddress), incomingMessage):
-        for (name, transport) in self.__transports.items():
-            if transportDomain is transport:
+        for name, transport in self.items():
+            if transport is transportDomain:
                 transportDomain = name
                 break
         else:
-            transportDomain = 'UNKNOWN'
+            raise error.BadArgumentError('Unregistered transport domain %s' \
+                                         % transportDomain)
 
         if self.__appCbFun is not None:
-            self.__appCbFun((transportDomain, transportAddress), \
+            self.__appCbFun(self, (transportDomain, transportAddress), \
                             incomingMessage)
-    
