@@ -45,6 +45,9 @@ class SnmpSecurityLevel(TextualConvention, Integer):
     subtypeConstraints = Integer.subtypeConstraints + (
         subtypes.SingleValueConstraint(1, 2, 3),
         )
+    namedValues = Integer.namedValues.clone(
+        ('noAuthNoPriv', 1), ('authNoPriv', 2), ('authPriv', 3)
+        )
     initialValue = 1
 
 class SnmpAdminString(TextualConvention, OctetString):
