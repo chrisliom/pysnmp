@@ -2,16 +2,35 @@
 import os, sys
 from pysnmp.smi import error
 
-__all__ = [ 'MibBuilder' ]
+__all__ = [ 'MibBuilder', 'getMibCacheDir' ]
 
+def getMibCacheDir():
+    for t in ('PYSNMPTMPDIR', 'TMPDIR', 'TEMP', 'TMP'):
+        tempdir = os.getenv(t)
+        if tempdir:
+            break
+    else:
+        tempdir  = os.path.join('/', 'usr', 'tmp')
+        try:
+            os.stat(tempdir)
+        except OSError:
+            tempdir = os.path.join('.')
+    try:
+        uid = os.getuid()
+    except:
+        uid = 0
+    return os.path.join(tempdir, 'pysnmp', 'mibs', '%s' % uid)
+        
 class MibBuilder:
     def __init__(self, execContext=None):
         self.lastBuildId = 0L
         self.execContext = execContext
         self.mibSymbols = {}
-        apply(self.setMibPath, map(lambda x: os.path.join(
-            x, 'pysnmp', 'smi', 'mibs'), sys.path))
-
+        os.path.split(error.__file__)[0]
+        apply(self.setMibPath, (
+            os.path.join(os.path.split(error.__file__)[0], 'mibs'),
+            getMibCacheDir()))
+        
     # MIB modules management
     
     def setMibPath(self, *mibPaths):
@@ -96,14 +115,15 @@ class MibBuilder:
                 raise error.SmiError(
                     'Symbol %s already exported at %s' % (symName, modName)
                     )
-            if hasattr(symObj, 'label'):
+            if hasattr(symObj, 'label') and symObj.label:
                 symName = symObj.label
             self.mibSymbols[modName][symName] = symObj
 
 if __name__ == '__main__':
-    mibBuilder = MibBuilder().loadModules()
-    mibTree = mibBuilder.importSymbols('SNMPv2-SMI', 'iso')
-    print mibTree
+    mibBuilder = MibBuilder().loadModules('Modem-MIB')
+#    mibBuilder = MibBuilder().loadModules('SNMPv2-SMI')
+#    mibTree = mibBuilder.importSymbols('SNMPv2-SMI', 'experimental')
+#    print mibTree
 
 # get rid of tree MIB structure (index MIB objects by OID name only at MIB
 #    instrumentation controller)
