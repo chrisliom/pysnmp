@@ -49,30 +49,30 @@ chkIncOidFlag = 1
 # Parse app options
 idx = 1; newArgv = []
 while idx < len(argv):
-    try:
-        if argv[idx] == '-h':
-            print usage
-            exit(0)
-        if argv[idx] == '-v':
-            if argv[idx+1][:1] != 'v': argv[idx+1] = 'v'+argv[idx+1]
-            try:
-                snmpProto = eval(argv[idx+1])
-            except (NameError, AttributeError):
-                stderr.write('Unsupported SNMP protocol version: %s\n%s\n' % \
-                             (argv[idx+1], usage))
-                exit(-1)
-            idx = idx + 2
-            continue
-        if argv[idx] == '-C':
+    if argv[idx] == '-h':
+        print usage
+        exit(0)
+    if argv[idx] == '-v':
+        if argv[idx+1][:1] != 'v': argv[idx+1] = 'v'+argv[idx+1]
+        try:
+            snmpProto = eval(argv[idx+1])
+        except (IndexError, NameError, AttributeError):
+            stderr.write('Unsupported SNMP protocol version: %s\n%s\n' % \
+                         (argv[idx+1], usage))
+            exit(-1)
+        idx = idx + 2
+        continue
+    if argv[idx] == '-C':
+        try:
             for c in list(argv[idx+1]):
                 if c == 'p': prtNumFlag = 1
                 if c == 'i': inclOidFlag = 1
                 if c == 'c': chkIncOidFlag = 0
-            idx = idx + 2
-            continue
-    except IndexError:
-        stderr.write('Missing value to %s\n%s\n' % (argv[idx], usage))
-        exit(-1)
+        except IndexError, why:
+            stderr.write('Missing value to %s\n%s\n' % (argv[idx], usage))
+            exit(-1)
+        idx = idx + 2
+        continue
     newArgv.append(argv[idx])
     idx = idx + 1
 
