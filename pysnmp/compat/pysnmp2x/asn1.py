@@ -223,13 +223,13 @@ class OBJECTID(CompatBase, pysnmp.proto.rfc1902.ObjectIdentifier):
         """
         return self._wrapper_fun(self._isaprefix_fun, other)
 
-    def str2num(self, other):
+    def str2num(self, other, aliases=None):
         """Compatibility method: converts an Object ID oid into a list of
            integer sub-Object-IDs
         """
         return self._wrapper_fun(self._str2num_fun, other)
 
-    def num2str(self, other):
+    def num2str(self, other, aliases=None):
         """Compatibility method: converts an Object ID oid into dotted notation
 
         """

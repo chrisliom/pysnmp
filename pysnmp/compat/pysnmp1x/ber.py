@@ -125,7 +125,7 @@ class ber(wrapexp.Base):
         """
         return rfc1155.ObjectIdentifier().str2num(txt)
 
-    def str2nums(self, txt):
+    def str2nums(self, txt, aliases=None):
         """
            str2nums(obj_id) -> object id
 
@@ -139,7 +139,7 @@ class ber(wrapexp.Base):
         """
         return rfc1155.ObjectIdentifier().nums2str(objid_n)
 
-    def nums2str(self, objid_n):
+    def nums2str(self, objid_n, aliases=None):
         """
            nums2str(obj_id) -> object id
 
