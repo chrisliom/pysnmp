@@ -4,6 +4,7 @@
    Copyright 1999-2003 by Ilya Etingof <ilya@glas.net>. See LICENSE for
    details.
 """
+from socket import gethostbyname
 from string import atoi, split, lower
 from pysnmp.error import PySnmpError
 from pysnmp.mapping.udp import role
@@ -34,27 +35,30 @@ class ManagerMixIn:
     def cliUcdSetArgs(self, argv):
         idx = 0; newArgv = []
         while idx < len(argv):
-            try:
-                if argv[idx] == '-r':
+            if argv[idx] == '-r':
+                try:
                     self.retries = atoi(argv[idx+1])
-                    idx = idx + 2
-                    continue
-                if argv[idx] == '-t':
+                except (IndexError, ValueError), why:
+                    raise error.BadArgumentError('Bad or missing value to %s'\
+                                                 % argv[idx])
+                idx = idx + 2
+                continue
+            if argv[idx] == '-t':
+                try:
                     self.timeout = atoi(argv[idx+1])
-                    idx = idx + 2
-                    continue
-                if argv[idx] == '-py' and argv[idx+1] == 'c':
-                    self.checkPeerAddrFlag = 1
-                    idx = idx + 2
-                    continue
-                if argv[idx] == '-d':
-                    self.dumpPacketsFlag = 1
-                    idx = idx + 1
-                    continue                
-            except IndexError:
-                raise error.BadArgumentError('Missing value to %s' % argv[idx])
-            except ValueError, why:
-                raise error.BadArgumentError('Bad value to %s' % argv[idx])
+                except (IndexError, ValueError), why:
+                    raise error.BadArgumentError('Bad or missing value to %s'\
+                                                 % argv[idx])
+                idx = idx + 2
+                continue
+            if argv[idx] == '-py' and argv[idx+1] == 'c':
+                self.checkPeerAddrFlag = 1
+                idx = idx + 2
+                continue
+            if argv[idx] == '-d':
+                self.dumpPacketsFlag = 1
+                idx = idx + 1
+                continue
             newArgv.append(argv[idx])
             idx = idx + 1
         if not len(newArgv) or not len(newArgv[0]):
@@ -78,6 +82,10 @@ class ManagerMixIn:
         except ValueError, why:
             raise error.BadArgumentError('Bad port spec at %s: %s' %
                                          (newArgv[idx:], why))
+        try:
+            host = gethostbyname(host)
+        except socket.error, why:
+            raise error.BadArgumentError('gethostbyname() failed: %s' % why)
         self.agent = (host, port)
         return newArgv[1:]
 
