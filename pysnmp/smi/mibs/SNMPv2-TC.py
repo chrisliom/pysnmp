@@ -21,10 +21,10 @@ class TextualConvention:
     def getDescription(self): return self.description
     def getReference(self): return self.reference
 
-    def prettyGet(self, value):
+    def prettyGet(self):
         """Implements DISPLAY-HINT evaluation"""
-        if self.displayHint and self.__integer.isSubtype(value):
-            value = value.get()
+        if self.displayHint and self.__integer.isSubtype(self):
+            value = self.get()
             t, f = apply(lambda t, f=0: (t, f), split(self.displayHint, '-'))
             if t == 'x':
                 return '0x%x' % value
@@ -47,12 +47,9 @@ class TextualConvention:
                 raise error.SmiError(
                     'Unsupported numeric type spec at %r: %s' % (self, t)
                     )
-        elif self.displayHint and self.__octetString.isSubtype(value):
+        elif self.displayHint and self.__octetString.isSubtype(self):
             r = ''
-            if isinstance(value, OctetString):
-                v = value.get()
-            else:
-                v = value
+            v = self.get()
             d = self.displayHint
             while v and d:
                 # 1
@@ -136,10 +133,10 @@ class TextualConvention:
 #                     'Unparsed display hint left at %r: %s' % (self, d)
 #                     )                    
             return r
-        elif self.displayHint and self.__objectIdentifier.isSubtype(value):
-            return str(value)
+        elif self.displayHint and self.__objectIdentifier.isSubtype(self):
+            return str(self)
         else:
-            return str(value.get())
+            return str(self.get())
 
 #         elif self.bits:
 #             try:
