@@ -21,3 +21,8 @@ class ValueConstraintError(Asn1Error):
     """Assigned value does not fit data type
     """
     pass
+
+class ObjectTypeError(Asn1Error):
+    """Wrong object type for operation
+    """
+    pass
