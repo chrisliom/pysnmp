@@ -178,7 +178,9 @@ class TruthValue(TextualConvention, Integer):
     subtypeConstraints = Integer.subtypeConstraints + (
         subtypes.SingleValueConstraint(1, 2),
         )
-    bits = { 1: 'true', 2: 'false' }
+    namedValues = Integer.namedValues.clone(
+        ('true', 1), ('false', 2)
+        )
     
 class TestAndIncr(Integer):
     subtypeConstraints = Integer.subtypeConstraints + (    
@@ -208,10 +210,10 @@ class RowStatus(TextualConvention, Integer):
     subtypeConstraints = Integer.subtypeConstraints + (
         subtypes.SingleValueConstraint(1, 2, 3, 4, 5, 6),
         )
-    bits = {
-        1: 'active', 2: 'notInService', 3: 'notReady',
-        4: 'createAndGo', 5: 'createAndWait', 6: 'destroy'
-        }
+    namedValues = Integer.namedValues.clone(
+        ('active', 1), ('notInService', 2), ('notReady', 3),
+        ('createAndGo', 4), ('createAndWait', 5), ('destroy', 6)
+        )
              
     # Known row states
     stNotExists, stActive, stNotInService, stNotReady, \
@@ -323,10 +325,10 @@ class StorageType(TextualConvention, Integer):
     subtypeConstraints = Integer.subtypeConstraints + (
         subtypes.SingleValueConstraint(1, 2, 3, 4, 5),
         )
-    bits = {
-        1: 'other', 2: 'volatile', 3: 'nonVolatile',
-        4: 'permanent', 5: 'readOnly'
-        }
+    namedValues = Integer.namedValues.clone(
+        ('other', 1), ('volatile', 2), ('nonVolatile', 3),
+        ('permanent', 4), ('readOnly', 5)
+        )
 
 class TDomain(TextualConvention, ObjectIdentifier): pass
 
