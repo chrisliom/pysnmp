@@ -40,16 +40,16 @@ class AsynsockDispatcher(AbstractTransportDispatcher):
         apply(AbstractTransportDispatcher.__init__, [self], kwargs)
 
     def registerTransports(self, **kwargs):
-        apply(AbstractTransportDispatcher.registerTransports, [self], kwargs)
+        apply(AbstractTransportDispatcher.registerTransports, (self,), kwargs)
         for transport in kwargs.values():
             transport.registerSocket(self.__sockMap)
 
     def unregisterTransports(self, *args):
+        for name in args:
+            self.getTransport(name).unregisterSocket(self.__sockMap)
         apply(
             AbstractTransportDispatcher.unregisterTransports, (self, ) + args
             )
-        for name in args:
-            transport.unregisterSocket()
 
     def runDispatcher(self, liveForever=1):
         self.doDispatchFlag = liveForever
