@@ -143,7 +143,6 @@ while 1:
     # Fetch Object ID's and associated values
     vars = rsp.apiGenGetPdu().apiGenGetVarBind()
 
-
     # Error handling makes sense only when walking
     if req is getBulkReq:
         # Check for remote SNMP agent failure
@@ -155,9 +154,11 @@ while 1:
                                        str(vars[errorIndex][0]))
             raise error.ProtoError(errorStatus)
 
-        # The following is taken from RFC1905 (fixed not to depend of repetitions)
+        # The following is taken from RFC1905 (fixed not to depend of
+        # repetitions)
         N = 0;
         R = len(req.apiGenGetPdu().apiGenGetVarBind()) - N
+        if R == 0: raise error.ProtoError('Short VarBindList in response')
         M = len(rsp.apiGenGetPdu().apiGenGetVarBind()) / R
         for i in range(1, M+1):
             for r in range(1, R+1):
