@@ -91,6 +91,11 @@ class Counter64(rfc1155.Counter):
     # Subtyping -- value range constraint
     valueRangeConstraint = (0, 18446744073709551615L)
 
+class Bits(OctetString):
+    """SMI BITS object
+    """
+    pass
+
 class Sequence(rfc1155.Sequence):
     """SNMP Sequence
     """
@@ -123,10 +128,10 @@ class ApplicationSyntax(Choice):
     """
     choiceNames = [ 'ipAddress_value', 'counter_value', 'timeticks_value', \
                     'arbitrary_value', 'big_counter_value', \
-                    'unsigned_integer_value', 'unsigned_integer_value' ]
+                    'unsigned_integer_value', 'gauge32_value', 'bits_value' ]
 
     choiceComponents = [ IpAddress, Counter32, TimeTicks, Opaque, \
-                         Counter64, Unsigned32, Gauge32 ]
+                         Counter64, Unsigned32, Gauge32, Bits ]  # BITS misplaced?
 
 class ObjectSyntax(Choice):
     """Syntax of objects in MIB
