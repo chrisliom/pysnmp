@@ -46,7 +46,7 @@ class MibBuilder:
             modNames = modNames.keys()
         if not modNames:
             raise error.SmiError(
-                'No MIB module to load at %r' % (self,)
+                'No MIB module to load at %s' % (self,)
                 )
         for modName in modNames:
             if self.mibSymbols.has_key(modName):
@@ -92,11 +92,11 @@ class MibBuilder:
                 self.loadModules(modName)
             if not self.mibSymbols.has_key(modName):
                 raise error.SmiError(
-                    'No module %s loaded at %r' % (modName, self)
+                    'No module %s loaded at %s' % (modName, self)
                     )
             if not self.mibSymbols[modName].has_key(symName):
                 raise error.SmiError(
-                    'No symbol %s::%s at %r' % (modName, symName, self)
+                    'No symbol %s::%s at %s' % (modName, symName, self)
                     )
             r = r + (self.mibSymbols[modName][symName],)
         return r

@@ -30,7 +30,7 @@ class AbstractTransportDispatcher:
     def registerRecvCbFun(self, recvCbFun):
         if self.__recvCbFun is not None:
             raise error.BadArgumentError(
-                'Receive callback already registered: %r' % self.__recvCbFun
+                'Receive callback already registered: %s' % self.__recvCbFun
                 )
         self.__recvCbFun = recvCbFun
 
@@ -40,7 +40,7 @@ class AbstractTransportDispatcher:
     def registerTimerCbFun(self, timerCbFun):
         if self.__timerCbFun is not None:
             raise error.BadArgumentError(
-                'Callback already registered: %r' % self.__timerCbFun
+                'Callback already registered: %s' % self.__timerCbFun
                 )
         self.__timerCbFun = timerCbFun
 

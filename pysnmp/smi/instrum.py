@@ -82,7 +82,7 @@ class MibInstrumController:
                 rows[rowName].registerSubtrees(colObj)
             else:
                 raise error.SmiError(
-                    'Orphan MIB table column %r at %r' % (colName, self)
+                    'Orphan MIB table column %s at %s' % (colName, self)
                     )
         for rowObj in rows.values():
             mibTree.registerSubtrees(rowObj)
@@ -112,7 +112,7 @@ class MibInstrumController:
                 f = getattr(mibTree, state, None)
                 if f is None:
                     raise error.SmiError(
-                        'Unsupported state handler %r at %r' % (state, self)
+                        'Unsupported state handler %s at %s' % (state, self)
                         )
                 try:
                     rval = f(name, val)

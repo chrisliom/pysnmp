@@ -222,11 +222,11 @@ class MibVariable(ObjectTypePattern):
                self.maxAccess != 'readwrite' and \
                self.maxAccess != 'readcreate':
                 raise error.NoAccessError(
-                    'No read access to variable %r' % str(name)
+                    'No read access to variable %s' % str(name)
                     )
         else:
             raise error.NoSuchInstanceError(
-                'Variable %s does not exist at %r' % (name, self)
+                'Variable %s does not exist at %s' % (name, self)
                 )
     
     def readGet(self, name, val):
@@ -244,11 +244,11 @@ class MibVariable(ObjectTypePattern):
             if self.maxAccess != 'readwrite' and \
                self.maxAccess != 'readcreate':
                 raise error.NotWritableError(
-                    'No write access to variable %r at %r' % (name, self)
+                    'No write access to variable %s at %s' % (name, self)
                     )
         else:
             raise error.NoSuchInstanceError(
-                'Variable %s does not exist at %r' % (name, self)
+                'Variable %s does not exist at %s' % (name, self)
                 )
         self.__newSyntax = self.syntax.clone()
         self.__newSyntax.set(val)
@@ -291,7 +291,7 @@ class MibTree(ObjectTypePattern):
 #                 if self._vars[subTree.name] is subTree:
 #                     continue
 #                 raise error.SmiError(
-#                     'MIB subtree %r already registered %r' % \
+#                     'MIB subtree %s already registered %s' % \
 #                     (subTree.name, self)
 #                     )
             self._vars[subTree.name] = subTree
@@ -316,7 +316,7 @@ class MibTree(ObjectTypePattern):
             subName = subName[:-1]
         else:
             raise error.NoSuchInstanceError(
-                'Name %s does not exist at %r' % (name, self)
+                'Name %s does not exist at %s' % (name, self)
                 )
 
     def getNode(self, name):
@@ -360,7 +360,7 @@ class MibTree(ObjectTypePattern):
                    self.maxAccess != 'readwrite' and \
                    self.maxAccess != 'readcreate':
                 raise error.NoAccessError(
-                    'No read access to variable at %r' % self
+                    'No read access to variable at %s' % self
                     )
         else:
             node = self.getBranch(name)
@@ -368,7 +368,7 @@ class MibTree(ObjectTypePattern):
 # XXX
 #            if not isinstance(node, ObjectTypePattern):
 #                raise error.NoAccessError(
-#                    'Not ObjectType macro instance at %r' % self
+#                    'Not ObjectType macro instance at %s' % self
 #                    )
             node.readTest(name, val)
         
@@ -399,7 +399,7 @@ class MibTree(ObjectTypePattern):
                     return self.readGet(nextName, val)
             else:
                 raise error.NoSuchInstanceError(
-                    'Variable next to %s does not exist at %r' % (name, self)
+                    'Variable next to %s does not exist at %s' % (name, self)
                     )
 
     # Write operation
@@ -410,14 +410,14 @@ class MibTree(ObjectTypePattern):
             if self.maxAccess != 'readwrite' and \
                    self.maxAccess != 'readcreate':
                 raise error.NotWritableError(
-                    'No write access to variable %r at %r' % (name, self)
+                    'No write access to variable %s at %s' % (name, self)
                     )
         else:
             node = self.getBranch(name)
 # XXX
 #            if not isinstance(node, ObjectTypePattern): # XXX
 #                raise error.NoAccessError(
-#                    'Not ObjectType macro instance at %r' % self
+#                    'Not ObjectType macro instance at %s' % self
 #                    )
             node.writeTest(name, val)
     
@@ -453,7 +453,7 @@ class MibTableColumn(MibTree):
     def getColumnInitializer(self):
         if self.columnInitializer is None:
             raise error.SmiError(
-                'Uninitialized column syntax at %r' % (self)
+                'Uninitialized column syntax at %s' % (self)
                 )
         return self.columnInitializer
 
@@ -473,7 +473,7 @@ class MibTableColumn(MibTree):
         if val is not None and \
                self.columnInitializer.maxAccess != 'readcreate':
             raise error.NoCreationError(
-                'Column instance creation prohibited at %r' % self
+                'Column instance creation prohibited at %s' % self
                 )
         if not self.__createdInstances.has_key(name):            
             self.__createdInstances[name] = self.columnInitializer.clone(
@@ -526,7 +526,7 @@ class MibTableColumn(MibTree):
             if val is not None and \
                    self.columnInitializer.maxAccess != 'readcreate':
                 raise error.NoAccessError(
-                    'Column instance destruction prohibited at %r' % self
+                    'Column instance destruction prohibited at %s' % self
                     )
 
     def destroyCommit(self, name, val=None):
@@ -636,7 +636,7 @@ class MibTableRow(MibTree):
                 except ValueConstraintError:
                     valueLength = valueLength - 1
                 raise error.SmiError(
-                    'Instance ID %s does not fit INDEX %r' % (value, obj)
+                    'Instance ID %s does not fit INDEX %s' % (value, obj)
                     )
         elif self.__oidValue.isSubtype(obj):
             if impliedFlag:
@@ -684,7 +684,7 @@ class MibTableRow(MibTree):
                 baseIndices.append(mibObj)
         if instId:
             raise error.SmiError(
-                'Exsessive instance identifier sub-OIDs left at %r: %r' %
+                'Exsessive instance identifier sub-OIDs left at %s: %s' %
                 (self, instId)
                 )
         if not baseIndices:
@@ -712,7 +712,7 @@ class MibTableRow(MibTree):
         for modName, symName in names:
             if self.augmentingRows.has_key((modName, symName)):
                 raise error.SmiError(
-                    'Row %r already augmented by %s::%s' % \
+                    'Row %s already augmented by %s::%s' % \
                     (self.name, modName, symName)
                     )
             self.augmentingRows[(modName, symName)] = 1
@@ -771,7 +771,7 @@ class MibTableRow(MibTree):
             indices.append(val.get())
         if instId:
             raise error.SmiError(
-                'Exsessive instance identifier sub-OIDs left at %r: %r' %
+                'Exsessive instance identifier sub-OIDs left at %s: %s' %
                 (self, instId)
                 )
         return tuple(indices)

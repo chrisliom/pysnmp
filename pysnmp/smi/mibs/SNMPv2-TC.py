@@ -33,7 +33,7 @@ class TextualConvention:
                     return '%.*f' % (int(f), float(value)/pow(10, int(f)))
                 except StandardError, why:
                     raise error.SmiError(
-                        'float num evaluation error at %r: %s' % (self, why)
+                        'float num evaluation error: %s' % why
                     )
             elif t == 'o':
                 return '0%o' % value
@@ -45,7 +45,7 @@ class TextualConvention:
                 return join(r, '')
             else:
                 raise error.SmiError(
-                    'Unsupported numeric type spec at %r: %s' % (self, t)
+                    'Unsupported numeric type spec: %s' % t
                     )
         elif self.displayHint and self.__octetString.isSubtype(self):
             r = ''
@@ -68,12 +68,11 @@ class TextualConvention:
                     octetLength = int(octetLength)
                 except StandardError, why:
                     raise error.SmiError(
-                        'Bad octet length at %r: %s' % (self, octetLength)
+                        'Bad octet length: %s' % octetLength
                         )                    
                 if not d:
                     raise error.SmiError(
-                        'Short octet length at %r: %s' %
-                        (self, self.displayHint)
+                        'Short octet length: %s' % self.displayHint
                         )
                 # 3
                 displayFormat = d[0]
@@ -107,8 +106,8 @@ class TextualConvention:
                                 vv = vv[1:]
                             except StandardError, why:
                                 raise error.SmiError(
-                                    'Display format eval failure: %r at %r: %s'
-                                    % (vv, self, why)
+                                    'Display format eval failure: %s: %s'
+                                    % (vv, why)
                                     )
                         if displayFormat == 'x':
                             r = r + '%02x' % n
@@ -118,8 +117,8 @@ class TextualConvention:
                             r = r + '%d' % n
                     else:
                         raise error.SmiError(
-                            'Unsupported display format char at %r: %s' %
-                            (self, displayFormat)
+                            'Unsupported display format char: %s' % \
+                            displayFormat
                             )
                     if v and repeatTerminator:
                         r = r + repeatTerminator
@@ -130,7 +129,7 @@ class TextualConvention:
                     d = self.displayHint
 #             if d:
 #                 raise error.SmiError(
-#                     'Unparsed display hint left at %r: %s' % (self, d)
+#                     'Unparsed display hint left: %s' % d
 #                     )                    
             return r
         elif self.displayHint and self.__objectIdentifier.isSubtype(self):
@@ -143,7 +142,7 @@ class TextualConvention:
 #                 return self.bits[value.get()]
 #             except StandardError, why:
 #                 raise error.SmiError(
-#                     'Enumeratin resolution failure for %r: %s' % (self, why)
+#                     'Enumeratin resolution failure for %s: %s' % (self, why)
 #                     )
 
     def prettySet(self, value):
@@ -186,8 +185,7 @@ class TestAndIncr(Integer):
     def set(self, value):
         if value != self:
             raise error.InconsistentValueError(
-                'Old/new values mismatch at %r: %s' % \
-                (self, value)
+                'Old/new values mismatch %s: %s' % value
                 )
         value = value + 1
         if value > 2147483646:
@@ -297,8 +295,7 @@ class RowStatus(TextualConvention, Integer):
             )
         if err is not None:
             err = err(
-                'Exception at row state transition %s->%s at %r' %
-                (self, val, self)
+                'Exception at row state transition %s->%s' % (self, val)
                 )
         if val is not None:
             Integer.set(self, val)        
