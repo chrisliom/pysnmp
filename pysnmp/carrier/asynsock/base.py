@@ -19,19 +19,15 @@ class AbstractSocketTransport(asyncore.dispatcher):
 
     # Old asyncore doesn't allow socket_map param
     if version_info < (2, 0):
-        def add_channel (self, map=None):
-            if map is None:
-                map=asyncore.socket_map
+        def add_channel (self, map):
             map[self] = self
 
-        def del_channel (self, map=None):
-            if map is None:
-                map=asyncore.socket_map
+        def del_channel (self, map):
             if map.has_key(self):
                 del map[self]
         
     def registerSocket(self, sockMap=None):
-        self.del_channel()
+        self.del_channel(sockMap)
         self.add_channel(sockMap)
         
     def unregisterSocket(self, sockMap=None):
