@@ -185,6 +185,11 @@ class AbstractSimpleAsn1Item(Asn1ItemBase):
             return f(self.rawAsn1Value)
         return self.rawAsn1Value
 
+    def clone(self, value=None):
+        myClone = Asn1ItemBase.clone(self)
+        myClone.rawAsn1Value = self.rawAsn1Value
+        return myClone
+        
     # XXX left for compatibility
     def getTerminal(self): return self
 
