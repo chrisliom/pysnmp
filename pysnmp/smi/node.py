@@ -25,9 +25,11 @@ class MibType(MibEntry):
         """Resolve type spec into ASN1 type instance"""
         syntax = self.get('syntax')
         if syntax is not None:
-            if initialValue is not None:
-                initialValue = self.inputFilter(initialValue)
-            return syntax.clone().set(initialValue)  # Terminal type
+            if initialValue is None:
+                return syntax.clone()
+            else:
+                # Terminal type
+                return syntax.clone().set(self.inputFilter(initialValue))
 
         # Lookup base type
         baseTypeNode = mibTree.getType(self.get('baseName'),
@@ -61,7 +63,8 @@ class MibType(MibEntry):
         return syntax
         
     def outputFilter(self, mibTree, value=None):
-        syntax = self.getSyntax(mibTree); syntax.set(value)
+        syntax = self.getSyntax(mibTree)
+        if value is not None: syntax.set(value)
         enum = self.get('singleValueConstraint')
         if enum:
             v = syntax.get()
