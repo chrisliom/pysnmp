@@ -8,6 +8,7 @@ class AsynsockDispatcher(AbstractTransportDispatcher):
     """Implements I/O over asynchronous sockets"""
     def __init__(self, **kwargs):
         self.__sockMap = {}
+        self.timeout = 1.0
         apply(AbstractTransportDispatcher.__init__, [self], kwargs)
 
     def registerTransports(self, **kwargs):
@@ -22,10 +23,12 @@ class AsynsockDispatcher(AbstractTransportDispatcher):
         for name in args:
             transport.unregisterSocket()
 
-    def runDispatcher(self, timeout=1.0):
-        self.doDispatchFlag = 1
-        while self.doDispatchFlag:
-            poll(timeout, self.__sockMap)
+    def runDispatcher(self, liveForever=1):
+        self.doDispatchFlag = liveForever
+        while 1:
+            poll(self.timeout, self.__sockMap)
             self.handleTimerTick(time())
-
+            if not self.doDispatchFlag:
+                break
+            
 # XXX doDispatchFlag is needed?
