@@ -1,7 +1,6 @@
 """A high-level API to SNMP protocol objects.
 """
-from pysnmp.proto.api.alpha import pdutypes, versions
-from pysnmp.proto.api.alpha import v1, v2c
+from pysnmp.proto.omni import pdutypes, versions, v1, v2c
 
 # Protocol versions
 protoVersionId1 = versions.ProtoVersionId1()

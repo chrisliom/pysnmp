@@ -3,22 +3,22 @@
 """
 from types import InstanceType
 from pysnmp.proto import rfc1157
-from pysnmp.proto.api import error
+from pysnmp.proto.omni import error
 
 class VarBindMixIn:
-    def apiAlphaSetOidVal(self, (oid, val)):
+    def omniSetOidVal(self, (oid, val)):
         if oid is not None:
-            self.apiAlphaSetSimpleComponent('name', oid)
+            self.omniSetSimpleComponent('name', oid)
         if val is not None:
-            self['value'].apiAlphaSetTerminalValue(val)
+            self['value'].omniSetTerminalValue(val)
         return self
 
-    def apiAlphaGetOidVal(self):
-        return (self['name'], self['value'].apiAlphaGetTerminalValue())
+    def omniGetOidVal(self):
+        return (self['name'], self['value'].omniGetTerminalValue())
 
 class PduMixInBase:
-    def apiAlphaGetVarBindList(self): return self['variable_bindings']
-    def apiAlphaSetVarBindList(self, *varBinds):
+    def omniGetVarBindList(self): return self['variable_bindings']
+    def omniSetVarBindList(self, *varBinds):
         varBindList = self['variable_bindings']
         idx = 0
         for varBind in varBinds:
@@ -27,12 +27,12 @@ class PduMixInBase:
             else:
                 if len(varBindList) <= idx:
                     varBindList.append(varBindList.componentFactoryBorrow())
-                varBindList[idx].apiAlphaSetOidVal(varBind)
+                varBindList[idx].omniSetOidVal(varBind)
             idx = idx + 1
         del varBindList[idx:]
 
-    def apiAlphaGetTableIndices(self, rsp, *headerVars):
-        varBindList = rsp.apiAlphaGetVarBindList()
+    def omniGetTableIndices(self, rsp, *headerVars):
+        varBindList = rsp.omniGetVarBindList()
         if not varBindList:  # Shortcut for no-varbinds PDU
             return [ [ -1 ] * len(headerVars) ]
         if len(varBindList) != len(headerVars):
@@ -42,13 +42,13 @@ class PduMixInBase:
             )
         if not headerVars:
             raise error.BadArgumentError('Empty table')
-        endOfMibIndices = rsp.apiAlphaGetEndOfMibIndices()
+        endOfMibIndices = rsp.omniGetEndOfMibIndices()
         varBindRows = []
         for idx in range(len(varBindList)):
             if idx in endOfMibIndices:
                 varBindRows.append(-1)
                 continue
-            oid, val = varBindList[idx].apiAlphaGetOidVal()
+            oid, val = varBindList[idx].omniGetOidVal()
             # XXX isaprefix rename
             if not headerVars[idx].isaprefix(oid):
                 varBindRows.append(-1)
@@ -57,10 +57,10 @@ class PduMixInBase:
         return [ varBindRows ]
             
 class RequestPduMixIn(PduMixInBase):
-    def apiAlphaGetRequestId(self): return self['request_id']
-    def apiAlphaSetRequestId(self, value):
-        self.apiAlphaSetSimpleComponent('request_id', value)
-    def apiAlphaReply(self, pdu=None):
+    def omniGetRequestId(self): return self['request_id']
+    def omniSetRequestId(self, value):
+        self.omniSetSimpleComponent('request_id', value)
+    def omniReply(self, pdu=None):
         """Return initialized response PDU
         """
         if pdu is None:
@@ -70,21 +70,21 @@ class RequestPduMixIn(PduMixInBase):
                 'Bad PDU type for reply %s at %s' % 
                 (pdu.__class__.__name__, self.__class__.__name__)
             )
-        pdu.apiAlphaSetRequestId(self.apiAlphaGetRequestId().get())
+        pdu.omniSetRequestId(self.omniGetRequestId().get())
         return pdu
 
-    reply = apiAlphaReply
+    reply = omniReply
 
-    def apiAlphaMatch(self, rspPdu):
+    def omniMatch(self, rspPdu):
         """Return true if response PDU matches this ours"""
         if not isinstance(rspPdu, rfc1157.GetResponsePdu):
             raise error.BadArgumentError(
                 'Non-response PDU to match %s vs %s' %
                 (self.__class__.__name__, str(rspPdu))
             )
-        return self.apiAlphaGetRequestId() == rspPdu.apiAlphaGetRequestId()
+        return self.omniGetRequestId() == rspPdu.omniGetRequestId()
 
-    match = apiAlphaMatch
+    match = omniMatch
 
 # Request PDU mix-ins
 class GetRequestPduMixIn(RequestPduMixIn): pass
@@ -92,66 +92,66 @@ class GetNextRequestPduMixIn(RequestPduMixIn): pass
 class SetRequestPduMixIn(RequestPduMixIn): pass
 
 class GetResponsePduMixIn(RequestPduMixIn):
-    def apiAlphaGetErrorStatus(self): return self['error_status']
-    def apiAlphaSetErrorStatus(self, value):
-        self.apiAlphaSetSimpleComponent('error_status', value)
-    def apiAlphaGetErrorIndex(self):
+    def omniGetErrorStatus(self): return self['error_status']
+    def omniSetErrorStatus(self, value):
+        self.omniSetSimpleComponent('error_status', value)
+    def omniGetErrorIndex(self):
         errorIndex = self['error_index']
-        if errorIndex > len(self.apiAlphaGetVarBindList()):
+        if errorIndex > len(self.omniGetVarBindList()):
             raise error.BadArgumentError(
                 'Error index out of range (%s) at %s' %
                 (errorIndex, self.__class__.__name__)
             )
         return errorIndex
-    def apiAlphaSetErrorIndex(self, value):
-        self.apiAlphaSetSimpleComponent('error_index', value)
+    def omniSetErrorIndex(self, value):
+        self.omniSetSimpleComponent('error_index', value)
     
-    def apiAlphaGetEndOfMibIndices(self):
-        if self.apiAlphaGetErrorStatus() == 2:
-            return [ self.apiAlphaGetErrorIndex().get() - 1 ]
+    def omniGetEndOfMibIndices(self):
+        if self.omniGetErrorStatus() == 2:
+            return [ self.omniGetErrorIndex().get() - 1 ]
         return []
 
-    def apiAlphaSetEndOfMibIndices(self, *indices):
+    def omniSetEndOfMibIndices(self, *indices):
         for idx in indices:
-            self.apiAlphaSetErrorStatus(2)
-            self.apiAlphaSetErrorIndex(idx+1)
+            self.omniSetErrorStatus(2)
+            self.omniSetErrorIndex(idx+1)
             break
 
 # XXX A v2c-style alias
 ResponsePduMixIn = GetResponsePduMixIn
 
 class TrapPduMixIn(PduMixInBase):
-    def apiAlphaGetEnterprise(self):
+    def omniGetEnterprise(self):
         return self['enterprise']
-    def apiAlphaSetEnterprise(self, value):
-        self.apiAlphaSetSimpleComponent('enterprise', value)
-    def apiAlphaGetAgentAddr(self):
+    def omniSetEnterprise(self, value):
+        self.omniSetSimpleComponent('enterprise', value)
+    def omniGetAgentAddr(self):
         return self['agent_addr']['internet']
-    def apiAlphaSetAgentAddr(self, value):
+    def omniSetAgentAddr(self, value):
         # XXX this might need to be moved to some inner method
         if type(value) == InstanceType:
             self['agent_addr']['internet'] = value
         else:
             self['agent_addr']['internet'].set(value)
-    def apiAlphaGetGenericTrap(self):
+    def omniGetGenericTrap(self):
         return self['generic_trap']
-    def apiAlphaSetGenericTrap(self, value):
-        self.apiAlphaSetSimpleComponent('generic_trap', value)
-    def apiAlphaGetSpecificTrap(self):
+    def omniSetGenericTrap(self, value):
+        self.omniSetSimpleComponent('generic_trap', value)
+    def omniGetSpecificTrap(self):
         return self['specific_trap']
-    def apiAlphaSetSpecificTrap(self, value):
-        self.apiAlphaSetSimpleComponent('specific_trap', value)
-    def apiAlphaGetTimeStamp(self):
+    def omniSetSpecificTrap(self, value):
+        self.omniSetSimpleComponent('specific_trap', value)
+    def omniGetTimeStamp(self):
         return self['time_stamp']
-    def apiAlphaSetTimeStamp(self, value):
-        self.apiAlphaSetSimpleComponent('time_stamp', value)
+    def omniSetTimeStamp(self, value):
+        self.omniSetSimpleComponent('time_stamp', value)
 
 class MessageMixIn:
-    def apiAlphaGetVersion(self): return self['version']
-    def apiAlphaGetCommunity(self): return self['community']
-    def apiAlphaSetCommunity(self, value):
-        self.apiAlphaSetSimpleComponent('community', value)
-    def apiAlphaGetPdu(self):
+    def omniGetVersion(self): return self['version']
+    def omniGetCommunity(self): return self['community']
+    def omniSetCommunity(self, value):
+        self.omniSetSimpleComponent('community', value)
+    def omniGetPdu(self):
         if len(self['pdu']):
             return self['pdu'].values()[0]
         raise error.BadArgumentError(
@@ -159,33 +159,33 @@ class MessageMixIn:
             self.__class__.__name__
         )
     
-    def apiAlphaSetPdu(self, value):
-        self['pdu'].apiAlphaSetTerminalValue(value)
+    def omniSetPdu(self, value):
+        self['pdu'].omniSetTerminalValue(value)
 
-    def apiAlphaReply(self, rsp=None):
+    def omniReply(self, rsp=None):
         """Return initialized response message"""
         if rsp is None:
             rsp = rfc1157.Message()
-            rsp.apiAlphaSetPdu(self.apiAlphaGetPdu().apiAlphaReply())
+            rsp.omniSetPdu(self.omniGetPdu().omniReply())
         else:
-            self.apiAlphaGetPdu().apiAlphaReply(rsp.apiAlphaGetPdu())
-        rsp.apiAlphaSetCommunity(self.apiAlphaGetCommunity().get())
+            self.omniGetPdu().omniReply(rsp.omniGetPdu())
+        rsp.omniSetCommunity(self.omniGetCommunity().get())
         return rsp
 
-    def apiAlphaMatch(self, rsp):
+    def omniMatch(self, rsp):
         """Return true if response message matches this request"""
         if not isinstance(rsp, rfc1157.Message):
             raise error.BadArgumentError(
                 'Non-message to match %s vs %s' %
                 (self.__class__.__name__, str(rsp))
             )
-        if self.apiAlphaGetCommunity() != rsp.apiAlphaGetCommunity():
+        if self.omniGetCommunity() != rsp.omniGetCommunity():
             return
-        return self.apiAlphaGetPdu().apiAlphaMatch(rsp.apiAlphaGetPdu())
+        return self.omniGetPdu().omniMatch(rsp.omniGetPdu())
 
     # Compatibility aliases
-    reply = apiAlphaReply
-    match = apiAlphaMatch
+    reply = omniReply
+    match = omniMatch
              
 mixInComps = [ (rfc1157.VarBind, VarBindMixIn),
                (rfc1157.GetRequestPdu, GetRequestPduMixIn),

@@ -20,11 +20,12 @@ def importNew(prefix, oldVer, newVer):
         raise ImportError(
             'API version %s already imported' % oldVer
             )
-    newModName = prefix + '.' + newVer
+    pkg = os.path.split(prefix)[-1]
+    newModName = pkg + '.' + newVer
     __import__(newModName)
     newMod = sys.modules[newModName]
-    sys.modules['_real_' + prefix] = sys.modules[prefix]
-    sys.modules[prefix] = newMod
+    sys.modules['_real_' + pkg] = sys.modules[pkg]
+    sys.modules[pkg] = newMod
     return newVer
         
 

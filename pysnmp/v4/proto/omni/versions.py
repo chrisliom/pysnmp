@@ -2,19 +2,19 @@ from pysnmp.proto import rfc1155, rfc1157, rfc1902, rfc1905
 
 # Mix-in's
 class ProtoVersionIdMixInBase:
-    def apiAlphaGetProtoVersionId(self): return self.apiAlphaProtoVersionId
+    def omniGetProtoVersionId(self): return self.omniProtoVersionId
 
 class ProtoVersionId1MixIn(ProtoVersionIdMixInBase):
-    apiAlphaProtoVersionId = rfc1157.Version().get()
+    omniProtoVersionId = rfc1157.Version().get()
 
 class ProtoVersionId2cMixIn(ProtoVersionIdMixInBase):
-    apiAlphaProtoVersionId = rfc1905.Version().get()
+    omniProtoVersionId = rfc1905.Version().get()
 
 # Stand-alone versions
 class ProtoVersionIdBase:
-    def __hash__(self): return hash(self.apiAlphaProtoVersionId)
-    def __cmp__(self, other): return cmp(self.apiAlphaProtoVersionId, other)
-    def __str__(self): return str(self.apiAlphaProtoVersionId+1)
+    def __hash__(self): return hash(self.omniProtoVersionId)
+    def __cmp__(self, other): return cmp(self.omniProtoVersionId, other)
+    def __str__(self): return str(self.omniProtoVersionId+1)
 
 class ProtoVersionId1(ProtoVersionIdBase, ProtoVersionId1MixIn): pass
 class ProtoVersionId2c(ProtoVersionIdBase, ProtoVersionId2cMixIn): pass

@@ -2,36 +2,36 @@
 from pysnmp.proto import rfc1157, rfc1905
 
 class PduTypeMixInBase:
-    def apiAlphaGetPduType(self):
-        return self.apiAlphaPduType
+    def omniGetPduType(self):
+        return self.omniPduType
 
 # MixIn's
 
 # Common v1/v2c types
 class GetRequestPduTypeMixIn(PduTypeMixInBase):
-    apiAlphaPduType = 'GetRequest'
+    omniPduType = 'GetRequest'
 class GetNextRequestPduTypeMixIn(PduTypeMixInBase):
-    apiAlphaPduType = 'GetNextRequest'
+    omniPduType = 'GetNextRequest'
 class SetRequestPduTypeMixIn(PduTypeMixInBase):
-    apiAlphaPduType = 'SetRequest'
+    omniPduType = 'SetRequest'
 class GetResponsePduTypeMixIn(PduTypeMixInBase):
-    apiAlphaPduType = 'GetResponse'
+    omniPduType = 'GetResponse'
 class TrapPduTypeMixIn(PduTypeMixInBase):
-    apiAlphaPduType = 'Trap'
+    omniPduType = 'Trap'
 
 # v2c only types
 class GetBulkRequestPduTypeMixIn(PduTypeMixInBase):
-    apiAlphaPduType = 'BulkRequest'
+    omniPduType = 'BulkRequest'
 class InformRequestPduTypeMixIn(PduTypeMixInBase):
-    apiAlphaPduType = 'InformRequest'
+    omniPduType = 'InformRequest'
 class ReportPduTypeMixIn(PduTypeMixInBase):
-    apiAlphaPduType = 'Report'
+    omniPduType = 'Report'
 
 # Stand-alone PDU types
 class PduTypeBase:
-    def __hash__(self): return hash(self.apiAlphaPduType)
-    def __cmp__(self, other): return cmp(self.apiAlphaPduType, other)
-    def __str__(self): return str(self.apiAlphaPduType)
+    def __hash__(self): return hash(self.omniPduType)
+    def __cmp__(self, other): return cmp(self.omniPduType, other)
+    def __str__(self): return str(self.omniPduType)
 
 # Common v1/v2c types
 class GetRequestPduType(PduTypeBase, GetRequestPduTypeMixIn): pass

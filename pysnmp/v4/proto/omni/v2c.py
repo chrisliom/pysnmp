@@ -1,6 +1,6 @@
 from pysnmp.proto.rfc1902 import *
 from pysnmp.proto.rfc1905 import *
-from pysnmp.proto.api.alpha import univ, rfc1905, pdutypes
+from pysnmp.proto.omni import univ, rfc1905, pdutypes
 
 # Proto versions compatibility alias
 GetResponsePdu = ResponsePdu

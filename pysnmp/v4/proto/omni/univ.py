@@ -1,28 +1,28 @@
 """An implementation of high-level API to SNMP data types (RFC1155)"""
 from types import InstanceType
 from pysnmp.asn1 import univ
-from pysnmp.proto.api import error
+from pysnmp.proto.omni import error
 from pysnmp.asn1.error import BadArgumentError
 
 class SequenceMixIn:
-    def apiAlphaSetSimpleComponent(self, key, value):
+    def omniSetSimpleComponent(self, key, value):
         if type(value) == InstanceType:
             self[key] = value
         else:
             self[key].set(value)
         
 class ChoiceMixIn:
-    def apiAlphaGetCurrentComponent(self):
+    def omniGetCurrentComponent(self):
         if self:
             return self.values()[0]
         raise error.BadArgumentError(
             'No initialized component at %s' % self.__class__.__name__
         )
 
-    def apiAlphaGetTerminalValue(self):
+    def omniGetTerminalValue(self):
         if self:        
             component = self.values()[0]
-            f = getattr(component, 'apiAlphaGetTerminalValue', None)
+            f = getattr(component, 'omniGetTerminalValue', None)
             if f is not None: return f()
             return component
         raise error.BadArgumentError(
@@ -30,9 +30,9 @@ class ChoiceMixIn:
         )
 
     # XXX left for compatibility
-    getTerminal = apiAlphaGetTerminalValue
+    getTerminal = omniGetTerminalValue
 
-    def apiAlphaSetTerminalValue(self, value):
+    def omniSetTerminalValue(self, value):
         keys = self.keys() + self.protoComponents.keys()
         # At first, try upper level
         for key in keys:
@@ -44,10 +44,10 @@ class ChoiceMixIn:
                     pass
         # Otherwise, try inner components where available
         for key in keys:
-            if hasattr(self.protoComponents[key], 'apiAlphaSetTerminalValue'):
+            if hasattr(self.protoComponents[key], 'omniSetTerminalValue'):
                 comp = self.componentFactoryBorrow(key)
                 try:
-                    comp.apiAlphaSetTerminalValue(value)
+                    comp.omniSetTerminalValue(value)
                 except error.BadArgumentError:
                     continue
                 self[key] = comp

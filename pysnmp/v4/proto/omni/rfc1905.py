@@ -2,13 +2,12 @@
    objects (RFC1905)
 """
 from pysnmp.proto import rfc1905
-from pysnmp.proto.api.alpha import rfc1157
-from pysnmp.proto.api import error
+from pysnmp.proto.omni import rfc1157, error
 
 class VarBindMixIn(rfc1157.VarBindMixIn): pass
 
 class PduMixInBase(rfc1157.PduMixInBase):
-    def apiAlphaSetVarBindList(self, *varBinds):
+    def omniSetVarBindList(self, *varBinds):
         varBindList = self['variable_bindings']
         idx = 0
         for varBind in varBinds:
@@ -17,12 +16,12 @@ class PduMixInBase(rfc1157.PduMixInBase):
             else:
                 if len(varBindList) <= idx:
                     varBindList.append(varBindList.componentFactoryBorrow())
-                varBindList[idx].apiAlphaSetOidVal(varBind)
+                varBindList[idx].omniSetOidVal(varBind)
             idx = idx + 1
         del varBindList[idx:]
 
 class RequestPduMixIn(PduMixInBase, rfc1157.RequestPduMixIn):
-    def apiAlphaReply(self, pdu=None):
+    def omniReply(self, pdu=None):
         """Return initialized response PDU
         """
         if pdu is None:
@@ -32,21 +31,21 @@ class RequestPduMixIn(PduMixInBase, rfc1157.RequestPduMixIn):
                 'Bad PDU type for reply %s at %s' %
                 (pdu.__class__.__name__, self.__class__.__name__)
             )
-        pdu.apiAlphaSetRequestId(self.apiAlphaGetRequestId())
+        pdu.omniSetRequestId(self.omniGetRequestId())
         return pdu
 
-    reply = apiAlphaReply
+    reply = omniReply
 
-    def apiAlphaMatch(self, rspPdu):
+    def omniMatch(self, rspPdu):
         """Return true if response PDU matches this ours"""
         if not isinstance(rspPdu, rfc1905.ResponsePdu):
             raise error.BadArgumentError(
                 'Non-response PDU to match %s vs %s' %
                 (self.__class__.__name__, str(rspPdu))
             )
-        return self.apiAlphaGetRequestId() == rspPdu.apiAlphaGetRequestId()
+        return self.omniGetRequestId() == rspPdu.omniGetRequestId()
 
-    match = apiAlphaMatch
+    match = omniMatch
 
 # Request PDU mix-ins
 class GetRequestPduMixIn(RequestPduMixIn): pass
@@ -57,18 +56,18 @@ class ReportPduMixIn(PduMixInBase): pass
 class SnmpV2TrapPduMixIn(PduMixInBase): pass
 
 class ResponsePduMixIn(RequestPduMixIn, rfc1157.GetResponsePduMixIn):
-    def apiAlphaGetEndOfMibIndices(self):
+    def omniGetEndOfMibIndices(self):
         indices = []; idx = 0
-        for varBind in self.apiAlphaGetVarBindList():
-            oid, val = varBind.apiAlphaGetOidVal()
+        for varBind in self.omniGetVarBindList():
+            oid, val = varBind.omniGetOidVal()
             if isinstance(val, rfc1905.EndOfMibView):
                 indices.append(idx)
             idx = idx + 1
         indices.reverse()
         return indices
 
-    def apiAlphaSetEndOfMibIndices(self, *indices):
-        varBinds = self.apiAlphaGetVarBindList()
+    def omniSetEndOfMibIndices(self, *indices):
+        varBinds = self.omniGetVarBindList()
         for idx in indices:
             bindValue = varBinds[idx-1]['value']
             bindValue['endOfMibView'] = bindValue.componentFactoryBorrow('endOfMibView')
@@ -77,31 +76,31 @@ class ResponsePduMixIn(RequestPduMixIn, rfc1157.GetResponsePduMixIn):
 GetResponsePduMixIn = ResponsePduMixIn
     
 class GetBulkRequestPduMixIn(RequestPduMixIn):
-    def apiAlphaGetNonRepeaters(self): return self['non_repeaters']
-    def apiAlphaSetNonRepeaters(self, value): self['non_repeaters'].set(value)
-    def apiAlphaGetMaxRepetitions(self): return self['max_repetitions']
-    def apiAlphaSetMaxRepetitions(self, value):
+    def omniGetNonRepeaters(self): return self['non_repeaters']
+    def omniSetNonRepeaters(self, value): self['non_repeaters'].set(value)
+    def omniGetMaxRepetitions(self): return self['max_repetitions']
+    def omniSetMaxRepetitions(self, value):
         self['max_repetitions'].set(value)
 
-    def apiAlphaGetTableIndices(self, rsp, *headerVars):
-        nonRepeaters = self.apiAlphaGetNonRepeaters().get()
-        N = min(nonRepeaters, len(self.apiAlphaGetVarBindList()))
-        R = max(len(self.apiAlphaGetVarBindList())-N, 0)
+    def omniGetTableIndices(self, rsp, *headerVars):
+        nonRepeaters = self.omniGetNonRepeaters().get()
+        N = min(nonRepeaters, len(self.omniGetVarBindList()))
+        R = max(len(self.omniGetVarBindList())-N, 0)
         if R == 0:
             M = 0
         else:
-            M = min(self.apiAlphaGetMaxRepetitions().get(), \
-                    (len(rsp.apiAlphaGetVarBindList())-N)/R)
+            M = min(self.omniGetMaxRepetitions().get(), \
+                    (len(rsp.omniGetVarBindList())-N)/R)
         if len(headerVars) < R + N:
             raise error.BadArgumentError('Short table header')                
-        endOfMibIndices = rsp.apiAlphaGetEndOfMibIndices()
-        varBindList = rsp.apiAlphaGetVarBindList()        
+        endOfMibIndices = rsp.omniGetEndOfMibIndices()
+        varBindList = rsp.omniGetVarBindList()        
         varBindRows = []; varBindTable = [ varBindRows ]
         for idx in range(N):
             if idx in endOfMibIndices:
                 varBindRows.append(-1)
                 continue
-            oid, val = varBindList[idx].apiAlphaGetOidVal()
+            oid, val = varBindList[idx].omniGetOidVal()
             # XXX isaprefix rename
             if not headerVars[idx].isaprefix(oid):
                 varBindRows.append(-1)
@@ -117,37 +116,37 @@ class GetBulkRequestPduMixIn(RequestPduMixIn):
                 if len(varBindRow) < colIdx+N+1:
                     varBindRow.append(-1)
                 idx = N + rowIdx*R + colIdx
-                oid, val = varBindList[idx].apiAlphaGetOidVal()
+                oid, val = varBindList[idx].omniGetOidVal()
                 if headerVars[colIdx+N].isaprefix(oid):
                     varBindRow[-1] = idx
         return varBindTable
 
 class MessageMixIn(rfc1157.MessageMixIn):
-    def apiAlphaReply(self, rsp=None):
+    def omniReply(self, rsp=None):
         """Return initialized response message
         """
         if rsp is None:
             rsp = rfc1905.Message()
-            rsp.apiAlphaSetPdu(self.apiAlphaGetPdu().apiAlphaReply())
+            rsp.omniSetPdu(self.omniGetPdu().omniReply())
         else:
-            self.apiAlphaGetPdu().apiAlphaReply(rsp.apiAlphaGetPdu())
-        rsp.apiAlphaSetCommunity(self.apiAlphaGetCommunity())
+            self.omniGetPdu().omniReply(rsp.omniGetPdu())
+        rsp.omniSetCommunity(self.omniGetCommunity())
         return rsp
 
-    def apiAlphaMatch(self, rsp):
+    def omniMatch(self, rsp):
         """Return true if response message matches this request"""
         if not isinstance(rsp, rfc1905.Message):
             raise error.BadArgumentError(
                 'Non-message to match %s vs %s' %
                 (self.__class__.__name__, str(rsp))
             )
-        if self.apiAlphaGetCommunity() != rsp.apiAlphaGetCommunity():
+        if self.omniGetCommunity() != rsp.omniGetCommunity():
             return
-        return self.apiAlphaGetPdu().apiAlphaMatch(rsp.apiAlphaGetPdu())
+        return self.omniGetPdu().omniMatch(rsp.omniGetPdu())
 
     # Compatibility aliases
-    reply = apiAlphaReply
-    match = apiAlphaMatch
+    reply = omniReply
+    match = omniMatch
 
 mixInComps = [ (rfc1905.VarBind, VarBindMixIn),
                (rfc1905.GetRequestPdu, GetRequestPduMixIn),
