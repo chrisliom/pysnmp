@@ -33,15 +33,10 @@ class ExtUTCTime(OctetString):
 # MIB tree foundation classes
 
 class MibNodeBase:
-    defaultName = None
-    def __init__(self, name=None):
-        if name is not None:
-            self.name = name
-        elif self.defaultName is not None:
-            self.name = self.defaultName
-        else:
-            self.name = ()
-
+    def __init__(self, name=()):
+        self.name = name
+        self.label = ''
+        
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, self.name)
 
@@ -49,10 +44,16 @@ class MibNodeBase:
         self.name = name
         return self
 
+    def setLabel(self, label):
+        self.label = label
+        return self
+
     def clone(self, name=None):
         myClone = self.__class__(self.name)
         if name is not None:
             myClone.name = name
+        if self.label is not None:
+            myClone.label = self.label
         return myClone
     
 # definitions for information modules
@@ -275,12 +276,16 @@ class MibTree(ObjectTypePattern):
            at the level of this tree, not subtrees."""
         for subTree in subTrees:
             if self._vars.has_key(subTree.name):
-                raise error.SmiError(
-                    'MIB subtree %r already registered %r' % \
-                    (subTree.name, self)
-                    )
+                continue
+# XXX complain?
+#                 if self._vars[subTree.name] is subTree:
+#                     continue
+#                 raise error.SmiError(
+#                     'MIB subtree %r already registered %r' % \
+#                     (subTree.name, self)
+#                     )
             self._vars[subTree.name] = subTree
-        MibTree.branchVersionId = MibTree.branchVersionId + 1
+            MibTree.branchVersionId = MibTree.branchVersionId + 1
 
     def unregisterSubtrees(self, *subTrees):
         """Detach subtrees from this tree"""
@@ -739,7 +744,7 @@ snmpProxys = MibIdentifier(snmpV2.name +(2,))
 snmpModules = MibIdentifier(snmpV2.name +(3,))
 
 mibBuilder.exportSymbols(
-    modName, Integer32=Integer32, IpAddress=IpAddress,
+    'SNMPv2-SMI', Integer32=Integer32, IpAddress=IpAddress,
     Counter32=Counter32,    Gauge32=Gauge32, Unsigned32=Unsigned32,
     TimeTicks=TimeTicks, Opaque=Opaque, Counter64=Counter64,
     ExtUTCTime=ExtUTCTime, MibNodeBase=MibNodeBase,
