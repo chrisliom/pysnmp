@@ -22,7 +22,7 @@ usage = usage + '\n' + options + ' ' + v2c.Trap().cliUcdGetUsage() + '\n' + \
         v1.Trap().cliUcdGetUsage()
     
 # Initialize defaults
-port = 161
+port = 162
 version = '1'
     
 # Parse possible options
