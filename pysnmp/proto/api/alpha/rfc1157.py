@@ -41,7 +41,8 @@ class RequestPduMixIn:
             varBind = varBindList[idx]
 
             varBind['name'].set(name)
-            if not varBind['value'].setInnerComponent(value):
+            if value is not None and \
+                   not varBind['value'].setInnerComponent(value):
                 raise error.BadArgumentError('Unexpected value type at %s: %s'\
                                              % (self.__class__.__name__, value))
             idx = idx + 1
