@@ -15,6 +15,21 @@ of mix-in classes that provide high-level interface to SNMP v.2c message
 objects within a unified "Generic" API.
 </P>
 
+<A NAME="MessageMixIn"></A>
+<P>
+<DL>
+<DT>class <STRONG>MessageMixIn</STRONG>()</DT>
+<DD>
+<P>
+This is a mix-in for 
+<A HREF="../../rfc1905.html#Message">rfc1905.Message</A> class.
+It defines a few methods (<A HREF="#Subsections">see below</A>) composing
+high-level API to SNMP v.2c <STRONG>Message</STRONG>-based classes such as
+<STRONG>v2c.GetRequest</STRONG>, <STRONG>v2c.Trap</STRONG> etc.
+</P>
+</DD>
+</DL>
+
 <A NAME="GetRequestPduMixIn"></A>
 <A NAME="GetNextRequestPduMixIn"></A>
 <A NAME="SetRequestPduMixIn"></A>
@@ -82,12 +97,14 @@ base class.
 
 <P>
 <UL>
+<LI><A HREF="rfc1905-message-objects.html">
+API methods to rfc1905.Message objects</A>
 <LI><A HREF="rfc1905-getrequestpdu-objects.html">
-API methods to GetRequestMixIn (and similar) PDU objects</A>
+API methods to rfc1905.GetRequestMixIn (and similar) PDU objects</A>
 <LI><A HREF="rfc1905-responsepdu-objects.html">
-API methods to ResponseMixIn PDU objects</A>
+API methods to rfc1905.ResponseMixIn PDU objects</A>
 <LI><A HREF="rfc1905-getbulkrequestpdu-objects.html">
-API methods to GetBulkRequestMixIn PDU objects</A>
+API methods to rfc1905.GetBulkRequestMixIn PDU objects</A>
 </UL>
 </P>
 

@@ -15,6 +15,21 @@ of mix-in classes that provide high-level interface to SNMP v.1 message
 objects within a unified "Generic" API.
 </P>
 
+<A NAME="MessageMixIn"></A>
+<P>
+<DL>
+<DT>class <STRONG>MessageMixIn</STRONG>()</DT>
+<DD>
+<P>
+This is a mix-in for 
+<A HREF="../../rfc1157.html#Message">Message</A> class.
+It defines a few methods (<A HREF="#Subsections">see below</A>) composing
+high-level API to SNMP v.1 <STRONG>rfc1157.Message</STRONG>-based classes
+such as <STRONG>v1.GetRequest</STRONG>, <STRONG>v1.Trap</STRONG> etc.
+</P>
+</DD>
+</DL>
+
 <A NAME="GetRequestPduMixIn"></A>
 <A NAME="GetNextRequestPduMixIn"></A>
 <A NAME="SetRequestPduMixIn"></A>
@@ -73,12 +88,14 @@ base class.
 
 <P>
 <UL>
+<LI><A HREF="rfc1157-message-objects.html">
+API methods to rfc1157.Message objects</A>
 <LI><A HREF="rfc1157-getrequestpdu-objects.html">
-API methods to Get*/SetRequestMixIn PDU objects</A>
+API methods to rfc1157.Get*/SetRequestMixIn PDU objects</A>
 <LI><A HREF="rfc1157-getresponsepdu-objects.html">
-API methods to GetResponseMixIn PDU objects</A>
+API methods to rfc1157.GetResponseMixIn PDU objects</A>
 <LI><A HREF="rfc1157-trappdu-objects.html">
-API methods to TrapMixIn PDU objects</A>
+API methods to rfc1157.TrapMixIn PDU objects</A>
 </UL>
 </P>
 
