@@ -81,7 +81,9 @@ class IntegerMixIn(base.SimpleAsn1Object):
            Decode octet stream into signed ASN.1 integer (of any length).
         """
         bytes = map(ord, input)
-
+        if not len(bytes):
+            raise error.BadEncodingError('Empty value at %s' % \
+                                         self.__class__.__name__)
         if bytes[0] & 0x80:
             bytes.insert(0, -1L)
 
@@ -92,11 +94,6 @@ class IntegerMixIn(base.SimpleAsn1Object):
 
         except OverflowError:
             return result
-
-class BitStringMixIn(base.SimpleAsn1Object):
-    """BER for ASN.1 BITSTRING type
-    """
-    pass
 
 class OctetStringMixIn(base.SimpleAsn1Object):
     """Implements BER processing for an ASN.1 OCTETSTRING object
@@ -110,6 +107,11 @@ class OctetStringMixIn(base.SimpleAsn1Object):
         """Decode input into octet string value
         """
         return input
+
+class BitStringMixIn(OctetStringMixIn):
+    """BER for ASN.1 BITSTRING type
+    """
+    pass
 
 class NullMixIn(base.SimpleAsn1Object):
     """BER for ASN.1 NULL object

@@ -5,10 +5,10 @@
    details.
 """
 # Module public names
-__all__ = [ 'Integer', 'Integer32', 'OctetString', 'Null', \
+__all__ = [ 'Integer', 'Integer32', 'OctetString', 'BitString', 'Null', \
             'ObjectIdentifier', 'IpAddress', 'Counter32', 'Gauge32', \
             'Unsigned32', 'TimeTicks', 'Opaque',  'Counter64', 'Sequence', \
-            'SequenceOf', 'Choice', 'ObjectName', 'SimpleSyntax', \
+            'Bits', 'SequenceOf', 'Choice', 'ObjectName', 'SimpleSyntax', \
             'ApplicationSyntax', 'ObjectSyntax' ]
 
 from pysnmp.proto import rfc1155, error
@@ -29,10 +29,11 @@ class Integer32(Integer):
     pass
 
 class BitString(univ.BitString):
-    """SMI BITS data type
-    """
+    """SMI BIT STRING data type (defined by obsolete rfc1442,
+       implemented for backward compatibility).
+    """   
     pass
-
+    
 class OctetString(rfc1155.OctetString):
     """SMI OCTETSTRING data type
     """
