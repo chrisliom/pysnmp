@@ -11,49 +11,43 @@ __all__ = [ 'GetRequestPduMixIn', 'GetNextRequestPduMixIn',
             'ResponsePduMixIn', 'TrapPduMixIn', 'MessageMixIn',
             'registerMixIns' ]
 
-from pysnmp.proto import rfc1155, rfc1157
+from pysnmp.proto import rfc1157
 from pysnmp.proto.api import error
 
 class RequestPduMixIn:
     def apiAlphaGetRequestId(self): return self['request_id']
     def apiAlphaSetRequestId(self, value): self['request_id'].set(value)
     def apiAlphaGetVarBind(self):
-        outVars = []
-        for varBind in self['variable_bindings']:
-            outVars.append((varBind['name'],
-                            varBind['value'].values()[0].values()[0]))
-        return outVars
-    
+        return map(lambda x: (x['name'], x['value'].values()[0].values()[0]),
+                   self['variable_bindings'])
+
+    # Initialize var-bindings. Try to re-use existing ones
+    # (whenever possible) for better performance
     def apiAlphaSetVarBind(self, inVars):
-        varBindList = rfc1157.VarBindList()
-        for inVar in inVars:
+        inVarsLen = len(inVars)
+        varBindList = self['variable_bindings']
+        if not hasattr(self, '_cachedVarBindLists'):
+            self._cachedVarBindLists = { 0: varBindList }
+        if not self._cachedVarBindLists.has_key(inVarsLen):
+            self._cachedVarBindLists[inVarsLen] = apply(varBindList.__class__, map(lambda x, varBindList=varBindList: varBindList.protoComponent(), [0] * inVarsLen))
+        varBindList = self._cachedVarBindLists[inVarsLen]
+        idx = 0
+        while idx < inVarsLen:
             try:
-                (name, value) = inVar
+                (name, value) = inVars[idx]
             except ValueError:
-                raise error.BadArgumentError('A [(name, value)] style arg expected by %s: %s' % (self.__class__.__name__, repr(inVar)))
+                raise error.BadArgumentError('A [(name, value)] style arg expected by %s: %s' % (self.__class__.__name__, repr(inVars[idx])))
 
-            # Default to empty payload
-            if value is None:
-                value = rfc1155.Null()
+            varBind = varBindList[idx]
 
-            # Handle IP address
-            if isinstance(value, rfc1155.IpAddress):
-                value = rfc1155.NetworkAddress(addr=value)
+            varBind['name'].set(name)
+            if not varBind['value'].setInnerComponent(value):
+                raise error.BadArgumentError('Unexpected value type at %s: %s'\
+                                             % (self.__class__.__name__, value))
+            idx = idx + 1
 
-            for comp in rfc1155.SimpleSyntax.choiceComponents:
-                if isinstance(value, comp):
-                    varBindList.append(rfc1157.VarBind(name=rfc1155.ObjectName(name), value=rfc1155.ObjectSyntax(simple=rfc1155.SimpleSyntax(t=value))))
-                    break
-            else:
-                for comp in rfc1155.ApplicationSyntax.choiceComponents:
-                    if isinstance(value, comp):
-                        varBindList.append(rfc1157.VarBind(name=rfc1155.ObjectName(name), value=rfc1155.ObjectSyntax(simple=rfc1155.ApplicationSyntax(t=value))))
-                        break
-                else:
-                    raise error.BadArgumentError('Unknown value type %s at %s' % (repr(value), self.__class__.__name__))
-            
         self['variable_bindings'] = varBindList
-    
+            
 # Request PDU mix-ins
 class GetRequestPduMixIn(RequestPduMixIn): pass
 class GetNextRequestPduMixIn(RequestPduMixIn): pass

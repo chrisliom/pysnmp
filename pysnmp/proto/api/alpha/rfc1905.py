@@ -12,55 +12,16 @@ __all__ = [ 'GetRequestPduMixIn', 'GetNextRequestPduMixIn',
             'ReportPduMixIn', 'SnmpV2TrapPduMixIn', 'MessageMixIn',
             'registerMixIns' ]
 
-from pysnmp.proto import rfc1902, rfc1905
+from pysnmp.asn1.base import SimpleAsn1Object
+from pysnmp.proto import rfc1905
 from pysnmp.proto.api.alpha import rfc1157
 from pysnmp.proto.api import error
 
 class RequestPduMixIn(rfc1157.RequestPduMixIn):
     def apiAlphaGetVarBind(self):
-        outVars = []
-        for varBind in self['variable_bindings']:
-            # The value in v2c var may appear at different levels
-            value = varBind['value']
-            while 1:
-                if isinstance(value, rfc1902.Choice):
-                    value = value.values()[0]
-                else:
-                    break
-                
-            outVars.append((varBind['name'], value))
-
-        return outVars
-
-    def apiAlphaSetVarBind(self, inVars):
-        varBindList = rfc1905.VarBindList()
-        for inVar in inVars:
-            try:
-                (name, value) = inVar
-            except ValueError:
-                raise error.BadArgumentError('A [(name, value)] style arg expected by %s: %s' % (self.__class__.__name__, repr(inVar)))
-
-            # Default to empty payload
-            if value is None: value = rfc1902.Null()
-
-            for comp in rfc1905.BindValue.choiceComponents:
-                if isinstance(value, comp):
-                    varBindList.append(rfc1905.VarBind(name=rfc1902.ObjectName(name), value=rfc1905.BindValue(t=value)))
-                    break
-            else:
-                for comp in rfc1902.SimpleSyntax.choiceComponents:
-                    if isinstance(value, comp):
-                        varBindList.append(rfc1905.VarBind(name=rfc1902.ObjectName(name), value=rfc1905.BindValue(syntax=rfc1902.ObjectSyntax(simple=rfc1902.SimpleSyntax(t=value)))))
-                        break
-                else:
-                    for comp in rfc1902.ApplicationSyntax.choiceComponents:
-                        if isinstance(value, comp):
-                            varBindList.append(rfc1905.VarBind(name=rfc1902.ObjectName(name), value=rfc1905.BindValue(syntax=rfc1902.ObjectSyntax(app=rfc1902.ApplicationSyntax(t=value)))))
-                            break
-                    else:
-                        raise error.BadArgumentError('Unknown value type %s at %s' % (repr(value), self.__class__.__name__))
-
-        self['variable_bindings'] = varBindList
+        return map(lambda x: \
+                   (x['name'], x['value'].getInnerComponent(SimpleAsn1Object)),
+                   self['variable_bindings'])
 
 # Request PDU mix-ins
 class GetRequestPduMixIn(RequestPduMixIn): pass
@@ -70,11 +31,7 @@ class InformRequestPduMixIn(RequestPduMixIn): pass
 class ReportPduMixIn(RequestPduMixIn): pass
 class SnmpV2TrapPduMixIn(RequestPduMixIn): pass
 
-class ResponsePduMixIn(RequestPduMixIn):
-    def apiAlphaGetErrorStatus(self): return self['error_status']
-    def apiAlphaSetErrorStatus(self, value): self['error_status'].set(value)
-    def apiAlphaGetErrorIndex(self): return self['error_index']
-    def apiAlphaSetErrorIndex(self, value): self['error_index'].set(value)
+class ResponsePduMixIn(RequestPduMixIn, rfc1157.GetResponsePduMixIn): pass
 
 # A v1-style alias
 GetResponsePduMixIn = ResponsePduMixIn
@@ -86,12 +43,7 @@ class GetBulkRequestPduMixIn(RequestPduMixIn):
     def apiAlphaSetMaxRepetitions(self, value):
         self['max_repetitions'].set(value)
 
-class MessageMixIn:
-    def apiAlphaGetVersion(self): return self['version']
-    def apiAlphaGetCommunity(self): return self['community']
-    def apiAlphaSetCommunity(self, value): self['community'].set(value)
-    def apiAlphaGetPdu(self): return self['pdu'].values()[0]
-    def apiAlphaSetPdu(self, value): self['pdu'][None] = value
+class MessageMixIn(rfc1157.MessageMixIn): pass
 
 def mixIn():
     """Register this module's mix-in classes at their bases
