@@ -276,7 +276,8 @@ class OrderedFixedTypeAsn1Object(FixedTypeAsn1Object):
                 input = self[key].berDecode(input)
 
         if len(input):
-            raise error.TypeMismatchError('Extra data on wire at %s' % self.__class__.__name__)
+            raise error.TypeMismatchError('Extra data in wire at %s' % \
+                                          self.__class__.__name__)
         return rest
 
     decode = berDecode
@@ -301,18 +302,16 @@ class UnorderedFixedTypeAsn1Object(FixedTypeAsn1Object):
                 for key in keys:
                     try:
                         input = self[key].berDecode(input)
-
-                    except error.TypeMismatchError:
+                    except Asn1Error:
                         continue
 
                     keys.remove(key)
                     break
                 else:
-                    raise error.TypeMismatchError('Unregistered tag %o at %s'\
-                                                  % (decodeTag(input), \
-                                                     self.__class__.__name__))
+                    raise error.TypeMismatchError('Octet-stream parse error at %s'\
+                                                  % self.__class__.__name__)
         if len(input):
-            raise error.TypeMismatchError('Extra data on wire at %s' % self.__class__.__name__)
+            raise error.TypeMismatchError('Extra data in wire at %s' % self.__class__.__name__)
         return rest
 
     decode = berDecode
@@ -338,8 +337,9 @@ class SingleFixedTypeAsn1Object(FixedTypeAsn1Object):
             if len(self):
                 try:
                     if len(self.values()[0].berDecode(input)):
-                        raise error.TypeMismatchError('Extra data on wire at %s' % self.__class__.__name__)
-                except error.TypeMismatchError:
+                        raise error.TypeMismatchError('Extra data in wire at %s'\
+                                                      % self.__class__.__name__)
+                except Asn1Error:
                     pass
                 else:
                     return rest
@@ -351,8 +351,9 @@ class SingleFixedTypeAsn1Object(FixedTypeAsn1Object):
                 for (name, value) in cachedValues:
                     try:
                         if len(value.berDecode(input)):
-                            raise error.TypeMismatchError('Extra data on wire at %s' % self.__class__.__name__)
-                    except error.TypeMismatchError:
+                            raise error.TypeMismatchError('Extra data in wire at %s'\
+                                                          % self.__class__.__name__)
+                    except Asn1Error:
                         continue
                     else:                        
                         self[name] = value
@@ -365,15 +366,17 @@ class SingleFixedTypeAsn1Object(FixedTypeAsn1Object):
                                self.choiceComponents[idx]())
                 try:
                     if len(value.berDecode(input)):
-                        raise error.TypeMismatchError('Extra data on wire at %s' % self.__class__.__name__)
-                except error.TypeMismatchError:
+                        raise error.TypeMismatchError('Extra data in wire at %s'\
+                                                      % self.__class__.__name__)
+                except Asn1Error:
                     continue
                 else:
                     self[name] = value
                     cachedValues.append((name, value))
                     return rest
             else:
-                raise error.TypeMismatchError('Unregistered tag %o at %s' % (decodeTag(input), self.__class__.__name__))
+                raise error.TypeMismatchError('Octet-stream parse error at %s'\
+                                              % self.__class__.__name__)
 
     decode = berDecode
     
