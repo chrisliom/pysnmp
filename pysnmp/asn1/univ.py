@@ -4,7 +4,7 @@ __all__ = [ 'Boolean', 'Integer', 'BitString', 'OctetString', 'Null', \
             'SequenceOf', 'Set', 'SetOf', 'Choice' ]
 
 import string
-from string import join, split, find, atol
+from string import join, split, atoi, atol
 from operator import getslice
 from types import IntType, LongType, StringType, NoneType, FloatType,  \
      TupleType, ListType, SliceType
@@ -376,17 +376,20 @@ class ObjectIdentifier(base.AbstractSimpleAsn1Item):
         """
         numericOid = ()
         
-        if len(symbolicOid) == 0:
+        if not symbolicOid:
             return numericOid
 
-        try:
-            for element in filter(None, split(symbolicOid, '.')):
-                numericOid = numericOid + (atol(element, 0), )
-        except string.atol_error, why:
-            raise error.BadArgumentError(
-                'Malformed Object ID %s at %s: %s' %
-                (str(symbolicOid), self.__class__.__name__, why)
-            )
+        for element in filter(None, split(symbolicOid, '.')):
+            try:
+                numericOid = numericOid + (atoi(element, 0), )
+            except string.atoi_error:
+                try:
+                    numericOid = numericOid + (atol(element, 0), )
+                except string.atol_error, why:                        
+                    raise error.BadArgumentError(
+                        'Malformed Object ID %s at %s: %s' %
+                        (str(symbolicOid), self.__class__.__name__, why)
+                        )
         return numericOid
 
     def num2str(self, numericOid):
