@@ -15,6 +15,10 @@ from types import StringType
 from string import join
 from pysnmp.asn1 import error
 
+__all__ = [ 'SingleValueConstraint', 'ContainedSubtypeConstraint',
+            'ValueRangeConstraint', 'ValueSizeConstraint',
+            'PermittedAlphabetConstraint' ]
+
 class ConstraintBase:
     """Abstract base-class for constraint objects
 
@@ -45,7 +49,7 @@ class SingleValueConstraint(ConstraintBase):
         """Raise errors if value not appropriate for client"""
         if self.values.get(value) is None:
             raise error.ValueConstraintError(
-                '%s for %r: value %s not within allowed values: %s' % (
+                '%s for %s: value %s not within allowed values: %s' % (
                     self.__class__.__name__,
                     client.__class__.__name__,
                     str(value),
@@ -104,7 +108,7 @@ class ValueRangeConstraint(ConstraintBase):
             valLen = value
         if valLen < self.start or valLen > self.stop:
             raise error.ValueConstraintError(
-                '%s for %r: value %r not within allowed range: %s through %s'%(
+                '%s for %s: value %s not within allowed range: %s through %s'%(
                     self.__class__.__name__,
                     client.__class__.__name__,
                     str(value),
@@ -127,7 +131,7 @@ class ValueSizeConstraint(ValueRangeConstraint):
         length = len(value)
         if length < self.start or length > self.stop:
             raise error.ValueConstraintError(
-                '%s for %r: len(value) %s (%s) not within allowed range: %s through %s' % (
+                '%s for %s: len(value) %s (%s) not within allowed range: %s through %s' % (
                     self.__class__.__name__,
                     client.__class__.__name__,
                     str(value),
@@ -157,7 +161,7 @@ class PermittedAlphabetConstraint(SingleValueConstraint): pass
 #         """Raise errors if value not appropriate for client"""
 #         if self.values.get(value) is None:
 #             raise error.ValueConstraintError(
-#                 '%s for %r: value %s not within allowed values: %s' % (
+#                 '%s for %s: value %s not within allowed values: %s' % (
 #                     self.__class__.__name__,
 #                     client.__class__.__name__,
 #                     str(value),

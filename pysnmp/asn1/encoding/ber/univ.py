@@ -83,7 +83,7 @@ class NullBerCodec(base.SimpleBerCodecBase):
     def decodeValue(self, client, oStream):
         if oStream:
             raise error.BadEncodingError(
-                'Wrongly sized octet-stream (len(%d) > 0) at %r for %r' %
+                'Wrongly sized octet-stream (len(%d) > 0) at %s for %s' %
                 (len(oStream), self.__class__.__name__,
                  client.__class__.__name__)
             )
@@ -95,7 +95,7 @@ class ObjectIdentifierBerCodec(base.SimpleBerCodecBase):
         # Make sure the Object ID is long enough
         if len(oid) < 2:
             raise error.BadArgumentError(
-                'Short Object ID at %r for %r: %s' %
+                'Short Object ID at %s for %s: %s' %
                 (self.__class__.__name__, client.__class__.__name__, oid)
             )
 
@@ -105,7 +105,7 @@ class ObjectIdentifierBerCodec(base.SimpleBerCodecBase):
         value = value + oid[index+1]
         if 0 > value > 0xff:
             raise error.BadArgumentError(
-                'Initial sub-ID overflow %s at %r for %r' %
+                'Initial sub-ID overflow %s at %s for %s' %
                 (oid[index:],  self.__class__.__name__,
                  client.__class__.__name__)
             )
@@ -119,7 +119,7 @@ class ObjectIdentifierBerCodec(base.SimpleBerCodecBase):
                 value.append(chr(subid & 0x7f))
             elif subid < 0 or subid > 0xFFFFFFFFL:
                 raise error.BadArgumentError(
-                    'SubId overflow %s at %r for %r' %
+                    'SubId overflow %s at %s for %s' %
                     (subid, self.__class__.__name__,
                      client.__class__.__name__)
                 )
@@ -143,7 +143,7 @@ class ObjectIdentifierBerCodec(base.SimpleBerCodecBase):
 
         if not oStream:
             raise error.BadArgumentError(
-                'Short octet-stream (<1) at %r for %r' %
+                'Short octet-stream (<1) at %s for %s' %
                 (self.__class__.__name__, client.__class__.__name__)
             )
         # Get the first subid
@@ -175,7 +175,7 @@ class ObjectIdentifierBerCodec(base.SimpleBerCodecBase):
                     # Just for sure
                     if index > len(oStream):
                         raise error.BadArgumentError(
-                            'Malformed sub-Object ID at %r for %r' %
+                            'Malformed sub-Object ID at %s for %s' %
                             (self.__class__.__name__,
                              client.__class__.__name__)
                         )
@@ -235,7 +235,7 @@ class ChoiceBerCodec(base.MappingTypeBerCodecBase):
             return restOfStream
         else:
             raise error.TypeMismatchError(
-                'Octet-stream parse error at %r for %r' %
+                'Octet-stream parse error at %s for %s' %
                 (self.__class__.__name__, client.__class__.__name__)
             )    
 

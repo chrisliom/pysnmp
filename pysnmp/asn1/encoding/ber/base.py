@@ -12,14 +12,14 @@ class AbstractBerCodec:
     def encodeValue(self, client):
         """encodeValue(client) -> oStream"""
         raise error.BadArgumentError(
-            'No BER value encoder implemented at %r for %r' %
+            'No BER value encoder implemented at %s for %s' %
             (self.__class__.__name__, client.__class__.__name__)
         )
 
     def decodeValue(self, client, oStream):
         """decodeValue(client, oStream) -> restOfStream"""
         raise error.BadArgumentError(
-            'No BER value decoder implemented at %r for %r' %
+            'No BER value decoder implemented at %s for %s' %
             (self.__class__.__name__, client.__class__.__name__)
         )
 
@@ -61,7 +61,7 @@ class AbstractBerCodec:
             # More octets may be added
             else:
                 raise error.OverFlowError(
-                    'Too large length %d at %r' %
+                    'Too large length %d at %s' %
                     (length, self.__class__.__name__)
                 )
             oStream = chr(taggingSequence[idx]) + berLength + oStream
@@ -72,7 +72,9 @@ class AbstractBerCodec:
         restOfStream = None
         if client.tagCategory == tagCategories['IMPLICIT']:
             taggingSequence = (
-                chr(client.tagClass[0] | client.tagFormat[0] | client.tagId[0]),
+                chr(
+                client.tagClass[0] | client.tagFormat[0] | client.tagId[0]
+                ),
             )
         elif client.tagCategory == tagCategories['UNTAGGED']:
             taggingSequence = ()
@@ -90,18 +92,17 @@ class AbstractBerCodec:
             # Decode BER tag
             if len(oStream) < 2:
                 raise error.UnderRunError(
-                    'Short octet stream (no tag) at %r' %
+                    'Short octet stream (no tag) at %s' %
                     self.__class__.__name__
             )
             # use strings here instead of ord
             gotTag = oStream[0]
             if gotTag != tag:
                 raise error.TypeMismatchError(
-                    'Tag mismatch at %r for %r: expected %o but got %o' %
+                    'Tag mismatch at %s for %s: expected %o but got %o' %
                     (self.__class__.__name__, client.__class__.__name__,
                      ord(tag), ord(gotTag))
                 )
-
 
             ## Hopefully faster length decoding...
             lenOfStream = len(oStream)
@@ -118,18 +119,18 @@ class AbstractBerCodec:
                 # we can handle more than is possible
                 if len(lengthString) != size:
                     raise error.BadEncodingError(
-                        'Expected %r bytes of length encoding for %r, but not enough data in stream, only %r bytes' %
+                        'Expected %s bytes of length encoding for %s, but not enough data in stream, only %s bytes' %
                         size,
                         self.__class__.__name__,
                         len( lengthString ),
                     )
                 for char in lengthString:
                     length = (length << 8) | ord(char)
-                size += 1
+                size = size + 1
 
             if lenOfStream - 1 - size < length:
                 raise error.UnderRunError(
-                    'Incomplete octet-stream at %r for %r' %
+                    'Incomplete octet-stream at %s for %s' %
                     (self.__class__.__name__, client.__class__.__name__)
                 )
             if restOfStream is None:
@@ -141,7 +142,7 @@ class AbstractBerCodec:
             return self.decodeValue(client, oStream)
         if self.decodeValue(client, oStream):
             raise error.TypeMismatchError(
-                'Extra data left in wire at %r for %r: %s' %
+                'Extra data left in wire at %s for %s: %s' %
                 (self.__class__.__name__, client.__class__.__name__,
                  repr(oStream))
             )
