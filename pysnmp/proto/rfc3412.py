@@ -95,9 +95,6 @@ class MsgAndPduDispatcher:
         self.transportDispatcher.unregisterTimerCbFun()
         self.transportDispatcher = None
 
-    def runTransportDispatcher(self):
-        self.transportDispatcher.runDispatcher()
-
     # These routines manage cache of management apps
 
     def __newSendPduHandle(self):
@@ -506,7 +503,7 @@ if __name__ == '__main__':
     ManagerApplication().sendReq(dsp)
 
     try:
-        dsp.runTransportDispatcher()
+        dsp.transportDispatcher.runDispatcher()
     except "STOP":
         dsp.unregisterTransportDispatcher()
     
