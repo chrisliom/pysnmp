@@ -61,11 +61,12 @@ class Asn1ItemBase(Asn1Item):
             # XXX is it always correct?
             for t in self.tagSet:
                 if t not in other.tagSet:
-                    return
+                    return 0
             for c in self.subtypeConstraints:
                 if c not in other.subtypeConstraints:
-                    return
+                    return 0
             return 1
+        return 0
 
     def addConstraints(self, *constraints):
         """Add more ASN1 subtype constraints to this object"""
@@ -187,7 +188,10 @@ class AbstractSimpleAsn1Item(Asn1ItemBase):
 
     def clone(self, value=None):
         myClone = Asn1ItemBase.clone(self)
-        myClone.rawAsn1Value = self.rawAsn1Value
+        if value is None:
+            myClone.rawAsn1Value = self.rawAsn1Value
+        else:
+            myClone.set(value)
         return myClone
         
     # XXX left for compatibility
@@ -234,12 +238,14 @@ class AbstractMappingAsn1Item(StructuredAsn1ItemBase):
     def __len__(self): return len(self._components)
 
 class AbstractSequenceAsn1Item(StructuredAsn1ItemBase):
+    initialComponents = ()
+    protoComponent = None
     def __init__(self, *args):
         self._components = []
         if args:
             self.extend(args)
         else:
-            for val in self.initialValue:
+            for val in self.initialComponents:
                 self._components.append(val.clone())
 
     def __repr__(self):
