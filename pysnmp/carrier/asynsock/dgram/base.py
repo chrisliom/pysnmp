@@ -9,7 +9,7 @@ class DgramSocketTransport(AbstractSocketTransport):
     retryCount = 3; retryInterval = 1
     def __init__(self, sock=None, sockMap=None):
         self.__outQueue = []
-        AbstractSocketTransport.__init__(self, sock=None, sockMap=None)
+        AbstractSocketTransport.__init__(self, sock, sockMap)
         
     def openClientMode(self, iface=None):
         if iface is not None:
@@ -27,7 +27,7 @@ class DgramSocketTransport(AbstractSocketTransport):
         self._iface = iface
         return self
 
-    rewriteAddress = lambda x: x
+    def rewriteAddress(self, transportAddress): return transportAddress
     
     def sendMessage(self, outgoingMessage, transportAddress):
         self.__outQueue.append(
