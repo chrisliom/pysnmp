@@ -93,6 +93,5 @@ pysnmp/proto/secmod/__init__.py
 pysnmp/proto/secmod/base.py
 pysnmp/proto/secmod/error.py
 pysnmp/proto/secmod/rfc2576.py
-pysnmp/proto/secmod/rfc3414.py
 tools/libsmi2pysnmp
 setup.py
