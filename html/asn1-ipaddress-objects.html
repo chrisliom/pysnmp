@@ -1,0 +1,84 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: SNMP message: ASN.1: IPADDRESS: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of the <STRONG>asn1.IPADDRESS</STRONG> class.
+</H3>
+
+<P>
+Instances of the <STRONG>asn1.IPADDRESS</STRONG> class have the following
+methods:
+</P>
+
+<DL>
+
+<DT><STRONG>encode</STRONG>([<STRONG>value</STRONG>])</DT>
+<P>
+The <STRONG>encode</STRONG> method converts the content of the class
+instance into BER octet-stream (string).
+</P>
+<P>
+The <STRONG>value</STRONG> parameter, whenever used for last-minute payload
+assignment to class instance, must be given in a symbolic, "dotted" form
+(for example, '127.0.0.1').
+</P>
+
+<DT><STRONG>decode</STRONG>(<STRONG>data</STRONG>)</DT>
+<P>
+The <STRONG>decode</STRONG> method attempts to convert the
+<STRONG>data</STRONG> octet-stream (string) into an IP address value, and
+returns a tuple of (<STRONG>ipaddress_class_instance</STRONG>,
+<STRONG>rest</STRONG>).
+</P>
+<P>
+Any unprocessed part of <STRONG>data</STRONG> octet-stream is returned
+in the <STRONG>rest</STRONG> string.
+</P>
+<P>
+The <STRONG>data</STRONG> octet-stream must carry an ASN.1 IP address value
+or an <A HREF=errors.html">exception</A> would be thrown.
+</P>
+
+<DT><STRONG>update</STRONG>(<STRONG>value</STRONG>)</DT>
+<P>
+The <STRONG>update</STRONG> method assigns the <STRONG>value</STRONG>,
+given in dotted notation, to class instance payload.
+</P>
+
+<DT><STRONG>__call__</STRONG>()</DT>
+<P>
+Class instance invocation would return currently stored payload
+in dotted notation.
+</P>
+
+<DT><STRONG>__cmp__</STRONG>(<STRONG>other</STRONG>)</DT>
+<P>
+Class instances may be compared against each <STRONG>other</STRONG>. The
+comparation would return negative if <STRONG>other</STRONG> is greater, zero 
+on equivalence, positive if <STRONG>other</STRONG> is less.
+</P>
+
+<DT><STRONG>__repr__</STRONG>()</DT>
+<P>
+Returns the canonical string representation of the class instance.
+</P>
+
+<DT><STRONG>__str__</STRONG>()</DT>
+<P>
+Returns a nice string representation of the class instance.
+</P>
+
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

@@ -1,0 +1,97 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: I/O engine: Multiple-session</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Multiple-session, bulk I/O engine
+</H3>
+<P>
+The <STRONG>pysnmp.bulkrole</STRONG> module defines <STRONG>manager</STRONG>
+and <STRONG>agent</STRONG> classes, representing SNMP manager and agent roles
+in a SNMP system. These classes implement network client (manager) and server
+(agent) respectively, that run multiple transport sessions against multiple
+destinations over multiple BSD sockets (one socket per session).
+They are intended to be used in situations where a large number of SNMP parties
+need to be talked with at about the same time (a poll against multiple routers
+for gathering statistics at a specific time, for example).
+</P>
+<P>
+The <STRONG>pysnmp.bulkrole</STRONG> code is a pure network transport
+facility -- it deals with abstract data items and has nothing to know about
+SNMP context. In order to build a complete SNMP entity, a SNMP message
+processing code should be used along. See SNMP protocol modules
+(<A HREF="v2c.html">v2c</A>, <A HREF="v1.html">v1</A>) for that.
+</P>
+<P>
+The <STRONG>pysnmp.bulkrole</STRONG> module defines the only class:
+</P>
+<DL>
+<DT>class <STRONG>manager</STRONG>([<STRONG>iface</STRONG>])</DT>
+<DD>
+<P>
+Returns a new instance of <STRONG>manager</STRONG> class, representing
+multiple network clients, each of which may be running against its own
+destination (to be defined later on).
+</P>
+<P>
+The <STRONG>iface</STRONG> parameter, if given, specifies the interface and
+port on local machine to <STRONG>bind()</STRONG> to. This argument must
+follow the <STRONG>socket</STRONG> module notation. All further requests
+would then be originated from the given interface/port (for example,
+('127.0.0.1', 0)).
+</P>
+<P>
+The default for <STRONG>iface</STRONG> is ('0.0.0.0', 0) what stands for binding
+to a primary interface at the local machine.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>exception <STRONG>Error</STRONG></DT>
+<DD>
+<P>
+Exception raised on any error in the <STRONG>pysnmp.bulkrole</STRONG> module,
+as well as in its  base (<STRONG>pysnmp.role</STRONG>) and derivative modules.
+This exception class is a subclass of the <STRONG>pysnmp.role</STRONG> class.
+</P>
+<P>
+See documentation on the <A HREF="error.html">error.General</A> base class for
+usage details.
+</P>
+</DD>
+</DL>
+
+<P>
+The following exceptions are derived from this class:
+</P>
+
+<DL>
+<DT>exception <STRONG>BadArgument</STRONG></DT>
+<DD>
+<P>
+Bad parameters given.
+</P>
+</DD>
+</DL>
+
+<HR><STRONG>Subsections</STRONG>
+
+<P>
+<UL>
+<LI>Objects of the<A HREF="bulkrole-manager-objects.html">
+<STRONG>bulkrole.manager</STRONG></A> class
+</UL>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

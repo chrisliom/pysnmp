@@ -1,0 +1,121 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: I/O engine: Single-session: Manager: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of the <STRONG>role.manager</STRONG> class
+</H3>
+
+<P>
+The instances of <STRONG>role.manager</STRONG> class have the following
+methods:
+</P>
+
+<DL>
+<DT><STRONG>send_and_receive</STRONG>(<STRONG>req</STRONG>[, <STRONG>dst</STRONG>])</DT>
+<DD>
+<P>
+Attempt to send request data item <STRONG>req</STRONG> (string) to remote
+server by either <STRONG>dst</STRONG> address (given in <STRONG>socket</STRONG>
+module notation), if specified, or default destination whenever given on
+<STRONG>manager</STRONG> class instaniation, and receive a response. Raise
+an <STRONG>error.NoResponse</STRONG> exception if no response arrived within
+<STRONG>manager.timeout</STRONG> seconds.
+</P>
+<P>
+Return server reply as string.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>open</STRONG>()</DT>
+<DD>
+<P>
+Create optionally connected socket object to be used for communication
+with remote server process.
+</P>
+<P>
+Return socket object.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>send</STRONG>(<STRONG>req</STRONG>, [<STRONG>dst</STRONG>])</DT>
+<DD>
+<P>
+Attempt to send request data <STRONG>req</STRONG> (string) to remote
+server by either <STRONG>dst</STRONG> address (given in <STRONG>socket</STRONG>
+module notation), if specified, or default destination whenever given on
+<STRONG>manager</STRONG> class instaniation.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>receive</STRONG>()</DT>
+<DD>
+<P>
+Wait for server response for <STRONG>manager.timeout</STRONG> seconds and
+raise an <STRONG>error.NoResponse</STRONG> exception if no response arrived
+in time.
+</P>
+<P>
+Return a tuple of (<STRONG>rsp</STRONG>, <STRONG>src</STRONG>) where
+<STRONG>rsp</STRONG> is server's response (string) and <STRONG>src</STRONG>
+is server's address (in <STRONG>socket</STRONG> module notation).
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>close</STRONG>()</DT>
+<DD>
+<P>
+Terminate communication with server and release all associated resources.
+</P>
+</DD>
+</DL>
+
+<P>
+Objects of the <STRONG>role.manager</STRONG> class have the following public
+instance variables:
+</P>
+
+<DL>
+<DT><STRONG>timeout</STRONG></DT>
+<DD>
+<P>
+Specify for how many seconds to wait for response from remote server. The
+<STRONG>timeout</STRONG> attribute is of floating point type.
+</P>
+<P>
+The default is 1.0 second.
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>retries</STRONG></DT>
+<DD>
+<P>
+Specify the number of request re-transmissions. The <STRONG>retries</STRONG>
+attribute is of integer type.
+</P>
+<P>
+The default is 3 retries.
+</P>
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

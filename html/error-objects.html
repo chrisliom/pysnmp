@@ -1,38 +1,25 @@
 <HTML>
 <HEAD>
-<TITLE>PySNMP: Errors: Objects</TITLE>
+<TITLE>PySNMP: Error handling: General: Objects</TITLE>
 </HEAD>
 
 <BODY BGCOLOR="#ffffff" TEXT="#000000"
       LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
 <H3>
-Objects of the <STRONG>SNMPError</STRONG> class
+Objects of the <STRONG>error.General</STRONG> class
 </H3>
 
 <P>
-Instances of <STRONG>SNMPError</STRONG> class have the following
-public instance variables:
+Instances of <STRONG>error.General</STRONG> class have the following
+methods:
 </P>
 
 <DL>
-<DT><STRONG>status</STRONG></DT>
+<DT><STRONG>__str__</STRONG>()</DT>
 <DD>
 <P>
-Carries the number of SNMP error occurred. Refer to the
-<A HREF="http://www.ietf.org/rfc/rfc1157.txt">SNMP protocol specification</A>
-for more information on the <STRONG>error status</STRONG> variable.
-</P>
-</DD>
-</DL>
-
-<DL>
-<DT><STRONG>index</STRONG></DT>
-<DD>
-<P>
-Carries the position of the SNMP Object ID in the SNMP message which is in
-charge for the error occurred, Refer to the
-<A HREF="http://www.ietf.org/rfc/rfc1157.txt">SNMP protocol specification</A>
-for more information on the <STRONG>error index</STRONG> variable.
+Returns verbose error message describing the problem, whenever specified on
+object creation.
 </P>
 </DD>
 </DL>

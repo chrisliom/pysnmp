@@ -1,0 +1,117 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: I/O engine: Single-session: Agent: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of the <STRONG>role.agent</STRONG> class
+</H3>
+
+<P>
+The instances of <STRONG>role.agent</STRONG> class have the following
+methods:
+</P>
+
+<DL>
+<DT><STRONG>receive_and_send</STRONG>(<STRONG>callback</STRONG>)</DT>
+<DD>
+<P>
+Wait for request from a client process or timeout (and raise NoRequest
+exception) if no request arrived within <STRONG>agent.timeout</STRONG>
+seconds. On data arrival, pass data item to the <STRONG>callback</STRONG>
+function, to build a response, and send the response back to client process.
+</P>
+<P>
+The <STRONG>callback</STRONG> function is invoked in the following fashion:
+<STRONG>callback</STRONG>(<STRONG>req</STRONG>, <STRONG>src</STRONG>) where
+<STRONG>req</STRONG> is the data item as sent by client (string) and
+<STRONG>src</STRONG> is the endpoint of client connection (given in
+<STRONG>socket</STRONG> module notation).
+</P>
+<P>
+The callback function must return a tuple of (<STRONG>rsp</STRONG>, 
+<STRONG>dst</STRONG>), where <STRONG>rsp</STRONG> (string) is the data item
+to be replied back to client by address <STRONG>dst</STRONG> (given in
+<STRONG>socket</STRONG> module notation) or by originating address
+if <STRONG>dst</STRONG> is None. 
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>open</STRONG>()</DT>
+<DD>
+<P>
+Create socket object and bind it to local interface(s) to be used for
+communication with remote client processes.
+</P>
+<P>
+Return socket object.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>send</STRONG>(<STRONG>rsp</STRONG>, <STRONG>dst</STRONG>)</DT>
+<DD>
+<P>
+Attempt to send response data <STRONG>rsp</STRONG> (string) to remote
+client by either <STRONG>dst</STRONG> address (given in <STRONG>socket</STRONG>
+module notation).
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>receive</STRONG>()</DT>
+<DD>
+<P>
+Wait for and receive request data from a client process or timeout (and
+raise NoRequest exception) if no request arrived within
+<STRONG>agent.timeout</STRONG> seconds.
+</P>
+<P>
+Return a tuple of (<STRONG>req</STRONG>, <STRONG>src</STRONG>) where
+<STRONG>req</STRONG> (string) is a request data as sent by client and
+<STRONG>src</STRONG> is the address of client endpoint (given in
+<STRONG>socket</STRONG> module notation).
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>close</STRONG>()</DT>
+<DD>
+<P>
+Terminate server and release all associated resources.
+</P>
+</DD>
+</DL>
+
+<P>
+Objects of the <STRONG>role.agent</STRONG> class have the following public
+instance variables:
+</P>
+
+<DL>
+<DT><STRONG>timeout</STRONG></DT>
+<DD>
+<P>
+Specify for how many seconds to wait for request to arrive from a client. The
+<STRONG>timeout</STRONG> attribute is of floating point type.
+</P>
+<P>
+The default is None what means to wait forever.
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

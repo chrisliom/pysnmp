@@ -1,58 +1,44 @@
 <HTML>
 <HEAD>
-<TITLE>PySNMP: Errors</TITLE>
+<TITLE>PySNMP: Error handling</TITLE>
 </HEAD>
 
 <BODY BGCOLOR="#ffffff" TEXT="#000000"
       LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
 <H3>
-PySNMP error reporting
+PySNMP error handling
 </H3>
 <P>
-The pysnmp.error module defines a set of exception classes used by
-various PySNMP components to indicate an error whenever occurred.
+Almost all of PySNMP modules are designed to report various error conditions
+in form of Python exceptions. The <STRONG>pysnmp.error</STRONG> module defines
+a base class for all PySNMP exception classes.
 </P>
+<P>
+<DL>
+<DT>class <STRONG>General</STRONG>([<STRONG>err_msg</STRONG>])</DT>
+<DD>
+<P>
+Base exception class for all exceptions raised by the The <STRONG>pysnmp.*
+</STRONG> modules.
+</P>
+<P>
+The optional <STRONG>err_str</STRONG> argument (string) may be used to store
+verbose error message to class instance which may later be returned by
+<STRONG>General._str__</STRONG>() method invocation.
+</P>
+</DD>
+</DL>
+
+<HR><STRONG>Subsections</STRONG>
 
 <P>
-The exception classes comprise a tree where the top level node --
-<STRONG>PySNMPError</STRONG> class should be used to catch any of
-PySNMP exceptions.
-</P>
-
-<P>
-The <STRONG>PySNMPError</STRONG> class subclasses the
-<STRONG>Exception</STRONG> class from standard Python module
-<STRONG>exceptions</STRONG> so public attributes of <STRONG>Exception</STRONG>
-class become available to user of <STRONG>PySNMPError</STRONG> class.
-</P>
-
-<P>
-There are three second level subclasses of <STRONG>PySNMPError</STRONG> class,
-each of them facilitate catching a specific subset of PySNMP errors. These
-classes are:
-</P>
-
 <UL>
-<LI><STRONG>BEREngineError</STRONG> catches any of BER engine errors
-<LI><STRONG>SNMPEngineError</STRONG> catches any of SNMP engine errors
-<LI><STRONG>SNMPError</STRONG> catches any of the errors reported by
-remote SNMP process by means of SNMP protocol.
+<LI>Objects of the <A HREF="error-objects.html">
+<STRONG>error.General</STRONG></A> class
 </UL>
 
-<P>
-The instances of <STRONG>BEREngineError</STRONG> and
-<STRONG>SNMPEngineError</STRONG> classes do not expose any public
-attributes.
-</P>
-
-<UL>
-<LI><A HREF="error-objects.html">Objects</A> of the
-<STRONG>SNMPError</STRONG> class</A>
-</UL>
-
-<P>
-Please, refer to <STRONG>error.py</STRONG> module whenever it's
-needed to catch a more specific PySNMP exception.
+</DD>
+</DL>
 </P>
 
 <HR>

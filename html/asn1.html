@@ -1,0 +1,158 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: SNMP message: ASN.1</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+SNMP subset of ASN.1 data types
+</H3>
+<P>
+The <STRONG>pysnmp.asn1</STRONG> module implements a set of tools for
+handling ASN.1 data types used in SNMP.
+</P>
+<P>
+<DL>
+<DT>class <STRONG>INTEGER</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>UNSIGNED32</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>TIMETICKS</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>UPTIME</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>COUNTER32</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>GAUGE32</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>COUNTER64</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>OPAQUE</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>OCTETSTRING</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>OBJECTID</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>IPADDRESS</STRONG>([<STRONG>value</STRONG>])</DT>
+<DT>class <STRONG>NULL</STRONG>([<STRONG>value</STRONG>])</DT>
+<DD>
+<P>
+Instances of these classes represent a value of corresponding ASN.1 type.
+The optional <STRONG>value</STRONG> parameter may be used to assign an initial
+value.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>def <STRONG>decode</STRONG>(<STRONG>data</STRONG>)</DT>
+<DD>
+<P>
+The <STRONG>decode</STRONG> function takes an ASN.1 value carried in a
+BER-encoded octet-stream <STRONG>data</STRONG>, and decodes it into
+a asn1.* object of matching type.
+</P>
+<P>
+A tuple of (<STRONG>asn1_object</STRONG>, <STRONG>rest</STRONG>) is
+returned where <STRONG>asn1_object</STRONG> is an instance of one of asn1.py
+classes, and the <STRONG>rest</STRONG> is the unprocessed part of input.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>exception <STRONG>Error</STRONG></DT>
+<DD>
+<P>
+Exception raised on any error in the <STRONG>pysnmp.asn1</STRONG> module
+and derivatives. The reason for the exception is passed to the constructor as
+a string.
+</P>
+<P>
+See documentation on the <A HREF="error.html">error.General</A> base class for
+usage details.
+</P>
+</DD>
+</DL>
+
+<P>
+The following exceptions are derived from this class:
+</P>
+
+<DL>
+<DT>exception <STRONG>UnknownTag</STRONG></DT>
+<DD>
+<P>
+Unknown BER tag passed to an asn1.* method occurred.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>exception <STRONG>OverFlow</STRONG></DT>
+<DD>
+<P>
+Data item does not fit the BER octet-stream.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>exception <STRONG>UnderRun</STRONG></DT>
+<DD>
+<P>
+Short BER octet-stream.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>exception <STRONG>BadEncoding</STRONG></DT>
+<DD>
+<P>
+Malformed BER octet-stream.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>exception <STRONG>BadArgument</STRONG></DT>
+<DD>
+<P>
+Inappropriate argument given.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>exception <STRONG>TypeError</STRONG></DT>
+<DD>
+<P>
+Inappropriate type for an ASN.1 object value.
+</P>
+</DD>
+</DL>
+
+<HR><STRONG>Subsections</STRONG>
+
+<P>
+<UL>
+<LI>Objects of the <A HREF="asn1-integer-objects.html">
+<STRONG>asn1.INTEGER</STRONG>,
+<STRONG>asn1.UNSIGNED32</STRONG>,
+<STRONG>asn1.TIMETICKS</STRONG>,
+<STRONG>asn1.UPTIME</STRONG>,
+<STRONG>asn1.COUNTER32</STRONG>,
+<STRONG>asn1.COUNTER64</STRONG> and
+<STRONG>asn1.GAUGE32</STRONG></A> classes.
+<LI>Objects of the<A HREF="asn1-octetstring-objects.html">
+<STRONG>OCTETSTRING</STRONG> and
+<STRONG>OPAQUE</STRONG></A> classes.
+<LI>Objects of the<A HREF="asn1-objectid-objects.html">
+<STRONG>OBJECTID</STRONG></A> class.
+<LI>Objects of the<A HREF="asn1-ipaddress-objects.html">
+<STRONG>IPADDRESS</STRONG></A> class.
+<LI>Objects of the<A HREF="asn1-null-objects.html">
+<STRONG>NULL</STRONG></A> class.
+</UL>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

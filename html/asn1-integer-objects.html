@@ -1,0 +1,113 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: SNMP message: ASN.1: INTEGER et al: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of the
+<STRONG>asn1.INTEGER</STRONG>,
+<STRONG>asn1.UNSIGNED32</STRONG>,
+<STRONG>asn1.TIMETICKS</STRONG>,
+<STRONG>asn1.UPTIME</STRONG>,
+<STRONG>asn1.COUNTER32</STRONG>,
+<STRONG>asn1.COUNTER64</STRONG> and
+<STRONG>asn1.GAUGE32</STRONG> classes.
+</H3>
+
+<P>
+Instances of these classes have the following methods:
+</P>
+
+<DL>
+
+<DT><STRONG>encode</STRONG>([<STRONG>value</STRONG>])</DT>
+<P>
+The <STRONG>encode</STRONG> method converts the content of the class
+instance into BER octet-stream (string).
+</P>
+<P>
+The <STRONG>value</STRONG> parameter, whenever given for last-minute payload
+assignment to class instance, must be:
+</P>
+<UL>
+<LI>a signed 32-bit integer for instances of <STRONG>asn1.INTEGER</STRONG> class
+<LI>an unsigned 64-bit integer for instances of <STRONG>asn1.COUNTER64</STRONG>
+class
+<LI>an unsigned 32-bit integer for instances of the rest of the classes
+</UL>
+
+<DT><STRONG>decode</STRONG>(<STRONG>data</STRONG>)</DT>
+<P>
+The <STRONG>decode</STRONG> method attempts to convert the
+<STRONG>data</STRONG> octet-stream (string) into an integer value
+of the following flavor:
+</P>
+<UL>
+<LI>a signed 32-bit integer for instances of <STRONG>asn1.INTEGER</STRONG> class
+<LI>an unsigned 64-bit integer for instances of <STRONG>asn1.COUNTER64</STRONG>
+class
+<LI>an unsigned 32-bit integer for instances of the rest of the classes.
+</UL>
+
+<P>
+This method returns a tuple of (<STRONG>a_class_instance</STRONG>,
+<STRONG>rest</STRONG>), where <STRONG>rest</STRONG> (string) holds the rest of
+unprocessed input <STRONG>data</STRONG>.
+</P>
+<P>
+The <STRONG>data</STRONG> octet-stream must carry an ASN.1 value
+which type matches class dedication or an <A HREF=errors.html">error.TypeError
+</A> exception would be thrown.
+</P>
+
+<DT><STRONG>update</STRONG>(<STRONG>value</STRONG>)</DT>
+<P>
+The <STRONG>update</STRONG> method assigns the <STRONG>value</STRONG>
+to class instance payload.
+</P>
+
+<P>
+The <STRONG>value</STRONG> parameter must be:
+</P>
+<UL>
+<LI>a signed 32-bit integer for instances of <STRONG>asn1.INTEGER</STRONG> class
+<LI>an unsigned 64-bit integer for instances of <STRONG>asn1.COUNTER64</STRONG>
+class
+<LI>an unsigned 32-bit integer for instances of the rest of the classes.
+</UL>
+</P>
+
+<DT><STRONG>__call__</STRONG>()</DT>
+<P>
+Class instance invocation would return currently stored payload.
+</P>
+
+<DT><STRONG>__cmp__</STRONG>(<STRONG>other</STRONG>)</DT>
+<P>
+Class instances may be compared against each <STRONG>other</STRONG>. The
+comparation would return negative if <STRONG>other</STRONG> is greater, zero 
+on equivalence, positive if <STRONG>other</STRONG> is less.
+</P>
+
+<DT><STRONG>__repr__</STRONG>()</DT>
+<P>
+Returns the canonical string representation of the class instance.
+</P>
+
+<DT><STRONG>__str__</STRONG>()</DT>
+<P>
+Returns a nice string representation of the class instance.
+</P>
+
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

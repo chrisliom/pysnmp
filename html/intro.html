@@ -1,0 +1,116 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Introduction</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+PySNMP overview
+</H3>
+<P>
+The pysnmp package implements various components of a SNMP (Simple Network
+Management Protocol) entity such as SNMP manager or agent. For more
+information on SNMP protocol, see
+<A HREF="http://www.ietf.org/rfc/rfc1157.txt">RFC 1157</A>,
+<A HREF="http://www.ietf.org/rfc/rfc1155.txt">RFC 1155</A> and 
+<A HREF="http://www.ietf.org/rfc/rfc1213.txt">RFC 1213</A>
+covering version 1, while
+<A HREF="http://www.ietf.org/rfc/rfc1905.txt">RFC 1905</A>,
+<A HREF="http://www.ietf.org/rfc/rfc1905.txt">RFC 1902</A>,
+<A HREF="http://www.ietf.org/rfc/rfc1905.txt">RFC 1907</A> and
+<A HREF="http://www.ietf.org/rfc/rfc1905.txt">RFC 1908</A>
+are dedicated to version 2.
+</P>
+<P>
+Most importantly, PySNMP includes SNMP message processing modules
+(implementing versions 1 and 2c of SNMP protocol) and BSD sockets based
+transport modules used for exchanging SNMP messages over network.
+</P>
+<P>
+Here is an example of a rather straightforward way of using PySNMP:
+</P>
+
+<PRE>
+
+Python 1.5.2 (#3, Aug 25 1999, 19:14:24)  [GCC 2.8.1] on sunos5
+Copyright 1991-1995 Stichting Mathematisch Centrum, Amsterdam
+>>> from pysnmp import role, v2c, asn1
+>>> req = v2c.GETREQUEST()
+>>> req['encoded_oids'] = [ asn1.OBJECTID().encode('1.3.6.1.2.1.1.1.0') ]
+>>> tr = role.manager(('router-1.glas.net', 161))
+>>> (rawrsp, src) = tr.send_and_receive(req.encode())
+>>> rsp = v2c.RESPONSE()
+>>> rsp.decode(rawrsp)
+>>> oids = map(lambda x:x[0], map(asn1.OBJECTID().decode, rsp['encoded_oids']))
+>>> print oids
+['.1.3.6.1.2.1.1.1.0']
+>>> vals = map(lambda x: x[0](), map(asn1.decode, rsp['encoded_vals']))
+>>> print vals
+['Cisco Internetwork Operating System Software \015\012IOS (tm) 5300 Software
+(C5300-J-M), Experimental Version 12.1(20001115:152556) [haag-V121_4 102]
+\015\012Copyright (c) 1986-2000 by cisco Systems, Inc.\015\012Compiled
+Mon 20-Nov-00 19:22 by haag']
+>>>
+</PRE>
+
+<P>
+A few notes on the PySNMP package layout should be given before going
+any further with this documentation.
+</P>
+<P>
+The PySNMP software is logically divided on SNMP message processing and
+network transport parts, which are absolutely independent from each other
+and can be used separately. The first one, as follows from its name, deals
+with BER encoding & decoding (BER stands for Basic Encoding Rules) of SNMP
+message, various operations on the entire message and its parts, consistency
+checks and so on.
+</P>
+<P>
+Consequently, the SNMP message processing part of the package is presented
+by several modules, each of which implements particular SNMP protocol version
+(currently, versions 1 and 2c).
+</P>
+<P>
+Transport component provides various methods of exchanging SNMP messages
+(in fact, any abstract data chunks) over the network. A few modules, composing
+transport part of PySNMP, implement specific modes of data communication over
+BSD sockets. For example, one module holds a single-threaded, blocking I/O
+engine while another provides an asynchronous, multiple socket tool.
+The transport code is designed in SNMP entities roles in mind. That is, every
+I/O engine supplied with this package, has two flavors of operation or two
+roles, as given in RFC -- client (also known as SNMP manager) and server
+(SNMP agent).
+</P>
+<P>
+What follows is the documentation on all these PySNMP modules.
+</P>
+<P>
+<UL>
+<LI>SNMP message processing modules
+<UL>
+<LI><A HREF="v2c.html">SNMP protocol version 2</A>
+<LI><A HREF="v1.html">SNMP protocol version 1</A>
+<LI><A HREF="asn1.html">SNMP subset of ASN.1 data types</A>
+</UL>
+<LI>Network transport modules
+<UL>
+<LI><A HREF="role.html">Single-session, blocking I/O engine</A>
+<LI><A HREF="bulkrole.html">Multiple session, bulk I/O engine</A>
+<LI><A HREF="asynrole.html">Asynchronous I/O engine</A>
+</UL>
+<LI>Error recovery module
+<UL>
+<LI><A HREF="error.html">Various PySNMP errors</A>
+</UL>
+</UL>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

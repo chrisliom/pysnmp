@@ -1,0 +1,181 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: I/O engine: Multiple-session: Manager: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of the <STRONG>bulkrole.manager</STRONG> class
+</H3>
+
+<P>
+The instances of <STRONG>bulkrole.manager</STRONG> class expose a standard
+list interface, where list items must be tuples of (<STRONG>address</STRONG>,
+<STRONG>data</STRONG>) that represent destination <STRONG>address</STRONG>
+(given in <STRONG>socket</STRONG> module notation), outbound <STRONG>data</STRONG>
+(string) item to send to remote server on input and source
+<STRONG>address</STRONG>, inbound <STRONG>data</STRONG> item on list output as
+received from remote server process.
+</P>
+<P>
+The following methods are defined to instances of the
+<STRONG>bulkrole.manager</STRONG> class:
+</P>
+
+<DL>
+<DT><STRONG>dispatch</STRONG>()</DT>
+<DD>
+<P>
+Attempt to send out pending requests (previously committed to class instance
+as list members), wait for replies for <STRONG>manager.timeout</STRONG>
+seconds and receive those arrived in time.
+</P>
+<P>
+Timed out requests would be represented by a tuple of (None, None) in list
+member on list output.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>clear</STRONG>()</DT>
+<DD>
+<P>
+Drop request or response tuples from the list. This method should be invoked
+before re-using the same instance of <STRONG>bulkrole.manager</STRONG>
+class.
+</P>
+</DD>
+</DL>
+
+<P>
+The following methods comprise standard list interface:
+</P>
+
+<DL>
+<DT><STRONG>append</STRONG>((<STRONG>dst</STRONG>, <STRONG>req</STRONG>))</DT>
+<DD>
+<P>
+Append request tuple (<STRONG>dst</STRONG>, <STRONG>req</STRONG>) to the list
+of requests.
+</P>
+<P>
+This method can not be used after the <STRONG>manager.dispatch()</STRONG>
+is invoked and the <STRONG>manager.clear()</STRONG> method is used.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>insert</STRONG>(<STRONG>idx</STRONG>, (<STRONG>dst</STRONG>,
+<STRONG>req</STRONG>))</DT>
+<DT><STRONG>__setitem__</STRONG>(<STRONG>idx</STRONG>, (<STRONG>dst</STRONG>,
+<STRONG>req</STRONG>))</DT>
+<DD>
+<P>
+Insert request tuple (<STRONG>dst</STRONG>, <STRONG>req</STRONG>) at
+list position <STRONG>idx</STRONG> (integer).
+</P>
+<P>
+This method can not be used after the <STRONG>manager.dispatch()</STRONG>
+is invoked and the <STRONG>manager.clear()</STRONG> method is used.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>remove</STRONG>((<STRONG>dst</STRONG>, <STRONG>req</STRONG>))</DT>
+<DD>
+<P>
+Remove the first occurrence of the (<STRONG>dst</STRONG>, <STRONG>req</STRONG>)
+request tuple.
+</P>
+<P>
+This method can not be used after the <STRONG>manager.dispatch()</STRONG>
+is invoked and the <STRONG>manager.clear()</STRONG> method is used.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>pop</STRONG>([<STRONG>idx</STRONG>])</DT>
+<DD>
+<P>
+Remove from list and return request tuple item at index <STRONG>idx</STRONG>
+(default last).
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>__getitem__</STRONG>(<STRONG>idx</STRONG>)</DT>
+<DD>
+<P>
+Return request tuple item at index <STRONG>idx</STRONG>.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>count</STRONG>((<STRONG>dst</STRONG>, <STRONG>req</STRONG>))</DT>
+<DD>
+<P>
+Return number of occurrences of request tuple (<STRONG>dst</STRONG>,
+<STRONG>req</STRONG>) in the list.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>index</STRONG>((<STRONG>dst</STRONG>, <STRONG>req</STRONG>))</DT>
+<DD>
+<P>
+Return index of first occurrence of request tuple (<STRONG>dst</STRONG>,
+<STRONG>req</STRONG>) in the list.
+</P>
+<P>
+This method can not be used after the <STRONG>manager.dispatch()</STRONG>
+is invoked and the <STRONG>manager.clear()</STRONG> method is used.
+</P>
+</DD>
+</DL>
+
+<P>
+Objects of the <STRONG>bulkrole.manager</STRONG> class have the following
+public instance variables:
+</P>
+
+<DL>
+<DT><STRONG>timeout</STRONG></DT>
+<DD>
+<P>
+Specify for how many seconds to wait for response from remote servers. The
+<STRONG>timeout</STRONG> attribute is of floating point type.
+</P>
+<P>
+The default is 1.0 second.
+</DD>
+</DL>
+
+<DL>
+<DT><STRONG>retries</STRONG></DT>
+<DD>
+<P>
+Specify the number of request re-transmissions. The <STRONG>retries</STRONG>
+attribute is of integer type.
+</P>
+<P>
+The default is 3 retries.
+</P>
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

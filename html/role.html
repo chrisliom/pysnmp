@@ -1,0 +1,164 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: I/O engine: Single-session</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Single-session, blocking I/O engine
+</H3>
+<P>
+The <STRONG>pysnmp.role</STRONG> module defines <STRONG>manager</STRONG> and
+<STRONG>agent</STRONG> classes, representing SNMP manager and agent roles in
+a SNMP system. These classes implement network client (manager) and server
+(agent) respectively, that do blocking I/O over a single BSD socket. They
+are intended to serve as a network transport for SNMP messages, within a
+synchronous SNMP entity process, over a TCP/IP network.
+</P>
+<P>
+The <STRONG>pysnmp.role</STRONG> code is a pure network transport facility --
+it deals with abstract data items and has nothing to know about SNMP context.
+In order to build a complete SNMP entity, a SNMP message processing code
+should be used along. See SNMP protocol modules (<A HREF="v2c.html">v2c</A>,
+<A HREF="v1.html">v1</A>) for that.
+</P>
+<P>
+Consequently, any custom, task specific transport may be employed instead in
+user applications in conjunction with the SNMP protocol modules.
+</P>
+<P>
+The <STRONG>pysnmp.role</STRONG> module defines the following items:
+</P>
+<DL>
+<DT>class <STRONG>manager</STRONG>([<STRONG>dst</STRONG>[,<STRONG>iface</STRONG>]])</DT>
+<DD>
+<P>
+Returns a new instance of <STRONG>manager</STRONG> class, representing
+network client optionally connected to a network server running at
+<STRONG>dst</STRONG> address. The <STRONG>dst</STRONG> argument, whenever
+given, must follow the <STRONG>socket</STRONG> module notation -- 
+('<STRONG>hostname</STRONG>', <STRONG>port</STRONG>) where hostname a string 
+and port is an integer.
+</P>
+<P>
+The default for <STRONG>dst</STRONG> is None what means no default destination,
+so user would unconditionally have to specify destination to each
+<STRONG>manager.send()</STRONG> method (see below).
+</P>
+<P>
+Once a default <STRONG>dst</STRONG> is specified, specific destination
+may not be given to the <STRONG>manager.send()</STRONG> method.
+</P>
+<P>
+The <STRONG>iface</STRONG> parameter, if given, specifies the interface and
+port on local machine to <STRONG>bind()</STRONG> to. This argument must also
+follow the <STRONG>socket</STRONG> module notation. All further requests
+would then be originated from the given interface/port (for example,
+('127.0.0.1', 0)).
+</P>
+<P>
+The default for <STRONG>iface</STRONG> is ('0.0.0.0', 0) what stands for binding
+to a primary interface at the local machine.
+</P>
+</DD>
+<DT>class <STRONG>agent</STRONG>([<STRONG>ifaces</STRONG>])</DT>
+<DD>
+<P>
+Returns a new instance of <STRONG>agent</STRONG> class, representing
+network server optionally bound to specific network interfaces/ports 
+<STRONG>ifaces</STRONG> at the local machine. The <STRONG>ifaces</STRONG>
+argument, whenever given, must be a list of ('<STRONG>ifacename</STRONG>',
+<STRONG>port</STRONG>) tuples (<STRONG>socket</STRONG> module notation).
+</P>
+<P>
+The default for the <STRONG>ifaces</STRONG> is to listen on the loopback
+interface, port 161/UDP, so the default value is [('127.0.0.1', 161)].
+</P>
+<P>
+Be aware that for a UNIX process to bind(2) to a low port, such as 161 (that
+is less than 1024), a superuser privelege is required. Since running
+scripts under superuser privelege is not particular secure in UNIX environment,
+binding to a non-priveleged port is therefore strongly recommended.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>exception <STRONG>Error</STRONG></DT>
+<DD>
+<P>
+Exception raised on any error in the <STRONG>pysnmp.role</STRONG> module
+and its derivatives. This exception class is a subclass of the
+<STRONG>error.General</STRONG> class.
+</P>
+<P>
+See documentation on the <A HREF="error.html">error.General</A> base class for
+usage details.
+</P>
+</DD>
+</DL>
+
+<P>
+The following exceptions are derived from this class:
+</P>
+
+<DL>
+<DT>exception <STRONG>BadArgument</STRONG></DT>
+<DD>
+<P>
+Bad parameters given.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>exception <STRONG>NetworkError</STRONG></DT>
+<DD>
+<P>
+Besides being used to report various network related problems, this class also
+serves as a base class for a few specific exceptions (read on).
+</P>
+</DD>
+</DL>
+
+<P>
+The following exceptions are derived from the <STRONG>NetworkError</STRONG> class:
+</P>
+
+<DL>
+<DT>exception <STRONG>NoResponse</STRONG></DT>
+<DD>
+<P>
+No response arrived before timeout.
+</P>
+</DD>
+</DL>
+
+<DL>
+<DT>exception <STRONG>NoRequest</STRONG></DT>
+<DD>
+<P>
+No request came before timeout.
+</P>
+</DD>
+</DL>
+
+<HR><STRONG>Subsections</STRONG>
+
+<P>
+<UL>
+<LI>Objects of the <A HREF="role-manager-objects.html">
+<STRONG>role.manager</STRONG></A> class
+<LI>Objects of the <A HREF="role-agent-objects.html">
+<STRONG>role.agent</STRONG></A> class
+</UL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

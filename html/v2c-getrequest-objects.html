@@ -1,0 +1,65 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: SNMP message: V2c: GETREQUEST et al: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of the <STRONG>v2c.GETREQUEST</STRONG>, <STRONG>v2c.SETREQUEST</STRONG>,
+<STRONG>v2c.GETNEXTREQUEST</STRONG>, <STRONG>v2c.TRAP</STRONG>,
+<STRONG>v2c.INFORMREQUEST</STRONG>, <STRONG>v2c.REPORT</STRONG>
+and <STRONG>v2c.GETBULKREQUEST</STRONG> classes.
+</H3>
+
+<P>
+Instances of these classes have the following methods:
+</P>
+
+<DL>
+
+<DT><STRONG>encode</STRONG>([<STRONG>kwargs</STRONG>])</DT>
+<P>
+The <STRONG>encode</STRONG> method converts the entire SNMP message
+into BER octet-stream (string) in accordance with
+<A HREF="http://www.ietf.org/rfc/rfc1905.txt">RFC 1905</A> specification.
+</P>
+<P>
+The <STRONG>kwargs</STRONG> keyword arguments may be used for last-minute
+assignments to corresponding message components (see <A HREF="v2c.html">
+v2c module documentation</A> for valid values.
+
+<DT><STRONG>decode</STRONG>(<STRONG>data</STRONG>)</DT>
+<P>
+The <STRONG>decode</STRONG> method attempts to convert the
+<STRONG>data</STRONG> octet-stream (string) into SNMP message.
+</P>
+<P>
+The type and protocol version of the SNMP message carried in the
+<STRONG>data</STRONG> octet-stream must match instance's class type.
+</P>
+<P>
+Any unprocessed part of <STRONG>data</STRONG> octet-stream is returned.
+</P>
+
+<DT><STRONG>reply</STRONG>([<STRONG>kwargs</STRONG>])</DT>
+<P>
+The <STRONG>reply</STRONG> method creates and returns an instance of
+<STRONG>GETRESPONSE</STRONG> class and initializes it with its
+own values applicible for reply.
+</P>
+<P>
+The <STRONG>kwargs</STRONG> keyword arguments may be used for 
+overriding values of corresponding message components.
+</P>
+
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>
