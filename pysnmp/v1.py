@@ -10,7 +10,58 @@ import string
 
 # Import package components
 import asn1
-import error
+
+class Error(asn1.Error):
+    """Base class for v1 module exceptions
+    """
+    pass
+
+class TypeError(Error):
+    """V1 data type incompatibility
+    """
+    pass
+
+class BadArgument(Error):
+    """Bad V1 object value
+    """
+    pass
+
+class BadPDUType(Error):
+    """Bad SNMP PDU type
+    """
+    pass
+
+class BadVersion(Error):
+    """Bad SNMP version
+    """
+    pass
+
+class BadEncoding(Error):
+    """Bad BER encoding in SNMP message
+    """
+    pass
+
+class SNMPError:
+    """Represent an RFC 1157 SNMP error.
+    """
+    # Taken from UCD SNMP code
+    ERRORS = [
+        '(noError) No Error',
+        '(tooBig) Response message would have been too large.',
+        '(noSuchName) There is no such variable name in this MIB.',
+        '(badValue) The value given has the wrong type or length.',
+        '(readOnly) The two parties used do not have access to use the specified SNMP PDU.',
+        '(genError) A general failure occured.'
+    ]
+    
+    def __init__(self, status):
+        self.status = status
+
+    def __str__(self):
+        """Return verbose error message if known
+        """
+        if self.status > 0 and self.status < len(self.ERRORS):
+            return self.ERRORS[self.status]
 
 class BERHEADER(asn1.BERHEADER):
     """Extended, SNMP v.1 specific ASN.1 data types
@@ -100,12 +151,12 @@ class SNMPOBJECT(BERHEADER):
             return self._cmp(other)
 
         except AttributeError:
-            raise error.TypeError('Comparation method not provided for %s'\
-                                  % self.__class__.__name)
+            raise TypeError('Comparation method not provided for %s'\
+                            % self.__class__.__name)
 
         except StandardError, why:
-            raise error.TypeError('Cannot compare %s vs %s: %s'\
-                                  % (str(self), str(other), why))
+            raise TypeError('Cannot compare %s vs %s: %s'\
+                            % (str(self), str(other), why))
 
     def encode(self, **kwargs):
         """
@@ -119,14 +170,14 @@ class SNMPOBJECT(BERHEADER):
             return self._encode()
 
         except AttributeError, why:
-            raise error.TypeError('No encoder defined for %s object' %\
-                                  self.__class__.__name__)
+            raise TypeError('No encoder defined for %s object' %\
+                            self.__class__.__name__)
 
         except KeyError, why:
-            raise error.TypeError('Missing mandatory parameter: %s' % why)
+            raise TypeError('Missing mandatory parameter: %s' % why)
     
         except StandardError, why:
-            raise error.BadValue('Encoder failure (bad input?): ' + str(why))
+            raise BadArgument('Encoder failure (bad input?): ' + str(why))
             
     def decode(self, input):
         """
@@ -141,11 +192,11 @@ class SNMPOBJECT(BERHEADER):
             return self._decode(input)
         
         except AttributeError, why:
-            raise error.TypeError('No decoder defined for %s object' %\
-                                  self.__class__.__name__)
+            raise TypeError('No decoder defined for %s object' %\
+                            self.__class__.__name__)
 
         except StandardError, why:
-            raise error.BadValue('Decoder failure (bad input?): ' + str(why))
+            raise BadArgument('Decoder failure (bad input?): ' + str(why))
 
     #
     # Dictionary interface
@@ -161,8 +212,8 @@ class SNMPOBJECT(BERHEADER):
         """
         try:
             if self._filter(key, value):
-                raise error.ProtocolError('Unexpected value type for %s: %s'\
-                                      % (key, repr(value)))
+                raise TypeError('Unexpected value type for %s: %s'\
+                                % (key, repr(value)))
         except AttributeError:
             pass
         
@@ -213,20 +264,20 @@ class SNMPOBJECT(BERHEADER):
             result = 1
 
         if result:
-            raise error.TypeError('Type mismatch for copy operation %s vs %s'\
-                                  % (str(self), str(other)))
+            raise TypeError('Type mismatch for copy operation %s vs %s'\
+                            % (str(self), str(other)))
 
         try:
             try:
                 return self._copy(other)
 
             except AttributeError:
-                raise error.TypeError('No copy method defined for %s object' %\
-                                      self.__class__.__name__)
+                raise TypeError('No copy method defined for %s object' %\
+                                self.__class__.__name__)
         
         except StandardError, why:
-            raise error.TypeError('Cannot copy %s from %s: %s'\
-                                  % (str(self), str(other), why))
+            raise TypeError('Cannot copy %s from %s: %s'\
+                            % (str(self), str(other), why))
         
 class BINDINGS(SNMPOBJECT):
     """
@@ -315,8 +366,7 @@ class BINDINGS(SNMPOBJECT):
 
             # Nothing should left out
             if binding:
-                raise error.ProtocolError('Trailing garbage in binding: %s' %\
-                                          str(binding))
+                raise TypeError('Trailing garbage in binding: %s' % str(binding))
         return rest
 
 class RR_PDU(SNMPOBJECT):
@@ -349,7 +399,7 @@ class RR_PDU(SNMPOBJECT):
 
     def _encode(self):
         """
-            _encode() -> octet stream
+           _encode() -> octet stream
 
            Encode PDU type (string), request ID (integer), error status and
            index (integers) alone with variables bindings (string) into
@@ -422,7 +472,7 @@ class MESSAGE(SNMPOBJECT):
 
     def _encode(self):
         """
-            _encode() -> octet stream
+           _encode() -> octet stream
 
            Encode SNMP version, community name and PDU into SNMP message.
         """
@@ -509,11 +559,9 @@ class RROBJECT:
     
     def encode(self, **kwargs):
         """
-            encode() -> octet stream
+           encode([kwargs]) -> octet stream
 
-           Encode Object IDs and values (lists of strings) into variables
-           bindings, then encode bindings into SNMP PDU (of specified type
-           (string)), then encode SNMP PDU into SNMP message.
+           Encode entire SNMP message into BER octet-stream.
         """
         self.update(kwargs)
         return self.msg.encode(pdu=self.pdu.encode(bindings=\
@@ -521,28 +569,26 @@ class RROBJECT:
 
     def decode(self, input):
         """
-           decode(input) -> (value, rest)
+           decode(octet-stream) -> rest
 
-           Decode SNMP message (string), return request type (string) and
-           lists of encoded Object IDs and their values (lists of strings).
+           Decode input octet-stream (string) into SNMP message and return
+           the rest of unprocessed input.
         """
         # Unpack message
         rest = self.msg.decode(input)
 
         # Decode PDU
         if self.pdu.decode(self.msg['pdu']):
-            raise error.ProtocolError('Trailing garbage in PDU: '\
-                                      + str(garbage))
+            raise BadEncoding('Trailing garbage in PDU: '+ str(garbage))
 
         if self.pdu['tag'] != self.__class__.__name__:
-            raise error.BadPDUType('Unmatched PDU type: %s vs %s' % \
+            raise BadPDUType('Unmatched PDU type: %s vs %s' % \
                                    (self.pdu['tag'], \
                                     self.__class__.__name__))
 
         # Decode variables bindings
         if self.bindings.decode(self.pdu['bindings']):
-            raise error.ProtocolError('Trailing garbage in bindings: ' + \
-                                      str(garbage))
+            raise BadEncoding('Trailing garbage in bindings: ' + str(garbage))
 
         return rest
 
@@ -551,7 +597,7 @@ class RROBJECT:
     #
 
     def __getitem__(self, key):
-        """
+        """Attempt to get requested item from either of message components XXX
         """
         if self.bindings.has_key(key):
             return self.bindings[key]
@@ -561,32 +607,33 @@ class RROBJECT:
             return self.msg[key]
         
     def __setitem__(self, key, value):
-        """Attempt to set requested item to either of message components XXX
+        """Attempt to re-assign requested item to either of message
+           components XXX
         """
         for part in self.msg, self.pdu, self.bindings:
             if part.has_key(key):
                 part[key] = value
                 return
 
-        raise error.ProtocolError('Unexpected key=value %s object type'\
-                                  % (self.__class__.__name__))
+        raise TypeError('Unexpected key=value %s object type'\
+                            % (self.__class__.__name__))
     
     def keys(self):
-        """
+        """Return keys for all message components
         """
         return self.bindings.keys() + \
                self.pdu.keys() + \
                self.msg.keys()
 
     def has_key(self, key):
-        """
+        """Invoke has_key() against all message components
         """
         for comp in self.bindings, self.pdu, self.msg:
             if comp.has_key(key):
                 return 1
 
     def get(self, key, default):
-        """
+        """Get item by key with default
         """
         if self.has_key(key):
             return self[key]
@@ -594,29 +641,29 @@ class RROBJECT:
         return default
     
     def update(self, args):
-        """
+        """Commit passed dictionary to either of message components
         """
         for comp in self.bindings, self.pdu, self.msg:
             comp.update(args)
 
     def clear(self):
-        """
+        """Clear all message components
         """
         for comp in self.bindings, self.pdu, self.msg:
             comp.clear()
 
     def copy(self, other):
-        """
+        """Copy all message components from passed message
         """
         self.bindings.copy(other.bindings)
         self.pdu.copy(other.pdu)
         self.msg.copy(other.msg)
 
 class REQUESTOBJECT(RROBJECT):
-    """SNMP v.1 request class
+    """Base class for SNMP v.1 requests
     """
     def reply(self, **kwargs):
-        """
+        """Build reply message based on ourselves
         """
         # Create response object
         rsp = GETRESPONSE()
@@ -633,27 +680,27 @@ class REQUESTOBJECT(RROBJECT):
         return rsp
     
 class RESPONSEOBJECT(RROBJECT):
-    """SNMP v.1 response class
+    """Base class for SNMP v.1 response
     """
     pass
 
 class GETREQUEST(REQUESTOBJECT):
-    """
+    """SNMP v.1 GETREQUEST class
     """
     pass
 
 class GETNEXTREQUEST(REQUESTOBJECT):
-    """
+    """SNMP v.1 GETNEXTREQUEST class
     """
     pass
 
 class GETRESPONSE(RESPONSEOBJECT):
-    """
+    """SNMP v.1 GETRESPONSE class
     """
     pass
 
 class SETREQUEST(REQUESTOBJECT):
-    """
+    """SNMP v.1 SETNEXTREQUEST class
     """
     pass
 
@@ -775,22 +822,22 @@ def decode(input):
     (pdu, rest) = msg.decode_header(input)
 
     if msg['version'] > 0:
-        raise error.BadVersion('Unsupported SNMP protocol version: '\
-                               + str(msg['version']))
+        raise BadVersion('Unsupported SNMP protocol version: '\
+                         + str(msg['version']))
 
     try:
         # Probe PDU
         tag = BERHEADER().decode_tag(ord(pdu[0]))
 
     except StandardError, why:
-        raise error.BadEncoding('Decoder failure (bad input?): ' + str(why))
+        raise BadEncoding('Decoder failure (bad input?): ' + str(why))
 
     try:
         # Create request object of matching type
         msg = eval(tag[:-4]+'()')
 
     except NameError, why:
-        raise error.UnknownTag('Unsuppored SNMP PDU type: ' + str(why))
+        raise BadPDUType('Unsuppored SNMP PDU type: ' + str(why))
 
     # Decode request
     rest = msg.decode(input)

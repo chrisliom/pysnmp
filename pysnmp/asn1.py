@@ -12,6 +12,41 @@ import string
 # Import package components
 import error
 
+class Error(error.Generic):
+    """Base class for asn1 module exceptions
+    """
+    pass
+
+class UnknownTag(Error):
+    """Unknown BER tag
+    """
+    pass
+
+class OverFlow(Error):
+    """Data item does not fit the packet
+    """
+    pass
+
+class UnderRun(Error):
+    """Short BER data stream
+    """
+    pass
+
+class BadEncoding(Error):
+    """Incorrect BER encoding
+    """
+    pass
+
+class TypeError(Error):
+    """ASN.1 data type incompatibility
+    """
+    pass
+
+class BadArgument(Error):
+    """Malformed argument
+    """
+    pass
+
 class BERHEADER:
     """BER packet header encoders & decoders
     """
@@ -65,7 +100,7 @@ class BERHEADER:
         if self.TAGS.has_key(name):
             return '%c' % self.TAGS[name]
     
-        raise error.UnknownTag('Unknown tag: ' + name)
+        raise UnknownTag('Unknown tag: ' + name)
 
     def encode_length(self, length):
         """
@@ -101,7 +136,7 @@ class BERHEADER:
         
         # More octets may be added
         else:
-            raise error.OverFlow('Too large length: ' + str(length))
+            raise OverFlow('Too large length: ' + str(length))
 
     def decode_tag(self, tag):
         """
@@ -115,7 +150,7 @@ class BERHEADER:
             if tag == self.TAGS[key]:
                 return key
             
-        raise error.UnknownTag('Unknown tag: ' + repr(tag))
+        raise UnknownTag('Unknown tag: ' + repr(tag))
 
     def decode_length(self, input):
         """
@@ -152,10 +187,10 @@ class BERHEADER:
                 return (result | ord(input[3]), size+1)
 
             else:
-                raise error.OverFlow('Too many length bytes: ' + str(size))
+                raise OverFlow('Too many length bytes: ' + str(size))
 
         except StandardError, why:
-            raise error.BadEncoding('Malformed input: ' + str(why))
+            raise BadEncoding('Malformed input: ' + str(why))
 
 
 #
@@ -187,7 +222,7 @@ class ASN1OBJECT(BERHEADER):
         """Return instance payload
         """
         if self.value is None:
-            raise error.BadValue('Uninitialized object payload')
+            raise BadArgument('Uninitialized object payload')
         
         return self.value
 
@@ -201,8 +236,8 @@ class ASN1OBJECT(BERHEADER):
             pass
 
         except StandardError, why:
-            raise error.TypeError('Cannot compare %s vs %s: %s'\
-                                  % (str(self), str(other), why))
+            raise TypeError('Cannot compare %s vs %s: %s'\
+                            % (str(self), str(other), why))
 
         return cmp(self.value, other)
 
@@ -215,13 +250,12 @@ class ASN1OBJECT(BERHEADER):
         if hasattr(self, '_range'):
             try:
                 if self._range(value):
-                    raise error.OverFlow('Value %s does not fit the %s type' \
-                                         % (str(value),\
-                                            self.__class__.__name__))
+                    raise OverFlow('Value %s does not fit the %s type' \
+                                   % (str(value), self.__class__.__name__))
 
             except StandardError, why:
-                raise error.TypeError('Cannot range check value %s: %s'\
-                                      % (str(value), why))
+                raise TypeError('Cannot range check value %s: %s'\
+                                % (str(value), why))
             
         self.value = value
 
@@ -240,11 +274,11 @@ class ASN1OBJECT(BERHEADER):
                    self.encode_length(len(result)) + result
 
         except AttributeError:
-            raise error.TypeError('No encoder defined for %s object' %\
-                                  self.__class__.__name__)
+            raise TypeError('No encoder defined for %s object' %\
+                            self.__class__.__name__)
 
         except StandardError, why:
-            raise error.BadValue('Encoder failure (bad input?): ' + str(why))
+            raise BadArgument('Encoder failure (bad input?): ' + str(why))
     
     def decode(self, input):
         """
@@ -257,24 +291,24 @@ class ASN1OBJECT(BERHEADER):
             tag = self.decode_tag(ord(input[0]))
 
             if tag != self.__class__.__name__:
-                raise error.TypeError('Type mismatch: %s vs %s' %\
-                                      (self.__class__.__name__, tag))
+                raise TypeError('Type mismatch: %s vs %s' %\
+                                (self.__class__.__name__, tag))
             
             (length, size) = self.decode_length(input[1:])
 
             if len(input) < length:
-                raise error.UnderRun('Short input')
+                raise UnderRun('Short input')
 
             self.update(self._decode(input[1+size:1+size+length]))
             
             return (self.value, input[1+size+length:])
 
         except AttributeError:
-            raise error.TypeError('No decoder defined for %s object' %\
-                                  self.__class__.__name__)
+            raise TypeError('No decoder defined for %s object' %\
+                            self.__class__.__name__)
 
         except StandardError, why:
-            raise error.BadEncoding('Decoder failure (bad input?): '\
+            raise BadEncoding('Decoder failure (bad input?): '\
                                     + str(why))
     
 class INTEGER(ASN1OBJECT):
@@ -338,7 +372,7 @@ class INTEGER(ASN1OBJECT):
     def _range(self, value):
         """
         """
-        return value >> 32
+        return value & ~0xffffffff
         
 class UNSIGNED32(INTEGER):
     """ASN.1 UNSIGNED32 object
@@ -431,7 +465,7 @@ class COUNTER64(ASN1OBJECT):
     def _range(self, value):
         """
         """
-        return value >> 64
+        return value & ~0xffffffffffffffffL
 
 class SEQUENCE(ASN1OBJECT):
     """ASN.1 sequence object
@@ -483,25 +517,19 @@ class OBJECTID(ASN1OBJECT):
         # Turn string type Object ID into numeric representation
         oid = self.str2num(self.value)
 
-        # Skip leading empty oid
-        index = 0        
-        while index < len(oid) and not oid[index]:
-            index = index + 1
-
         # Make sure the Object ID is long enough
-        if len(oid[index:]) < 2:
-            raise error.BadObjectID ('Short Object ID: ' +\
-                                     str(oid[index:]))
+        if len(oid) < 2:
+            raise BadArgument('Short Object ID: ' + str(oid))
 
         # Build the first twos
+        index = 0
         result = oid[index] * 40
         result = result + oid[index+1]
         try:
             result = [ '%c' % int(result) ]
 
         except OverflowError:
-            raise error.BadObjectID('Too large initial sub-IDs: '\
-                                    + str(oid[index:]))
+            raise BadArgument('Too large initial sub-IDs: ' + str(oid[index:]))
 
         # Setup index
         index = index + 2
@@ -513,8 +541,7 @@ class OBJECTID(ASN1OBJECT):
                 result.append('%c' % (subid & 0x7f))
 
             elif subid < 0 or subid > 0xFFFFFFFFL:
-                raise error.BadSubObjectID('Too large Sub-Object ID: '\
-                                           + str(subid))
+                raise BadArgument('Too large Sub-Object ID: ' + str(subid))
 
             else:
                 # Pack large Sub-Object IDs
@@ -569,7 +596,7 @@ class OBJECTID(ASN1OBJECT):
 
                     # Just for sure
                     if index > len(input):
-                        raise error.BadObjectID('Malformed sub-Object ID')
+                        raise BadArgument('Malformed sub-Object ID')
 
                 # Append a subid to oid list
                 subid = (subid << 7) + next
@@ -613,9 +640,8 @@ class OBJECTID(ASN1OBJECT):
         """
             str2num(soid) -> noid
             
-            Convert Object ID "soid" represented as a list of strings
-            into an Object ID "noid" represented as a list of numeric
-            sub-ID's.
+            Convert Object ID "soid" presented in a dotted form into an
+            Object ID "noid" represented as a list of numeric sub-ID's.
         """    
         # Convert string into a list and filter out empty members
         # (leading dot causes this)
@@ -623,17 +649,17 @@ class OBJECTID(ASN1OBJECT):
             toid = filter(lambda x: len(x), string.split(soid, '.'))
 
         except:
-            raise error.MalformedArgument('Malformed Object ID: ' + str(soid))
+            raise BadArgument('Malformed Object ID: ' + str(soid))
 
         # Convert a list of symbols into a list of numbers
         try:
             noid = map(lambda x: string.atol(x), toid)
 
         except:
-            raise error.MalformedArgument('Malformed Object ID: ' + str(soid))
+            raise BadArgument('Malformed Object ID: ' + str(soid))
 
         if not noid:
-            raise error.MalformedArgument('Empty Object ID: ' + str(soid))
+            raise BadArgument('Empty Object ID: ' + str(soid))
 
         return noid
 
@@ -641,12 +667,11 @@ class OBJECTID(ASN1OBJECT):
         """
             num2str(noid) -> snoid
             
-            Convert Object ID "noid" represented as a list of numeric
-            sub-ID's into Object ID "soid" represented as a list of string
-            sub-ID's.
+            Convert Object ID "noid" presented as a list of numeric
+            sub-ID's into Object ID "soid" in dotted notation.
         """    
         if not noid:
-            raise error.MalformedArgument('Empty numeric Object ID')
+            raise BadArgument('Empty numeric Object ID')
 
         # Convert a list of number into a list of symbols and merge all
         # list members into a string
@@ -654,11 +679,10 @@ class OBJECTID(ASN1OBJECT):
             soid = reduce(lambda x, y: x+y,\
                           map(lambda x: '.%lu' % x, noid))
         except:
-            raise error.MalformedArgument('Malformed numeric Object ID: '\
-                                    + str(noid))
+            raise BadArgument('Malformed numeric Object ID: '+ str(noid))
  
         if not soid:
-            raise error.MalformedArgument('Empty numeric Object ID: ' + str(noid))
+            raise BadArgument('Empty numeric Object ID: ' + str(noid))
 
         return soid
 
@@ -677,21 +701,18 @@ class IPADDRESS(ASN1OBJECT):
             packed = string.split(self.value, '.')
 
         except:
-            raise error.MalformedArgument('Malformed IP address: '\
-                                    + str(self.value))
+            raise BadArgument('Malformed IP address: '+ str(self.value))
         
         # Make sure it is four octets length
         if len(packed) != 4:
-            raise error.MalformedArgument('Malformed IP address: '\
-                                          + str(self.value))
+            raise BadArgument('Malformed IP address: '+ str(self.value))
 
         # Convert string octets into integer counterparts
         # (this is still not immune to octet overflow)
         try:
             packed = map(lambda x: string.atoi (x), packed)
         except string.atoi_error:
-            raise error.BadIPAddress('Malformed IP address: '\
-                                     + str(self.value))
+            raise BadArgument('Malformed IP address: '+ str(self.value))
         
         # Build a result
         result = '%c%c%c%c' % (packed[0], packed[1],\
@@ -707,8 +728,7 @@ class IPADDRESS(ASN1OBJECT):
            Decode octet stream into ASN.1 IP address
         """
         if len(input) != 4:
-            raise error.BadEncoding('Malformed IP address: '\
-                                    + str(input))
+            raise BadEncoding('Malformed IP address: '+ str(input))
 
         return '%d.%d.%d.%d' % \
                (ord(input[0]), ord(input[1]), \
@@ -732,9 +752,14 @@ class NULL(ASN1OBJECT):
            Decode octet stream into ASN.1 IP address
         """
         if input:
-            raise error.BadEncoding('Non-empty NULL value: %s' % str(input))
+            raise BadEncoding('Non-empty NULL value: %s' % str(input))
 
         return ''
+
+    def _range(self, value):
+        """
+        """
+        return value
 
 class noSuchObject(NULL):
     """SNMP v.2 noSuchObject exception
@@ -769,7 +794,7 @@ def decode(input):
         return (object, object.decode(input)[1])
 
     except NameError, why:
-        raise error.UnknownTag('Unsuppored ASN.1 data type: %s' % tag)
+        raise UnknownTag('Unsuppored ASN.1 data type: %s' % tag)
     
     except StandardError, why:
-        raise error.BadEncoding('Decoder failure (bad input?): ' + str(why))
+        raise BadEncoding('Decoder failure (bad input?): ' + str(why))

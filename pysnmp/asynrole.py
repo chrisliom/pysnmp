@@ -10,49 +10,54 @@ from types import ClassType
 import asyncore
 
 # Import PySNMP components
-import role, error
+import role
+
+class Error(role.Error):
+    """Base class for asynrole module
+    """
+    pass
+
+class BadArgument(Error):
+    """Bad argument given
+    """
+    pass
 
 class manager(asyncore.dispatcher):
     """An asynchronous SNMP manager based on the asyncore.py class.
 
        Send and receive UDP packets asynchronously.
     """
-    def __init__(self, callback_fun, callback_ctx=None, agent=None):
+    def __init__(self, cb_fun, cb_ctx=None, dst=None, iface=('0.0.0.0', 0)):
         # Make sure we get the callback function
-        if not callable(callback_fun):
-            raise error.BadArgument('Bad callback function')
+        if not callable(cb_fun):
+            raise BadArgument('Bad callback function')
 
         # Keep references to data and method objects supplied
         # by caller for callback on request completion.
-        self.callback_ctx = callback_ctx
-        self.callback_fun = callback_fun
+        self.callback_ctx = cb_ctx
+        self.callback_fun = cb_fun
 
         # Call parent classes constructor
         asyncore.dispatcher.__init__(self)
 
         # Create an instance of manager transport class
-        self.manager = role.manager(agent)
-                                 
-    def open(self):
-        """
-           open()
-           
-           Create a socket and pass it to asyncore dispatcher.
-        """
+        self.manager = role.manager(dst, iface)
+
+        # Create a socket and pass it to asyncore dispatcher
         self.set_socket(self.manager.open())
 
-    def send(self, message, dst=None):
+    def send(self, req, dst=None):
         """
-           send(message[, dst])
+           send(req[, dst])
            
-           Send SNMP message (string) to remote SNMP process as specified
-           on async_session object creation or by 'dst' address (given
+           Send SNMP message (string) to remote server process as specified
+           on manager object creation or by 'dst' address (given
            in socket module notation).
 
-           A callback function (as specified on async_session object creation)
+           The callback function (as specified on manager object creation)
            will be invoked on response arrival or error.
         """
-        self.manager.send(message, dst)
+        self.manager.send(req, dst)
 
     def handle_read(self):
         """Overloaded asyncore method -- read SNMP reply message from
@@ -66,7 +71,8 @@ class manager(asyncore.dispatcher):
 
         # Pass SNMP response along with references to caller specified data
         # and ourselves
-        self.callback_fun(self, self.callback_ctx, (response, src), None)
+        self.callback_fun(self, self.callback_ctx, (response, src),
+                          (None, None, None))
 
     def writable(self):
         """Objects of this class never expect write events
@@ -102,39 +108,33 @@ class agent(asyncore.dispatcher):
        Wait for and receive SNMP request messages, send SNMP response
        messages asynchronously.
     """
-    def __init__(self, callback_fun, callback_ctx=None,\
-                 iface=('0.0.0.0', 161)):
+    def __init__(self, cb_fun, cb_ctx=None, ifaces=[('0.0.0.0', 161)]):
         # Make sure we get the callback function
-        if not callable(callback_fun):
-            raise error.BadArgument('Bad callback function')
+        if not callable(cb_fun):
+            raise BadArgument('Bad callback function')
 
         # Keep references to data and method objects supplied
         # by caller for callback on request arrival.
-        self.callback_ctx = callback_ctx
-        self.callback_fun = callback_fun
+        self.callback_ctx = cb_ctx
+        self.callback_fun = cb_fun
 
         # Call parent class constructor
         asyncore.dispatcher.__init__(self)
 
         # Create an instance of SNMP agent transport class
-        self.agent = role.agent(iface)
-                                 
-    def open(self):
-        """
-           open()
-           
-           Create a socket and pass it to asyncore dispatcher.
-        """
+        self.agent = role.agent(ifaces)
+
+        # Create a socket and pass it to asyncore dispatcher.
         self.set_socket(self.agent.open())
 
-    def send(self, message, dst):
+    def send(self, rsp, dst=None):
         """
            send(message, dst)
            
            Send SNMP message (string) to remote SNMP process by 'dst' address
            (given in socket module notation).
         """
-        session.agent.send(message, dst)
+        session.agent.send(rsp, dst)
 
     def handle_read(self):
         """Overloaded asyncore method -- read SNMP message from socket.
@@ -147,7 +147,8 @@ class agent(asyncore.dispatcher):
 
         # Pass SNMP request along with references to caller specified data
         # and ourselves
-        self.callback_fun(self, self.callback_ctx, (request, src), None)
+        self.callback_fun(self, self.callback_ctx, (request, src),
+                          (None, None, None))
 
     def writable(self):
         """Objects of this class never expect write events

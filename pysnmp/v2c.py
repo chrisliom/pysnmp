@@ -11,7 +11,53 @@ import string
 # Import package components
 import asn1
 import v1
-import error
+
+class Error(v1.Error):
+    """Base class for v2 module exceptions
+    """
+    pass
+
+class BadVersion(Error):
+    """Bad SNMP version
+    """
+    pass
+
+class BadEncoding(Error):
+    """Bad BER encoding in SNMP message
+    """
+    pass
+
+class BadPDUType(Error):
+    """Bad PDU type
+    """
+    pass
+
+class SNMPError(v1.SNMPError):
+    """Represent an RFC 1905 SNMP error.
+    """
+    # Taken from UCD SNMP code
+    ERRORS = [
+        '(noError) No Error',
+        '(tooBig) Response message would have been too large.',
+        '(noSuchName) There is no such variable name in this MIB.',
+        '(badValue) The value given has the wrong type or length.',
+        '(readOnly) The two parties used do not have access to use the specified SNMP PDU.',
+        '(genError) A general failure occured.',
+        # The rest is for V2c only
+        '(noAccess) Access denied.',
+        '(wrongType) Wrong BER type',
+        '(wrongLength) Wrong BER length.',
+        '(wrongEncoding) Wrong BER encoding.',
+        '(wrongValue) Wrong value.',
+        '(noCreation) ',
+        '(inconsistentValue) ',
+        '(resourceUnavailable) ',
+        '(commitFailed) ',
+        '(undoFailed) ',
+        '(authorizationError) ',
+        '(notWritable) ',
+        '(inconsistentName) '
+    ]
 
 class BERHEADER(v1.BERHEADER):
     """Extended, SNMP v.2 specific ASN.1 data types
@@ -325,21 +371,21 @@ def decode(input):
         return v1.decode(input)
 
     elif msg['version'] > 1:
-        raise error.BadVersion('Unsupported SNMP protocol version: '\
-                               + str(msg['version']))
+        raise BadVersion('Unsupported SNMP protocol version: '\
+                         + str(msg['version']))
     
     try:
         tag = BERHEADER().decode_tag(ord(pdu[0]))
 
     except StandardError, why:
-        raise error.BadEncoding('Decoder failure (bad input?): ' + str(why))
+        raise BadEncoding('Decoder failure (bad input?): ' + str(why))
 
     try:
         # Create request object of matching type
         msg = eval(tag[:-4]+'()')
 
     except NameError, why:
-        raise error.UnknownTag('Unsuppored SNMP request type: ' + str(why))
+        raise BadPDUType('Unsuppored SNMP request type: ' + str(why))
 
     # Decode request
     rest = msg.decode(input)

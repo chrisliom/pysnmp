@@ -7,23 +7,33 @@
 
 """
 import socket
-import select
 
 # Import PySNMP components
-import role, error
+import role
 import v1, v2c
+
+class error(role.error):
+    """Base class for bulkrole module
+    """
+    pass
+
+class BadArgument(error):
+    """Bad argument given
+    """
+    pass
 
 class manager:
     """Send SNMP messages to multiple destinations and receive
        replies.
     """
-    def __init__(self):
+    def __init__(self, iface=('0.0.0.0', 0)):
+        # Initialize defaults
+        self.iface = iface
+        self.clear()
+
         # Set defaults to public attributes
         self.retries = 3
         self.timeout = 1
-        self.iface = None
-
-        self.clear()
 
     #
     # Implement list interface
@@ -48,14 +58,13 @@ class manager:
         self._durty = 0
         
         # [Re-]create SNMP manager transport
-        self.transport = role.manager()
-        self.transport.iface = self.iface
+        self.transport = role.manager(self.iface)
 
     def append(self, (dst, req)):
         """
            append((dst, req))
 
-           Create SNMP session destined to "agent" (a tuple of (host, port)
+           Create transport session destined to "agent" (a tuple of (host, port)
            where host is a string and port is an integer) and queue SNMP
            "request" message (string) to be sent to "agent".
 
@@ -67,7 +76,7 @@ class manager:
 
         if req['request_id'] in map(lambda (dst, req): \
                                     req['request_id'], self._requests):
-            raise error.BadArgument('Duplicate request IDs in queue')
+            raise BadArgument('Duplicate request IDs in queue')
 
         self._requests.append((dst, req))
 
@@ -79,7 +88,7 @@ class manager:
 
         if req['request_id'] in map(lambda (dst, req): \
                                     req['request_id'], self._requests):
-            raise error.BadArgument('Duplicate request IDs in queue')
+            raise BadArgument('Duplicate request IDs in queue')
         
         try:
             self._requests[idx] = (dst, req)
@@ -126,7 +135,7 @@ class manager:
 
         if req['request_id'] in map(lambda (dst, req): \
                                     req['request_id'], self._requests):
-            raise error.BadArgument('Duplicate request IDs in queue')
+            raise BadArgument('Duplicate request IDs in queue')
         
         try:
             return self._requests.insert(idx, (dst, req))
@@ -172,7 +181,7 @@ class manager:
                                  self._requests)
 
         except socket.error, why:
-            raise error.BadArgument(why)
+            raise BadArgument(why)
 
         # Initialize a list of responses
         self._responses = map(lambda (dst, req): (dst, None), self._requests)
@@ -201,6 +210,9 @@ class manager:
                 # Skip responded entities
                 if rsp is not None:
                     continue
+
+                # XXX Probably select() based multiplexing would better
+                # serve timeouts...
                 
                 # Wait for response
                 (response, src) = self.transport.receive()

@@ -1,42 +1,50 @@
 """
-   SNMP v.1 engine class.
+   Single-session, blocking network I/O classes.
 
-   Sends & receives SNMP v.1 messages.
-
-   Written by Ilya Etingof <ilya@glas.net>, 1999, 2000, 2001
+   Written by Ilya Etingof <ilya@glas.net>, 1999-2002
 
 """
 import socket
 import select
-from types import TupleType
 
 # Import package components
-#import message
 import error
 
-class manager:
-    """SNMP manager: send and receive SNMP messages.
+class Error(error.Generic):
+    """Base class for role module
     """
-    def __init__(self, agent=None):
-        # If agent name is given, it may be a plain string (for
-        # compatibility reasons)
-        if not agent:
-            self.agent = None
-            self.port = None
-        elif type(agent) == TupleType:
-            self.agent = agent[0]
-            self.port = agent[1]
-        else:
-            self.agent = agent
-            self.port = 161
+    pass
 
-        # Initialize SNMP session
+class BadArgument(Error):
+    """Bad argument given
+    """
+    pass
+
+class NetworkError(Error):
+    """Network transport error
+    """
+    pass
+
+class NoResponse(NetworkError):
+    """No response arrived before timeout
+    """
+    pass
+
+class NoRequest(NetworkError):
+    """No request arrived before timeout
+    """
+    pass
+
+class manager:
+    """Network client: send data item to server and receive a response
+    """
+    def __init__(self, agent=None, iface=('0.0.0.0', 0)):
+        # Initialize defaults
+        self.agent = agent
+        self.iface = iface
+        self.socket = None
         self.timeout = 1.0
         self.retries = 3
-        self.iface = None
-
-        # Initialize socket
-        self.socket = None
 
     def __del__(self):
         """Close socket on object termination
@@ -60,40 +68,38 @@ class manager:
            open()
            
            Initialize transport layer (UDP socket) to be used
-           for further communication with remote SNMP process.
+           for further communication with server.
         """
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         except socket.error, why:
-            raise error.TransportError('socket() error: ' + str(why))
+            raise NetworkError('socket() error: ' + str(why))
 
-        # See if we need to bind to specific interface at SNMP
-        # manager machine
-        if self.iface:
-            try:
-                self.socket.bind((self.iface[0], 0))
+        # See if we need to bind to specific interface on client machine
+        try:
+            self.socket.bind(self.iface)
 
-            except socket.error, why:
-                raise error.TransportError('bind() error: ' + str(why))
+        except socket.error, why:
+            raise NetworkError('bind() error: %s: %s' % (self.iface, why))
 
         # Connect to default destination if given
-        if self.agent:
+        if self.agent is not None:
             try:
-                self.socket.connect((self.agent, self.port))
+                self.socket.connect(self.agent)
 
             except socket.error, why:
-                raise error.TransportError('connect() error: ' + str(why))
+                raise NetworkError('connect() error: %s: %s' % (self.agent, why))
 
         return self.socket
 
     def send(self, request, dst=None):
         """
-           send(request[, dst])
+           send(req[, dst])
            
-           Send SNMP "request" message to remote SNMP process specified on
-           session object creation or by "dst" address given in socket
-           module notation.
+           Send "req" message (string) to server by address specified on
+           object creation or by "dst" address given in socket module 
+           notation.
         """
         # Make sure the connection is established, open it otherwise
         if not self.socket:
@@ -106,25 +112,25 @@ class manager:
                 self.socket.send(request)
 
         except socket.error, why:
-            raise error.TransportError('send() error: ' + str(why))
+            raise NetworkError('send() error: ' + str(why))
 
     def read(self):
         """
            read() -> (message, src)
            
            Read data from the socket (assuming there's some data ready
-           for reading), return a tuple of SNMP message (as string)
+           for reading), return a tuple of response message (as string)
            and source address 'src' (in socket module notation).
         """   
         # Make sure the connection exists
         if not self.socket:
-            raise error.NotConnected
+            raise NetworkError('Socket not initialized')
 
         try:
             (message, src) = self.socket.recvfrom(65536)
 
         except socket.error, why:
-            raise error.TransportError('recv() error: ' + str(why))
+            raise NetworkError('recv() error: ' + str(why))
 
         return (message, src)
         
@@ -132,15 +138,15 @@ class manager:
         """
            receive() -> (message, src)
            
-           Wait for SNMP message from remote SNMP process or timeout
-           (and return a tuple of None's).
+           Wait for incoming data from network or timeout (and return
+           a tuple of None's).
 
-           Return a tuple of SNMP message (as string) and source address
+           Return a tuple of received data item (as string) and source address
            'src' (in socket module notation).
         """
         # Make sure the connection exists
         if not self.socket:
-            raise error.NotConnected
+            raise NetworkError('Socket not initialized')
 
         # Initialize sockets map
         r, w, x = [self.socket], [], []
@@ -157,13 +163,13 @@ class manager:
 
     def send_and_receive(self, message, dst=None):
         """
-           send_and_receive(message[, dst]) -> (message, src)
+           send_and_receive(data[, dst]) -> (data, src)
            
-           Send SNMP message to remote SNMP process by address specified on
-           session object creation or 'dst' address and receive a response
-           message or timeout (and raise NoResponse exception).
+           Send data item to remote entity by address specified on object 
+           creation or 'dst' address and receive a data item in response
+           or timeout (and raise NoResponse exception).
 
-           Return a tuple of SNMP message (as string) and source address
+           Return a tuple of data item (as string) and source address
            'src' (in socket module notation).
         """
         # Initialize retries counter
@@ -185,13 +191,13 @@ class manager:
             retries = retries + 1
 
         # No answer, raise an exception
-        raise error.NoResponse('No response arrived before timeout')
+        raise NoResponse('No response arrived before timeout')
 
     def close(self):
         """
            close()
            
-           Close UDP socket used to communicate with remote SNMP agent.
+           Terminate communication with remote server.
         """
         # See if it's opened
         if self.socket:
@@ -199,29 +205,21 @@ class manager:
                 self.socket.close()
 
             except socket.error, why:
-                raise error.TransportError('close() error: ' + str(why))
+                raise NetworkError('close() error: ' + str(why))
 
             # Initialize it to None to indicate it's closed
             self.socket = None  
 
 class agent:
-    """SNMP agent: receive SNMP request messages, reply with SNMP responses
+    """Network client: receive requests, send back responses
     """
-    def __init__(self, iface=('0.0.0.0', 161)):
-        # For compatibility reasons, the first arg may also be a string
-        if type(iface) == TupleType:
-            self.iface = iface[0]
-            self.port = iface[1]
-        else:
-            self.iface = iface
-            self.port = 161
-
+    def __init__(self, ifaces=[('0.0.0.0', 161)]):
         # Block on select() waiting for request by default
         self.timeout = None
         
-        # Initialize socket & default peer
+        # Initialize defaults
+        self.ifaces = ifaces
         self.socket = None
-        self.peer = None
 
     def __del__(self):
         """Close socket on object termination
@@ -244,77 +242,70 @@ class agent:
         """
            open()
            
-           Initialize transport layer (UDP socket) to be used
-           for further communication with remote SNMP process.
+           Initialize transport internals to be used for further
+           communication with client.
         """
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         except socket.error, why:
-            raise error.TransportError('socket() error: ' + str(why))
+            raise NetworkError('socket() error: ' + str(why))
 
-        # Bind to specific interface at SNMP agent machine
-        try:
-            self.socket.bind((self.iface, self.port))
+        # Bind to specific interfaces at server machine
+        for iface in self.ifaces:
+            try:
+                self.socket.bind(iface)
 
-        except socket.error, why:
-            raise error.TransportError('bind() error: ' + str(why))
+            except socket.error, why:
+                raise NetworkError('bind() error: %s: %s' % (iface, why))
 
         return self.socket
 
-    def send(self, message, dst=None):
+    def send(self, message, dst):
         """
-           send([message[, dst]])
+           send(rsp, dst)
            
-           Send SNMP message (given as string) to remote SNMP process
-           by source address of last received message (if any) or by 'dst'
-           address given in socket module notation.
+           Send response message (given as string) to client process
+           by 'dst' address given in socket module notation.
         """
         # Make sure the connection is established, open it otherwise
         if not self.socket:
-            raise error.NotConnected
+            raise NetworkError('Socket not initialized')
 
-        # Destination must present
-        if not dst and not self.peer:
-            raise error.NoDestination('Message destination is not known')
-        
         try:
-            if dst:
-                self.socket.sendto(message, dst)
-            else:    
-                self.socket.sendto(message, self.peer)
+            self.socket.sendto(message, dst)
                 
         except socket.error, why:
-            raise error.TransportError('send() error: ' + str(why))
+            raise NetworkError('send() error: ' + str(why))
 
     def read(self):
         """
-           read() -> (message, src)
+           read() -> (req, src)
            
            Read data from the socket (assuming there's some data ready
-           for reading), return a tuple of SNMP message (as string) and
+           for reading), return a tuple of request (as string) and
            source address 'src' (in socket module notation).
         """   
         # Make sure the connection exists
         if not self.socket:
-            raise error.NotConnected
+            raise NetworkError('Socket not initialized')
 
         try:
-            (message, self.peer) = self.socket.recvfrom(65536)
+            (message, peer) = self.socket.recvfrom(65536)
 
         except socket.error, why:
-            raise error.TransportError('recvfrom() error: ' + str(why))
+            raise NetworkError('recvfrom() error: ' + str(why))
 
-        return (message, self.peer)
+        return (message, peer)
         
     def receive(self):
         """
-           receive() -> (message, src)
+           receive() -> (req, src)
            
-           Wait for and receive SNMP message from a remote SNMP process
-           or timeout (and return a tuple of None's).
+           Wait for and receive request message from remote process
+           or timeout.
 
-           Return a tuple of SNMP message (as string) and source address
+           Return a tuple of request message (as string) and source address
            'src' (in socket module notaton).
         """
         # Attempt to initialize transport stuff
@@ -322,7 +313,7 @@ class agent:
             self.open()
             
         # Initialize sockets map
-        r, w, x = [self.socket], [], []
+        r, w, x = [ self.socket ], [], []
 
         # Wait for response
         r, w, x = select.select(r, w, x, self.timeout)
@@ -331,27 +322,25 @@ class agent:
         if r:
             return self.read()
 
-        # Return nothing on timeout
-        return (None, None)
-
+        raise NoRequest('No request arrived before timeout')
+    
     def receive_and_send(self, callback):
         """
            receive_and_send(callback)
            
-           Wait for SNMP request from a remote SNMP process or timeout
-           (and raise NoRequest exception), pass request to the callback
-           function to build a response, send SNMP response back to
-           remote SNMP process.
+           Wait for request from a client process or timeout (and raise
+           NoRequest exception), pass request to the callback function
+           to build a response, send response back to client process.
         """
         if not callable (callback):
-            raise error.BadArgument('Bad callback function')
+            raise BadArgument('Bad callback function')
 
         while 1:
             # Wait for request to come
             (request, src) = self.receive()
 
             if not request:
-                raise error.NoRequest('No request arrived before timeout')
+                raise NoRequest('No request arrived before timeout')
 
             # Invoke callback function
             (response, dst) = callback(self, (request, src))
@@ -369,7 +358,7 @@ class agent:
         """
            close()
            
-           Close UDP socket used to communicate with remote SNMP agent.
+           Close UDP socket used for communication with client.
         """
         # See if it's opened
         if self.socket:
@@ -377,64 +366,7 @@ class agent:
                 self.socket.close()
 
             except socket.error, why:
-                raise error.TransportError('close() error: ' + str(why))
+                raise NetworkError('close() error: ' + str(why))
 
             # Initialize it to None to indicate it's closed
             self.socket = None  
-
-#
-# Obsolete compatibility stuff
-#
-
-#class session(manager, message.manager, message.trap):
-class session(manager):    
-    """Just a compatibility stub. Use 'manager' or/and 'agent'
-       classes instead!
-    """
-    def __init__(self, agent, community='public'):
-        """Invoke superclasses constructors explicitly
-        """
-        manager.__init__(self, agent)
-        message.manager.__init__(self, community)
-        message.trap.__init__(self, community)         
-
-    def send(self, message=None):
-        """
-           send([message])
-           
-           Send SNMP message (given as string) to remote SNMP process
-           specified on session object creation.
-        """
-        manager.send(self, message)
-
-    def read(self):
-        """
-           read() -> message
-           
-           Read data from the socket (assuming there's some data ready
-           for reading), return SNMP message (as string).
-        """   
-        return manager.read(self)[0]
-        
-    def receive(self):
-        """
-           receive() -> message
-           
-           Wait for SNMP message from remote SNMP process or timeout
-           (and return None).
-
-           Return SNMP message (as string) otherwise.
-        """
-        manager.receive(self)[0]
-
-    def send_and_receive(self, message):
-        """
-           send_and_receive(message) -> message
-           
-           Send SNMP message to remote SNMP process by address specified on
-           session object creation and receive a response message or
-           timeout (and raise NoResponse exception).
-
-           Return SNMP message (as string) otherwise.
-        """
-        manager.send_and_receive(self, message)[0]
