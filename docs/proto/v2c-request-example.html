@@ -1,0 +1,34 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: v.2c: Request example</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+
+<H3>
+Example of <STRONG>Request</STRONG> object usage
+</H3>
+
+<P>
+<PRE>
+>>> from pysnmp.proto import v2c
+>>> req = v2c.Request()
+>>> req
+Request(version=Version(1), community=Community('public'), pdu=Pdus())
+>>> req.decode(v2c.GetRequest().encode())
+''
+>>> req
+Request(version=Version(1), community=Community('public'), pdu=Pdus(get_request=GetRequestPdu(request_id=RequestId(2), error_status=ErrorStatus(0), error_index=ErrorIndex(0), variable_bindings=VarBindList())))
+>>>
+</PRE>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

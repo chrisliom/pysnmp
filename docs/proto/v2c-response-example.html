@@ -1,0 +1,39 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: v.2x: Response example</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+
+<H3>
+Example of <STRONG>Response</STRONG> object usage
+</H3>
+
+<P>
+<PRE>
+>>> from pysnmp.proto import v2c
+>>> rsp = v2c.Response()
+>>> rsp
+Response(version=Version(1), community=Community('public'), pdu=Pdus(response=ResponsePdu(request_id=RequestId(1L), error_status=ErrorStatus(0), error_index=ErrorIndex(0L), variable_bindings=VarBindList())))
+>>> # Report a noSuchName SNMP error
+>>> rsp['pdu']['response']['error_index'].set(1)
+>>> rsp['pdu']['response']['error_status'].set(2)
+>>> # ...for the following OID
+>>> rsp['pdu']['response']['variable_bindings'].append(v2c.VarBind(name=v2c.ObjectName('1.3.6.1.2.1.1.1.0'), value=v2c.BindValue(value=v2c.ObjectSyntax(simple_syntax=v2c.SimpleSyntax(string_value=v2c.OctetString('foobar'))))))
+>>> rsp
+Response(version=Version(1), community=Community('public'), pdu=Pdus(response=ResponsePdu(request_id=RequestId(1L), error_status=ErrorStatus(2), error_index=ErrorIndex(1), variable_bindings=VarBindList(VarBind(name=ObjectName('.1.3.6.1.2.1.1.1.0'), value=BindValue(value=ObjectSyntax(simple_syntax=SimpleSyntax(string_value=OctetString('foobar')))))))))
+>>> rsp.encode()
+'0,\002\001\001\004\006public\242\037\002\001\001\002\001\002\002\001\0010\0240\022\006\010+\006\001\002\001\001\001\000\004\006foobar'
+>>>
+</PRE>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

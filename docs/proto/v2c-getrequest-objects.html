@@ -1,0 +1,44 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: v2c: GETREQUEST et al: Objects</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Objects of the
+<STRONG>GETREQUEST</STRONG>, <STRONG>SETREQUEST</STRONG>,
+<STRONG>GETNEXTREQUEST</STRONG>, <STRONG>INFORMREQUEST</STRONG>, 
+and <STRONG>GETBULKREQUEST</STRONG> classes
+</H3>
+
+<P>
+Instances of <A HREF="v2c.html#GetRequest">GetRequest</A> (and
+similar) classes have the following additional methods:
+</P>
+
+<A NAME="reply"></A>
+<DL>
+<DT><STRONG>reply</STRONG>(<STRONG>**kwargs</STRONG>)</DT>
+<DD>
+<P>
+<P>
+Returns a <A HREF="v2c.html#Response">Response</A> object created
+in response to this request object. In particular, community names and
+request ID's are preserved in the response message.
+</P>
+<P>
+The optional <STRONG>**kwargs</STRONG> may be used to pass parameters
+to <A HREF="v2c.html#Response">Response</A> object constructor.
+</P>
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

@@ -1,4 +1,4 @@
-#!/usr/local/bin/python -O
+#!/usr/bin/env python
 """
    Set new values to MIB variables associated with user specifed
    SNMP Object IDs at arbitrary SNMP agent.
@@ -6,15 +6,14 @@
    Since MIB parser is not yet implemented in Python, this script takes and
    reports Object IDs in dotted numeric representation only.
 
-   Written by Ilya Etingof <ilya@glas.net>, 2000-2002
-
+   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   details.
 """
-import sys
-import getopt
-
-# Import PySNMP modules
-from pysnmp import asn1, v1, v2c
-from pysnmp import role
+import sys, getopt
+from pysnmp.proto import v1, v2c, error
+from pysnmp.mapping.udp import role
+import pysnmp.proto.api.generic
+import pysnmp.proto.cli.ucd
 
 # Initialize help messages
 options =           'Options:\n'
@@ -22,28 +21,18 @@ options = options + '  -p <port>      port to communicate with at the agent. Def
 options = options + '  -r <retries>   number of retries to be used in requests. Default is 5.\n'
 options = options + '  -t <timeout>   timeout between retries. Default is 1.\n'
 options = options + '  -v <version>   SNMP version to use [1, 2c]. Default is 1 (version one).\n'
-types =         'Types:\n'
-types = types + '   i:            INTEGER\n'
-types = types + '   u:            unsigned INTEGER\n'
-types = types + '   t:            TIMETICKS\n'
-types = types + '   a:            IPADDRESS\n'
-types = types + '   o:            OBJID\n'
-types = types + '   s:            STRING\n'
-types = types + '   U:            COUNTER64 (version 2 and above)'
-usage = 'Usage: %s [options] <snmp-agent> <community> <oid type val [...]>\n' % sys.argv[0]
-usage = usage + options + types
+options = options + '  -R             report variables types on output.'
+usage = 'Usage: %s [options] <snmp-agent>' % sys.argv[0]
+usage = usage + ' ' + v2c.SetRequest().cliUcdGetUsage() + '\n' + options
     
 # Initialize defaults
-port = 161
-retries = 5
-timeout = 1
-version = '1'
+port = 161; retries = 5; timeout = 1; version = '1'; reportTypeFlag = None
     
 # Parse possible options
 try:
-    (opts, args) = getopt.getopt(sys.argv[1:], 'hp:r:t:v:',\
+    (opts, args) = getopt.getopt(sys.argv[1:], 'hp:r:t:v:R',\
                                  ['help', 'port=', 'retries=', \
-                                  'timeout=', 'version='])
+                                  'timeout=', 'version=', 'report-type'])
 
 except getopt.error, why:
     print 'getopt error: %s\n%s' % (why, usage)
@@ -67,48 +56,26 @@ try:
         if opt[0] == '-v' or opt[0] == '--version':
             version = opt[1]
 
+        if opt[0] == '-R' or opt[0] == '--report-type':
+            reportTypeFlag = 1
+
 except ValueError, why:
     print 'Bad parameter \'%s\' for option %s: %s\n%s' \
           % (opt[1], opt[0], why, usage)
     sys.exit(-1)
 
-if len(args) < 4:
+if len(args) < 1:
     print 'Insufficient number of arguments supplied\n%s' % usage
     sys.exit(-1)
 
-# Try to provide usage-level compatibility with UCD snmpset
-varargs = []
-idx = 2
-while idx < len(args)-2:
-    try:
-        if args[idx+1] == 'i':
-            varargs.append((args[idx], 'INTEGER', int(args[idx+2])))
-        elif args[idx+1] == 'u':
-            varargs.append((args[idx], 'UNSIGNED32', int(args[idx+2])))
-        elif args[idx+1] == 't':
-            varargs.append((args[idx], 'TIMETICKS', int(args[idx+2])))
-        elif args[idx+1] == 'a':
-            varargs.append((args[idx], 'IPADDRESS', args[idx+2]))
-        elif args[idx+1] == 'o':
-            varargs.append((args[idx], 'OBJECTID', args[idx+2]))
-        elif args[idx+1] == 's':
-            varargs.append((args[idx], 'OCTETSTRING', args[idx+2]))
-        elif args[idx+1] == 'U':
-            varargs.append((args[idx], 'COUNTER64', long(args[idx+2])))
-        else:
-            print 'Unknown value type \'%s\'\n%s' % (args[idx+1], usage)
-            sys.exit(-1)
+# Choose protocol version specific module
+try:
+    snmp = eval('v' + version)
 
-        idx = idx + 3
-            
-    except IndexError:
-        print 'Wrong number of arguments supplied\n%s' % usage
-        sys.exit(-1)
+except (NameError, AttributeError):
+    print 'Unsupported SNMP protocol version: %s\n%s' % (version, usage)
+    sys.exit(-1)
 
-    except (TypeError, ValueError), why:
-        print 'Wrong type of value \'%s\': %s' % (args[idx+2], why)
-        sys.exit(-1)
-            
 # Create SNMP manager object
 client = role.manager((args[0], port))
 
@@ -116,48 +83,45 @@ client = role.manager((args[0], port))
 client.timeout = timeout
 client.retries = retries
 
-# Create a SNMP request&response objects from protocol version
-# specific module.
-try:
-    req = eval('v' + version).SETREQUEST()
-    rsp = eval('v' + version).GETRESPONSE()
+# Create SNMP SET request
+req = snmp.SetRequest()
 
-except (NameError, AttributeError):
-    print 'Unsupported SNMP protocol version: %s\n%s' % (version, usage)
-    sys.exit(-1)
+# Initialize request message from C/L params
+req.cliUcdSetArgs(args[1:])
 
-encoded_oids = []
-encoded_vals = []
+# Create SNMP response message framework
+rsp = snmp.GetResponse()
 
-for (oid, type, val) in varargs:
-    encoded_oids.append(asn1.OBJECTID().encode(oid))
-    encoded_vals.append(eval('asn1.'+type+'()').encode(val))
+def cb_fun(answer, src):
+    """This is meant to verify inbound messages against out-of-order
+       messages
+    """
+    # Decode message
+    rsp.decode(answer)
+        
+    # Make sure response matches request
+    if req.match(rsp):
+        return 1
 
-# Encode OIDs along with their respective values, encode SNMP
-# request message and try to send it to SNMP agent and receive
-# a response
-(answer, src) = client.send_and_receive( \
-         req.encode(community=args[1], \
-                    encoded_oids=encoded_oids, encoded_vals=encoded_vals))
+# Encode SNMP request message and try to send it to SNMP agent and
+# receive a response
+(answer, src) = client.send_and_receive(req.encode(), (None, 0), cb_fun)
 
-# Decode SNMP response message
-rsp.decode(answer)
-
-# Make sure response matches request (request IDs, communities, etc)
-if req != rsp:
-    raise 'Unmatched response: %s vs %s' % (str(req), str(rsp))
-
-# Decode BER encoded Object IDs.
-oids = map(lambda x: x[0], map(asn1.OBJECTID().decode, \
-                               rsp['encoded_oids']))
-
-# Decode BER encoded values associated with Object IDs.
-vals = map(lambda x: x[0](), map(asn1.decode, rsp['encoded_vals']))
+# Fetch Object ID's and associated values
+vars = rsp.apiGenGetPdu().apiGenGetVarBind()
 
 # Check for remote SNMP agent failure
-if rsp['error_status']:
-    raise 'SNMP error #' + str(rsp['error_status']) + ' for OID #' \
-          + str(rsp['error_index'])
-
-for (oid, val) in map(None, oids, vals):
-    print oid + ' ---> ' + str(val)
+if rsp.apiGenGetPdu().apiGenGetErrorStatus():
+    errorIndex = rsp.apiGenGetPdu().apiGenGetErrorIndex() - 1
+    errorStatus = str(rsp['pdu'].values()[0]['error_status'])
+    if errorIndex < len(vars):
+        raise error.ProtoError(errorStatus + ' at ' + str(vars[errorIndex][0]))
+    raise error.ProtoError(errorStatus)
+        
+# Print out results
+for (oid, val) in vars:
+    print oid, ' ---> ',
+    if reportTypeFlag:
+        print val
+    else:
+        print repr(val.getTerminal().get())

@@ -1,0 +1,78 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: API: Generic: V2C: PDU: Methods</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+
+<H3>
+High-level API to SNMP v.2c GetBulkRequst PDU object
+</H3>
+
+<P>
+The
+<A HREF="rfc1905.html#GetBulkRequstMixIn">rfc1905.GetBulkRequstPduMixIn</A>,
+class inherits all properties of the
+<A HREF="rfc1905.html#GetRequest">rfc1905.GetRequest</A> class and implements
+the following additional methods:
+</P>
+
+<A NAME="apiGenGetNonRepeaters"></A>
+<DL>
+<DT><STRONG>apiGenGetNonRepeaters</STRONG>()</DT>
+<DD>
+<P>
+Returns current PDU
+<A HREF="../../rfc1905.html#NonRepeaters">non-repeaters</A> value (as integer).
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenSetNonRepeaters"></A>
+<DL>
+<DT><STRONG>apiGenSetNonRepeaters</STRONG>(<STRONG>nonRepeaters</STRONG>)</DT>
+<DD>
+<P>
+Sets <A HREF="../../rfc1905.html#NonRepeaters">nonRepeaters</A> value
+(as integer) to SNMP PDU object.
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGetMaxRepetitions"></A>
+<DL>
+<DT><STRONG>apiGetMaxRepetitions</STRONG>()</DT>
+<DD>
+<P>
+Returns current PDU
+<A HREF="../../rfc1905.html#MaxRepetitions">max-repetitions</A> value (as integer).
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenSetMaxRepetitions"></A>
+<DL>
+<DT><STRONG>apiGenSetMaxRepetitions</STRONG>(<STRONG>maxRepetitions</STRONG>)</DT>
+<DD>
+<P>
+Sets <A HREF="../../rfc1905.html#MaxRepetitions">maxRepetitions</A> value
+(as integer) to SNMP PDU object.
+</P>
+</DD>
+</DL>
+
+<P>
+Please, refer to 
+<A HREF="rfc1905-getrequestpdu-objects.html">rfc1905.GetRequest methods</A>
+for more information.
+</A>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

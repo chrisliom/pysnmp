@@ -1,0 +1,65 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: CLI: UCD: V1: PDU: SetRequest</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+
+<H3>
+Methods of SNMP v.1 SetRequest PDU mix-in objects
+</H3>
+
+<P>
+The <A HREF="rfc1157.html#SetRequestMixIn">rfc1157.SetRequestMixIn</A>
+mix-in class defines the following methods:
+</P>
+
+<A NAME="cliUcdSetArgs"></A>
+<DL>
+<DT><STRONG>cliUcdSetArgs</STRONG>(<STRONG>args</STRONG>)</DT>
+<DD>
+<P>
+Initialize SNMP message object from command line parameters
+<STRONG>args</STRONG>. The <STRONG>args</STRONG> argument
+must be a list of strings. This method expects SNMP PDU variables-bindings
+passed in the following format:
+</P>
+<A NAME="VarBind"></A>
+<P>
+<<
+<A HREF="../../rfc1155.html#ObjectIdentifier">Object-Identifier</A>
+<STRONG>Tag</STRONG>
+<STRONG>Value</STRONG>> [...]>
+</P>
+<P>
+where:
+<UL>
+<LI><STRONG>Tag</STRONG> -- denotes following value type. Must be one of:
+<UL>
+<LI>i -- for <A HREF="../../rfc1155.html#Integer">integer</A>
+<LI>s -- for <A HREF="../../rfc1155.html#OctetString">string</A>
+<LI>d -- for decimal string
+<LI>n -- for <A HREF="../../rfc1155.html#Null">Null (no value)</A>
+<LI>o -- for <A HREF="../../rfc1155.html#ObjectIdentifier">object ID</A>
+<LI>n -- for <A HREF="../../rfc1155.html#TimeTicks">time ticks</A>
+<LI>n -- for <A HREF="../../rfc1155.html#IpAddress">IP address</A>
+</UL>
+<LI><STRONG>Value</STRONG> -- value initializer
+</UL>
+</P>
+<P>
+The <STRONG>cliUcdSetArgs</STRONG> method does not return any unprocessed
+list items.
+</P>
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

@@ -1,0 +1,94 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: CLI: UCD: V1: PDU</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Command-line interface to SNMP v.1 PDU objects
+</H3>
+
+<P>
+The <STRONG>pysnmp.proto.cli.ucd.rfc1157</STRONG> module implements a set
+of mix-in classes that provide PDU objects initialization from command-line
+arguments.
+</P>
+
+<A NAME="GetRequestPduMixIn"></A>
+<A NAME="GetNextRequestPduMixIn"></A>
+<P>
+<DL>
+<DT>class <STRONG>GetRequestPduMixIn</STRONG>()</DT>
+<DT>class <STRONG>GetNextRequestPduMixIn</STRONG>()</DT>
+<DD>
+<P>
+These are the mix-ins for their
+<A HREF="../../rfc1157.html#GetRequestPdu"> complementary</A> classes.
+They define a few methods (<A HREF="#Subsections">see below</A>) composing
+command-line interface to SNMP v.1
+<STRONG>GetRequestPdu</STRONG> and <STRONG>GetNextRequestPdu</STRONG>
+objects.
+</P>
+</DD>
+</DL>
+
+<A NAME="SetRequestPduMixIn"></A>
+<P>
+<DL>
+<DT>class <STRONG>SetRequestPduMixIn</STRONG>()</DT>
+<DD>
+<P>
+This is the mix-in for its
+<A HREF="../../rfc1157.html#SetRequestPdu"> complementary</A> class.
+It defines a few methods (<A HREF="#Subsections">see below</A>) composing
+command-line interface to SNMP v.1
+<STRONG>SetRequestPdu</STRONG> object.
+</P>
+</DD>
+</DL>
+
+<A NAME="TrapPduMixIn"></A>
+<P>
+<DL>
+<DT>class <STRONG>TrapPduMixIn</STRONG>()</DT>
+<DD>
+<P>
+This is the mix-in for its
+<A HREF="../../rfc1157.html#TrapPdu"> complementary</A> class.
+It defines a few methods (<A HREF="#Subsections">see below</A>) composing
+command-line interface to SNMP v.1
+<STRONG>TrapPdu</STRONG> object.
+</P>
+</DD>
+</DL>
+
+<P>
+Methods  of the above classes may raise exceptions based on
+<A HREF="error.html#ProtoCliUcdError">error.ProtoCliUcdError</A>
+base class.
+</P>
+
+<HR><STRONG>Subsections</STRONG>
+
+<A NAME="Subsections"></A>
+
+<P>
+<UL>
+<LI><A HREF="rfc1157-getrequestpdu-objects.html">
+CLI methods to SNMP v.1 Get/GetNextRequestPduMixIn objects</A>
+<LI><A HREF="rfc1157-setrequestpdu-objects.html">
+CLI methods to SNMP v.1 SetRequestPduMixIn objects</A>
+<LI><A HREF="rfc1157-trappdu-objects.html">
+CLI methods to SNMP v.1 TrapPduMixIn objects</A>
+</UL>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

@@ -1,0 +1,35 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: v.2c: GetRequest example</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+
+<H3>
+Example of <STRONG>GetRequest</STRONG> object usage
+</H3>
+
+<P>
+<PRE>
+>>> from pysnmp.proto import v2c
+>>> req = v2c.GetRequest()
+>>> req
+GetRequest(version=Version(1), community=Community('public'), pdu=Pdus(get_request=GetRequestPdu(request_id=RequestId(0L), error_status=ErrorStatus(0), error_index=ErrorIndex(0L), variable_bindings=VarBindList())))
+>>> req['community'].set('mycomm')
+>>> req['pdu']['get_request']['variable_bindings'].append(v2c.VarBind(name=v2c.ObjectName('1.3.6.1.2.1.1.1.0')))
+>>> req.encode()
+'0&\002\001\001\004\006mycomm\240\031\002\001\000\002\001\000\002\001\0000\0160\014\006\010+\006\001\002\001\001\001\000\005\000'
+>>> req.reply()
+Response(version=Version(1), community=Community('mycomm'), pdu=Pdus(response=ResponsePdu(request_id=RequestId(4L), error_status=ErrorStatus(0), error_index=ErrorIndex(0L), variable_bindings=VarBindList(VarBind(name=ObjectName('.1.3.6.1.2.1.1.1.0'), value=BindValue(unspecified=Null(None)))))))
+</PRE>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

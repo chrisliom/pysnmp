@@ -1,4 +1,4 @@
-#!/usr/local/bin/python -O
+#!/usr/bin/env python
 """
    Retrieve MIB variables associated with user specifed SNMP Object IDs
    from arbitrary SNMP agent.
@@ -6,36 +6,33 @@
    Since MIB parser is not yet implemented in Python, this script takes and
    reports Object IDs in dotted numeric representation only.
 
-   Written by Ilya Etingof <ilya@glas.net>, 2000-2002.
-
+   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   details.
 """
-import sys
-import getopt
-
-# Import PySNMP modules
-from pysnmp import asn1, v1, v2c
-from pysnmp import role
+import sys, getopt
+from pysnmp.proto import v1, v2c, error
+from pysnmp.mapping.udp import role
+import pysnmp.proto.api.generic
+import pysnmp.proto.cli.ucd
 
 # Initialize help messages
 options =           'Options:\n'
 options = options + '  -p <port>      port to communicate with at the agent. Default is 161.\n'
 options = options + '  -r <retries>   number of retries to be used in requests. Default is 5.\n'
 options = options + '  -t <timeout>   timeout between retries. Default is 1.\n'
-options = options + '  -v <version>   SNMP version to use [1, 2c]. Default is 1 (version one).'
-usage = 'Usage: %s [options] <snmp-agent> <community> <obj-id [[obj-id] ... ]\n' % sys.argv[0]
-usage = usage + options
+options = options + '  -v <version>   SNMP version to use [1, 2c]. Default is 1 (version one).\n'
+options = options + '  -R             report variables types on output.'
+usage = 'Usage: %s [options] <snmp-agent>' % sys.argv[0]
+usage = usage + ' ' + v2c.GetRequest().cliUcdGetUsage() + '\n' + options
     
 # Initialize defaults
-port = 161
-retries = 5
-timeout = 1
-version = '1'
+port = 161; retries = 5; timeout = 1; version = '1'; reportTypeFlag = None
     
 # Parse possible options
 try:
-    (opts, args) = getopt.getopt(sys.argv[1:], 'hp:r:t:v:',\
+    (opts, args) = getopt.getopt(sys.argv[1:], 'hp:r:t:v:R',\
                                  ['help', 'port=', 'retries=', \
-                                  'timeout=', 'version='])
+                                  'timeout=', 'version=', 'report-type'])
 
 except getopt.error, why:
     print 'getopt error: %s\n%s' % (why, usage)
@@ -59,12 +56,15 @@ try:
         if opt[0] == '-v' or opt[0] == '--version':
             version = opt[1]
 
+        if opt[0] == '-R' or opt[0] == '--report-type':
+            reportTypeFlag = 1
+
 except ValueError, why:
     print 'Bad parameter \'%s\' for option %s: %s\n%s' \
           % (opt[1], opt[0], why, usage)
     sys.exit(-1)
 
-if len(args) < 3:
+if len(args) < 1:
     print 'Insufficient number of arguments supplied\n%s' % usage
     sys.exit(-1)
 
@@ -72,44 +72,54 @@ if len(args) < 3:
 client = role.manager((args[0], port))
 
 # Pass it a few options
-client.timeout = timeout
-client.retries = retries
+client.timeout = timeout; client.retries = retries
 
-# Create a SNMP request&response objects from protocol version
-# specific module.
+# Choose protocol version specific module
 try:
-    req = eval('v' + version).GETREQUEST()
-    rsp = eval('v' + version).GETRESPONSE()
-
+    snmp = eval('v' + version)
 except (NameError, AttributeError):
     print 'Unsupported SNMP protocol version: %s\n%s' % (version, usage)
     sys.exit(-1)
 
-# Encode OIDs, encode SNMP request message and try to send
-# it to SNMP agent and receive a response
-(answer, src) = client.send_and_receive( \
-        req.encode(community=args[1], \
-                   encoded_oids=map(asn1.OBJECTID().encode, args[2:])))
+# Create SNMP GET request
+req = snmp.GetRequest()
 
-# Decode SNMP response
-rsp.decode(answer)
+# Initialize request message from C/L params
+req.cliUcdSetArgs(args[1:])
+
+# Create SNMP response message framework
+rsp = snmp.Response()
+
+def cb_fun(answer, src):
+    """This is meant to verify inbound messages against out-of-order
+       messages
+    """
+    # Decode message
+    rsp.decode(answer)
         
-# Make sure response matches request (request IDs, communities, etc)
-if req != rsp:
-    raise 'Unmatched response: %s vs %s' % (str(req), str(rsp))
+    # Make sure response matches request
+    if req.match(rsp):
+        return 1
 
-# Decode BER encoded Object IDs.
-oids = map(lambda x: x[0], map(asn1.OBJECTID().decode, \
-                               rsp['encoded_oids']))
+# Encode SNMP request message and try to send it to SNMP agent and
+# receive a response
+(answer, src) = client.send_and_receive(req.encode(), (None, 0), cb_fun)
 
-# Decode BER encoded values associated with Object IDs.
-vals = map(lambda x: x[0](), map(asn1.decode, rsp['encoded_vals']))
+# Fetch Object ID's and associated values
+vars = rsp.apiGenGetPdu().apiGenGetVarBind()
 
 # Check for remote SNMP agent failure
-if rsp['error_status']:
-    raise 'SNMP error #' + str(rsp['error_status']) + ' for OID #' \
-          + str(rsp['error_index'])
+if rsp.apiGenGetPdu().apiGenGetErrorStatus():
+    errorIndex = rsp.apiGenGetPdu().apiGenGetErrorIndex() - 1
+    errorStatus = str(rsp['pdu'].values()[0]['error_status'])
+    if errorIndex < len(vars):
+        raise error.ProtoError(errorStatus + ' at ' + str(vars[errorIndex][0]))
+    raise error.ProtoError(errorStatus)
         
 # Print out results
-for (oid, val) in map(None, oids, vals):
-    print oid + ' ---> ' + str(val)
+for (oid, val) in vars:
+    print oid, ' ---> ',
+    if reportTypeFlag:
+        print val
+    else:
+        print repr(val.getTerminal().get())

@@ -1,0 +1,116 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: SMI and SNMP for v.2c (RFC 1902 & RFC 1905)</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Higher-level API to SMI and SNMP v.2c objects (RFC 1902 & RFC 1905)
+</H3>
+
+<P>
+The <STRONG>pysnmp.proto.v2c</STRONG> module implements higher-level, more
+restrictive API to data structures defined by
+<A HREF="rfc1902.html">rfc1902</A> and <A HREF="rfc1905.html">rfc1905</A>
+modules.
+</P>
+
+<P>
+This module imports everything from the <A HREF="rfc1902.html">rfc1902</A>
+module into its own namespace and implements the following classes:
+</P>
+
+<A NAME="GetRequest"></A>
+<A NAME="GetNextRequest"></A>
+<A NAME="SetRequest"></A>
+<A NAME="GetBulkRequest"></A>
+<A NAME="InformRequest"></A>
+<P>
+<DL>
+<DT>class <STRONG>GetRequest</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DT>class <STRONG>GetNextRequest</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DT>class <STRONG>SetRequest</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DT>class <STRONG>GetBulkRequest</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DT>class <STRONG>InformRequest</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DD>
+<P>
+Instances of these classes represent SNMP v.2c request objects. Each of
+these classes subclass the <A HREF="rfc1905.html#Message">rfc1905.Message</A> class,
+with embedded components (implemented internally) and fixed to message-specific
+items and a few additional methods (<A HREF="#Subsections">see below</A>) defined.
+</P>
+</DD>
+</DL>
+
+<A NAME="Response"></A>
+<P>
+<DL>
+<DT>class <STRONG>Response</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DD>
+<P>
+Instance of this class represent SNMP v.2c response objects. This class subclasses
+the <A HREF="rfc1905.html#Message">rfc1905.Message</A> class, with embedded
+components (implemented internally) and fixed to message-specific items.
+</P>
+</DD>
+</DL>
+
+<A NAME="Report"></A>
+<A NAME="SnmpV2Trap"></A>
+<P>
+<DL>
+<DT>class <STRONG>Report</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DT>class <STRONG>SnmpV2Trap</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DD>
+<P>
+Instances of these classes represent SNMP v.2c message objects. Each of
+these classes subclass the <A HREF="rfc1905.html#Message">rfc1905.Message</A> class,
+with embedded components (implemented internally) and fixed to message-specific
+items.
+</P>
+</DD>
+</DL>
+
+<A NAME="Request"></A>
+<P>
+<DL>
+<DT>class <STRONG>Request</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DD>
+<P>
+Instances of this class represent a demultiplexor for SNMP v2.c request messages.
+This is a subclass of <A HREF="rfc1905.html#Message">rfc1905.Message</A> class,
+with embedded components (implemented internally) fixed to requests-specific items.
+</P>
+<P>
+Objects of this class are supposed to be used on SNMP agent side for decoding
+any request message to request object.
+</P>
+</DD>
+</DL>
+
+<HR><STRONG>Subsections</STRONG>
+
+<A NAME="Subsections"></A>
+
+<P>
+<UL>
+<LI><A HREF="v2c-getrequest-objects.html">
+Additional methods of GetRequest (and similar) objects</A>
+<LI><A HREF="v2c-getrequest-example.html">
+Example of GetRequest object usage</A>
+<LI><A HREF="v2c-response-example.html">
+Example of Response object usage</A>
+<LI><A HREF="v2c-request-example.html">
+Example of Request object usage</A>
+</UL>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

@@ -1,0 +1,109 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: SMI and SNMP for v.1 (RFC 1155 & RFC 1157)</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Higher-level API to SMI and SNMP v.1 objects (RFC 1155 & RFC 1157)
+</H3>
+
+<P>
+The <STRONG>pysnmp.proto.v1</STRONG> module implements higher-level, more
+restrictive API to data structures defined by
+<A HREF="rfc1155.html">rfc1155</A> and <A HREF="rfc1157.html">rfc1157</A>
+modules.
+</P>
+
+<P>
+This module imports everything from the <A HREF="rfc1155.html">rfc1155</A>
+module into its own namespace and implements the following classes:
+</P>
+
+<A NAME="GetRequest"></A>
+<A NAME="GetNextRequest"></A>
+<A NAME="SetRequest"></A>
+<P>
+<DL>
+<DT>class <STRONG>GetRequest</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DT>class <STRONG>GetNextRequest</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DT>class <STRONG>SetRequest</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DD>
+<P>
+Instances of these classes represent SNMP v.1 request objects. Each of
+these classes is a subclass of <A HREF="rfc1157.html#Message">rfc1157.Message</A>
+class, with embedded components fixed to (internally implemented) message-specific
+items and a few additional methods (<A HREF="#Subsections">see below</A>) defined.
+</P>
+</DD>
+</DL>
+
+<A NAME="GetResponse"></A>
+<P>
+<DL>
+<DT>class <STRONG>GetResponse</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DD>
+<P>
+Instance of this class represent SNMP v.1 response object. This class is a
+subclass of <A HREF="rfc1157.html#Message">rfc1157.Message</A>class, with
+embedded components fixed to (internally implemented) message-specific items.
+</P>
+</DD>
+</DL>
+
+<A NAME="Trap"></A>
+<P>
+<DL>
+<DT>class <STRONG>Trap</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DD>
+<P>
+Instances of these classes represent SNMP v.1 trap object. This class is a
+subclass of <A HREF="rfc1157.html#Message">rfc1157.Message</A> class, with
+embedded components fixed to (internally implemented) message-specific items.
+</P>
+</DD>
+</DL>
+
+<A NAME="Request"></A>
+<P>
+<DL>
+<DT>class <STRONG>Request</STRONG>([<STRONG>**kwargs</STRONG>])</DT>
+<DD>
+<P>
+Instances of this class represent a demultiplexor for SNMP v.1 request messages.
+This is a subclass of <A HREF="rfc1157.html#Message">rfc1157.Message</A> class,
+with embedded components (internally implemented) fixed to requests-specific items.
+</P>
+<P>
+Objects of this class are supposed to be used on SNMP agent side for decoding
+any request message to request object.
+</P>
+</DD>
+</DL>
+
+<HR><STRONG>Subsections</STRONG>
+
+<A NAME="Subsections"></A>
+
+<P>
+<UL>
+<LI><A HREF="v1-getrequest-objects.html">
+Additional methods of GetRequest (and similar) objects</A>
+<LI><A HREF="v1-getrequest-example.html">
+Example of GetRequest object usage</A>
+<LI><A HREF="v1-getresponse-example.html">
+Example of GetResponse object usage</A>
+<LI><A HREF="v1-request-example.html">
+Example of Request object usage</A>
+</UL>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

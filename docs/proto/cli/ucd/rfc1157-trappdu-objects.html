@@ -1,0 +1,51 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: CLI: UCD: V1: PDU: Trap</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+
+<H3>
+Methods of SNMP v.1 Trap PDU mix-in objects
+</H3>
+
+<P>
+The <A HREF="rfc1157.html#TrapMixIn">rfc1157.TrapMixIn</A>
+mix-in class defines the following methods:
+</P>
+
+<A NAME="cliUcdSetArgs"></A>
+<DL>
+<DT><STRONG>cliUcdSetArgs</STRONG>(<STRONG>args</STRONG>)</DT>
+<DD>
+<P>
+Initialize SNMP message object from command line parameters
+<STRONG>args</STRONG>. The <STRONG>args</STRONG> argument
+must be a list of strings. This method expects passed list to comply
+the following format:
+</P>
+<P>
+[<A HREF="../../rfc1157.html#Enterprise">enterprise-oid</A>
+[<A HREF="../../rfc1157.html#AgentAddr">agent-address</A>
+[<A HREF="../../rfc1157.html#GenericTrap">trap-type</A>
+[<A HREF="../../rfc1157.html#SpecificTrap">specific-type</A>
+[<A HREF="../../rfc1157.html#TimeStamp">uptime</A>
+[<A HREF="rfc1157-setrequestpdu-objects.html#VarBind">variables-binding</A>
+]]]]]]
+</P>
+<P>
+The <STRONG>cliUcdSetArgs</STRONG> method does not return any unprocessed
+list items.
+</P>
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

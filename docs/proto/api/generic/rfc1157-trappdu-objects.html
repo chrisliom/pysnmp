@@ -1,0 +1,137 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: API: Generic: V1: PDU: TrapPdu</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+
+<H3>
+High-level API to SNMP v.1 TrapPdu objects
+</H3>
+
+<P>
+The <A HREF="rfc1157.html#TrapMixIn">rfc1157.TrapMixIn</A>
+mix-in class inherites all properties of the
+<A HREF="rfc1157.html#GetRequestMixIn">rfc1157.GetRequestMixIn</A>
+class and implements the following high-level API methods:
+</P>
+
+<A NAME="apiGenGetEnterprise"></A>
+<DL>
+<DT><STRONG>apiGenGetEnterprise</STRONG>()</DT>
+<DD>
+<P>
+Returns current PDU <A HREF="../../rfc1157.html#Enterprise">enterprise OID</A>
+(as string).
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenSetEnterprise"></A>
+<DL>
+<DT><STRONG>apiGenSetEnterprise</STRONG>(<STRONG>enterpriseOid</STRONG>)</DT>
+<DD>
+<P>
+Sets <A HREF="../../rfc1157.html#Enterprise">enterpriseOid</A> (as string) to
+SNMP PDU object.
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenGetAgentAddr"></A>
+<DL>
+<DT><STRONG>apiGenGetAgentAddr</STRONG>()</DT>
+<DD>
+<P>
+Returns current PDU <A HREF="../../rfc1157.html#AgentAddr">agent address</A>
+(as string).
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenSetAgentAddr"></A>
+<DL>
+<DT><STRONG>apiGenSetAgentAddr</STRONG>(<STRONG>agentAddr</STRONG>)</DT>
+<DD>
+<P>
+Sets <A HREF="../../rfc1157.html#AgentAddr">agentAddr</A> (as string) to
+SNMP PDU object.
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenGetGenericTrap"></A>
+<DL>
+<DT><STRONG>apiGenGetGenericTrap</STRONG>()</DT>
+<DD>
+<P>
+Returns current PDU <A HREF="../../rfc1157.html#GenericTrap">generic trap</A>
+(as integer).
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenSetGenericTrap"></A>
+<DL>
+<DT><STRONG>apiGenSetGenericTrap</STRONG>(<STRONG>genericTrap</STRONG>)</DT>
+<DD>
+<P>
+Sets <A HREF="../../rfc1157.html#GenericTrap">genericTrap</A> (as integer) to
+SNMP PDU object.
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenGetSpecificTrap"></A>
+<DL>
+<DT><STRONG>apiGenGetSpecificTrap</STRONG>()</DT>
+<DD>
+<P>
+Returns current PDU <A HREF="../../rfc1157.html#SpecificTrap">specific trap</A>
+(as integer).
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenSetSpecificTrap"></A>
+<DL>
+<DT><STRONG>apiGenSetSpecificTrap</STRONG>(<STRONG>specificTrap</STRONG>)</DT>
+<DD>
+<P>
+Sets <A HREF="../../rfc1157.html#SpecificTrap">specificTrap</A> (as integer) to
+SNMP PDU object.
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenGetTimeStamp"></A>
+<DL>
+<DT><STRONG>apiGenGetTimeStamp</STRONG>()</DT>
+<DD>
+<P>
+Returns current PDU <A HREF="../../rfc1157.html#TimeStamp">time stamp</A>
+(as integer).
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenSetTimeStamp"></A>
+<DL>
+<DT><STRONG>apiGenSetTimeStamp</STRONG>(<STRONG>timeStamp</STRONG>)</DT>
+<DD>
+<P>
+Sets <A HREF="../../rfc1157.html#TimeStamp">timeStamp</A> (as integer) to
+SNMP PDU object.
+</P>
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

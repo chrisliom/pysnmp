@@ -1,0 +1,48 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: CLI: UCD: V1: PDU: Get/GetNextRequest</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+
+<H3>
+Methods of SNMP v.1 Get/GetNextRequest PDU mix-in objects
+</H3>
+
+<P>
+The <A HREF="rfc1157.html#GetRequestMixIn">rfc1157.GetRequestMixIn</A> and
+<A HREF="rfc1157.html#GetNextRequestMixIn">rfc1157.GetNextRequestMixIn</A>
+mix-in classes define the following methods:
+</P>
+
+<A NAME="cliUcdSetArgs"></A>
+<DL>
+<DT><STRONG>cliUcdSetArgs</STRONG>(<STRONG>args</STRONG>)</DT>
+<DD>
+<P>
+Initialize SNMP message object from command line parameters
+<STRONG>args</STRONG>. The <STRONG>args</STRONG> argument
+must be a list of strings. This method expects passed list to comply
+the following format:
+</P>
+<P>
+<<
+<A HREF="../../rfc1155.html#ObjectIdentifier">Object-Identifier</A>
+> [...]>
+</P>
+<P>
+The <STRONG>cliUcdSetArgs</STRONG> method does not return any unprocessed
+list items.
+</P>
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

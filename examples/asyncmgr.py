@@ -1,4 +1,4 @@
-#!/usr/local/bin/python -O
+#!/usr/bin/env python
 """
    Implements a simple Telnet like server that interacts with user via
    command line. User instructs server to query arbitrary SNMP agent and
@@ -9,20 +9,19 @@
    Since MIB parser is not yet implemented in Python, this script takes and
    reports Object IDs in dotted numeric representation only.
 
-   Written by Ilya Etingof <ilya@glas.net>, 2000-2002.
-
+   Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for
+   details.
 """
-import time
-import string
-import socket
+import sys, time, string, socket, getopt
 from types import ClassType
-import asyncore
-import asynchat
-import getopt
+import sys, asyncore, asynchat
 
-# Import PySNMP modules
-from pysnmp import asn1, v1, v2c
-from pysnmp import asynrole, error
+from pysnmp.proto import v1, v2c
+from pysnmp.asn1.error import ValueConstraintError
+from pysnmp.mapping.udp import asynrole
+import pysnmp.proto.api.generic
+import pysnmp.proto.cli.ucd
+from pysnmp.error import PySnmpError
 
 # Initialize a dictionary of running telnet engines
 global_engines = {}
@@ -35,6 +34,20 @@ class telnet_engine(asynchat.async_chat):
        requests. As response arrives, it's matched against each of pending
        message contexts.
     """
+    class V1:
+        """Just a name scope for v.1 specifics
+        """
+        reqTypes = { 'get' : v1.GetRequest, 'getnext': v1.GetNextRequest,
+                     'set': v1.SetRequest, 'trap': v1.Trap }
+
+    class V2c:
+        """Just a name scope for v.2c specifics
+        """
+        reqTypes = { 'get': v2c.GetRequest, 'getnext': v2c.GetNextRequest,
+                     'set': v2c.SetRequest, 'getbulk': v2c.GetBulkRequest,
+                     'inform': v2c.InformRequest, 'report': v2c.Report,
+                     'trap': v2c.SnmpV2Trap }
+    
     def __init__ (self, sock):
         # Call constructor of the parent class
         asynchat.async_chat.__init__ (self, sock)
@@ -46,14 +59,10 @@ class telnet_engine(asynchat.async_chat):
         self.data = ''
 
         # Create async SNMP transport manager
-        self.manager = asynrole.manager(self.request_done_fun)
+        self.manager = asynrole.manager((self.request_done_fun, None))
         
         # A queue of pending requests
         self.pending = []
-
-        # Run our own source of SNMP message serial number to preserve its
-        # sequentiality
-        self.request_id = 1
 
         # Register this instance of telnet engine at a global dictionary
         # used for their periodic invocations for timeout purposes
@@ -64,22 +73,24 @@ class telnet_engine(asynchat.async_chat):
         self.welcome = 'Example Telnet server / SNMP manager ready.\n'
 
         # Commands help messages
-        commands =            'Commands:\n'
+        commands = 'Commands:\n'
 
-        for mod in (v1, v2c):
-            rtypes = dir(mod)
-            for rtype in rtypes:
-                if rtype[-7:] == 'REQUEST':
-                    commands = commands + '  ' + '%-14s' % rtype[:-7] + \
-                               ' issue SNMP (%s) %s request\n' % \
-                               (mod.__name__[7:], rtype[:-7])
+        for ver in [ self.V1, self.V2c ]:
+            commands = commands + '%s:\n' % ver.__name__
+            for key in ver.reqTypes.keys():
+                commands = commands + '  ' + '%-14s' % key + \
+                           ' issue SNMP (%s) %s message\n' % \
+                           (ver.__name__, ver.reqTypes[key].__name__)
 
         # Options help messages
         options =           'Options:\n'
+        options = options + '  -h             this help screen.\n'
         options = options + '  -p <port>      port to communicate with at the agent. Default is 161.\n'
-        options = options + '  -t <timeout>   response timeout. Default is 1.'
-        self.usage = 'Syntax: <command> [options] <snmp-agent> <community> <obj-id [[obj-id] ... ]\n'
-        self.usage = self.usage + commands + options
+        options = options + '  -t <timeout>   response timeout. Default is 1.\n'
+        options = options + '  -v <version>   SNMP protocol version. Default is 1.\n'
+        specifics = 'Try \'help <command>\' for request-specific-params hints.'
+        self.usage = 'Syntax: <command> [options] <snmp-agent> <request-specific-params>\n'
+        self.usage = self.usage + commands + options + specifics
 
         # Send welcome message down to user. By using push() method we
         # having asynchronous engine delivering welcome message to user.
@@ -108,13 +119,18 @@ class telnet_engine(asynchat.async_chat):
 
         self.push(self.prompt)
 
-    def handle_error(self, exc_type, exc_value, exc_traceback):
+    def handle_error(self, exc_type=None, exc_value=None, exc_traceback=None):
         """Invoked by asyncore on any exception
         """
+        # In modern Python distribution, the handle_error() does not receive
+        # exception details
+        if exc_type is None or exc_value is None or exc_traceback is None:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+
         # In case of PySNMP exception, report it to user. Otherwise,
         # just pass the exception on.
         if type(exc_type) == ClassType and\
-           issubclass(exc_type, error.Generic):
+           issubclass(exc_type, PySnmpError):
             self.push('Exception: %s: %s\n' % (exc_type, exc_value))
         else:
             raise (exc_type, exc_value)
@@ -144,8 +160,8 @@ class telnet_engine(asynchat.async_chat):
         if not args:
             return
 
-        # Parse command
-        cmd = string.upper(args[0])
+        # Take the command
+        cmd = args[0]
 
         # Parse possible options
         try:
@@ -172,35 +188,50 @@ class telnet_engine(asynchat.async_chat):
         except ValueError, why:
             return 'Bad parameter \'%s\' for option %s: %s\n%s' \
                    % (opt[1], opt[0], why, self.usage)
-            
+
+        # Handle special case -- help clause
+        if cmd == 'quit':
+            self.close()
+        elif cmd == 'help':
+            try:
+                return eval('self.V' + version).reqTypes[args[0]]().cliUcdGetUsage()
+            except KeyError:
+                return 'Wrong SNMP message type for version %s: %s\n%s'\
+                       % (version, args[0], self.usage)
+            except IndexError:
+                return 'No command to hint upon\n%s' % self.usage
+                
         # Make sure we got enough arguments
-        if len(args) < 3:
+        if len(args) < 1:
             return 'Insufficient number of arguments\n%s' % self.usage
 
-        # Create a SNMP request&response objects from protocol version
-        # specific module.
+        # Choose protocol version specific module
         try:
-            req = eval('v' + version + '.' + cmd + 'REQUEST')()
+            req = eval('self.V' + version).reqTypes[cmd]()
 
         except (NameError, AttributeError):
-            return 'Unsupported SNMP protocol version/request type: %s/%s\n%s'\
+            return 'Unsupported SNMP protocol version: %s\n%s'\
+                   % (version, self.usage)
+
+        except KeyError:
+            return 'Wrong SNMP message type for version %s: %s\n%s'\
                    % (version, cmd, self.usage)
-
-        # Update request ID
-        self.request_id = self.request_id + 1
-
-        # Build complete SNMP request message and pass it over to
-        # transport layer to send it out
-        self.manager.send(req.encode(request_id=self.request_id,\
-                                     community=args[1], \
-                                     encoded_oids=map(asn1.OBJECTID().encode,\
-                                                      args[2:])),\
-                          (args[0], port))
-            
-        # Add request details into a pool of pending requests
-        self.pending.append((req, (args[0], port), time.time() + timeout))
         
-    def request_done_fun(self, manager, data, (response, src),\
+        # Initialize request message from C/L params
+        try:
+            req.cliUcdSetArgs(args[1:])
+            
+        except PySnmpError, why:
+            return str(why)
+
+        # ...transport layer to send it out
+        self.manager.send(req.encode(), (args[0], port))
+    
+        # Add request details into a pool of pending requests (if needed)
+        if hasattr(req, 'reply'):
+            self.pending.append((req, (args[0], port), time.time() + timeout))
+        
+    def request_done_fun(self, manager, req, (answer, src),\
                          (exc_type, exc_value, exc_traceback)):
         """Callback method invoked by SNMP manager object as response
            arrives. Asynchronous SNMP manager object passes back a
@@ -215,11 +246,21 @@ class telnet_engine(asynchat.async_chat):
         reply = 'Response from agent %s:\n' % str(src)
 
         # Decode response message
-        (rsp, rest) = v2c.decode(response)
-        
+        for snmp in [ v2c, v1 ]:
+            rsp = snmp.Response()
+            try:
+                rsp.decode(answer)
+            except ValueConstraintError:
+                continue
+            break
+        else:
+            self.push('Inbound message dropped (unsupported protocol version?)\n'
+                      + self.prompt)
+            return
+
         # Walk over pending message context
         for (req, dst, expire) in self.pending:
-            if req == rsp:
+            if req.match(rsp):
                 # Take matched context off the pending pool
                 self.pending.remove((req, dst, expire))
 
@@ -232,16 +273,20 @@ class telnet_engine(asynchat.async_chat):
             self.push(reply + self.prompt)
             return
 
-        # Decode BER encoded Object IDs.
-        oids = map(lambda x: x[0], map(asn1.OBJECTID().decode, \
-                                       rsp['encoded_oids']))
+        # Fetch Object ID's and associated values
+        vars = rsp.apiGenGetPdu().apiGenGetVarBind()
 
-        # Decode BER encoded values associated with Object IDs.
-        vals = map(lambda x: x[0](), map(asn1.decode, rsp['encoded_vals']))
+        # Check for remote SNMP agent failure
+        if rsp.apiGenGetPdu().apiGenGetErrorStatus():
+            errorIndex = rsp.apiGenGetPdu().apiGenGetErrorIndex() - 1
+            errorStatus = str(rsp['pdu'].values()[0]['error_status'])
+            self.push(ErrorStatus)
+            if errorIndex < len(vars):
+                self.push(' at ' + str(vars[errorIndex][0]))
 
         # Convert two lists into a list of tuples and print 'em all
-        for (oid, val) in map(None, oids, vals):
-            reply =  reply + oid + ' ---> ' + str(val) + '\n'
+        for (oid, val) in vars:
+            reply =  reply + '%s ---> %s\n' % (oid, val)
 
         # Send reply back to user
         self.push(reply + self.prompt)
@@ -294,8 +339,43 @@ class telnet_server(asyncore.dispatcher):
 
 # Run the module if it's invoked for execution
 if __name__ == '__main__':
+    # Initialize defaults
+    telnetPort = 8989;
+    
+    # Initialize help messages
+    options =           'Options:\n'
+    options = options + '  -S <telnet-port> TCP port for telnet server to listen at. Default is %d.' % telnetPort
+    usage = 'Usage: %s [options]\n' % sys.argv[0]
+    usage = usage + options
+
+    # Parse possible options
+    try:
+        (opts, args) = getopt.getopt(sys.argv[1:], 'hS:',\
+                                     ['help', 'telnet-port=' ])
+    except getopt.error, why:
+        print 'getopt error: %s\n%s' % (why, usage)
+        sys.exit(-1)
+
+    try:
+        for opt in opts:
+            if opt[0] == '-h' or opt[0] == '--help':
+                print usage
+                sys.exit(0)
+            
+            if opt[0] == '-S' or opt[0] == '--telnet-port':
+                telnetPort = int(opt[1])
+
+    except ValueError, why:
+        print 'Bad parameter \'%s\' for option %s: %s\n%s' \
+              % (opt[1], opt[0], why, usage)
+        sys.exit(-1)
+
+    if len(args) != 0:
+        print 'Extra arguments supplied\n%s' % usage
+        sys.exit(-1)
+
     # Create an instance of Telnet superserver
-    server = telnet_server ()
+    server = telnet_server(telnetPort)
 
     # Start the select() I/O multiplexing loop
     while 1:

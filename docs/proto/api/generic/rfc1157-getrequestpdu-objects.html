@@ -1,0 +1,78 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Protocol: API: Generic: V1: PDU: Get*/SetRequestPdu</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+
+<H3>
+High-level API to SNMP v.1 Get*/SetRequest PDU objects
+</H3>
+
+<P>
+The <A HREF="rfc1157.html#GetRequestMixIn">rfc1157.GetRequestMixIn</A> (and similar)
+mix-in classes define the following high-level API methods:
+</P>
+
+<A NAME="apiGenGetRequestId"></A>
+<DL>
+<DT><STRONG>apiGenGetRequestId</STRONG>()</DT>
+<DD>
+<P>
+Returns current PDU
+<A HREF="../../rfc1157.html#RequestId">request ID</A> (as integer).
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenSetRequestId"></A>
+<DL>
+<DT><STRONG>apiGenSetRequestId</STRONG>(<STRONG>requestId</STRONG>)</DT>
+<DD>
+<P>
+Sets request-ID <A HREF="../../rfc1157.html#RequestId">request ID</A>
+(as integer) to SNMP PDU object.
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenGetVarBind"></A>
+<DL>
+<DT><STRONG>apiGenGetVarBind</STRONG>()</DT>
+<DD>
+<P>
+Returns current PDU
+<A HREF="../../rfc1157.html#VarBind">variables bindings</A> as a list
+of tuples (<STRONG>objectId</STRONG>, <STRONG>value</STRONG>) where:
+<UL>
+<LI>objectId -- ObjectIdentifier in either of 
+<A HREF="../../../asn1/univ.html#ObjectIdentifier">supported forms</A>
+<LI>value -- variable's value given as an instance of
+<A HREF="../../rfc1155.html">RFC1155-compliant</A> data type.
+</UL>
+</P>
+</DD>
+</DL>
+
+<A NAME="apiGenSetVarBind"></A>
+<DL>
+<DT><STRONG>apiGenSetVarBind</STRONG>(<STRONG>varBind</STRONG>)</DT>
+<DD>
+<P>
+Sets variables bindings <A HREF="../../rfc1157.html#VarBind">VarBind</A>
+(specified as a <A HREF="#apiGenGetVarBind">list of tuples</A>) to SNMP
+PDU object. This method applies new variables bindings to PDU all at once
+and drops previous PDU's payload.
+</P>
+</DD>
+</DL>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

@@ -1,0 +1,83 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Transport Mappings: UDP/IP: Multisession, synchronous</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+Multiple-session, synchronous I/O engine
+</H3>
+<P>
+The <STRONG>pysnmp.mapping.udp.bulkrole</STRONG> module implements network
+transport that performat synchronous, blocking I/O over multiple BSD sockets
+at a time. This code is intended to be used in situations where a large
+number of SNMP entities need to be talked with at about the same time
+(consider a poll against multiple routers for gathering statistics at a
+specific time as an example).
+</P>
+<P>
+This module defines the following items:
+</P>
+
+<A NAME="manager"></A>
+<DL>
+<DT>class <STRONG>manager</STRONG>([<STRONG>iface</STRONG>])</DT>
+<DD>
+<P>
+Returns a new instance of <STRONG>manager</STRONG> class, representing
+a bulk of synchronous SNMP <A HREF=role.html#manager>managers</A>, each of
+which can be running against its own SNMP agent.
+</P>
+<P>
+The instances of <STRONG>manager</STRONG> class expose a standard
+list interface, where list items must be tuples of (<STRONG>address</STRONG>,
+<STRONG>data</STRONG>, <STRONG>ctx</STRONG>) where:
+<UL>
+<LI><STRONG>address</STRONG> represents either destination or source address
+of SNMP party (in <STRONG>socket</STRONG> module notation)
+<LI><STRONG>data</STRONG> represents either request or response octet-stream
+(string)
+<LI><STRONG>ctx</STRONG> represents a reference to opaque user context to
+be passed back and forth on request submission and retrieval.
+</UL>
+</P>
+<P>
+The <STRONG>iface</STRONG> parameter, if given, specifies the interface and
+port on local machine to <STRONG>bind()</STRONG> to. This argument must
+follow the <STRONG>socket</STRONG> module notation. All further requests
+would then be originated from the given interface/port.
+</P>
+<P>
+The default for <STRONG>iface</STRONG> is ('0.0.0.0', 0) what stands for
+binding to a primary interface at the local machine.
+</P>
+</DD>
+</DL>
+
+<P>
+Methods of the above classes may raise exceptions based on
+<STRONG>error.SnmpOverUdpError</STRONG> base class.
+</P>
+
+<HR>
+
+<A NAME="Subsections"></A>
+
+<STRONG>Subsections</STRONG>
+
+<P>
+<UL>
+<LI><A HREF="bulkrole-manager-objects.html">
+Objects of the bulkrole.manager class</A>
+</UL>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

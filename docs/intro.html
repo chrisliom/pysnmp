@@ -1,0 +1,155 @@
+<HTML>
+<HEAD>
+<TITLE>PySNMP: Introduction</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000"
+      LINK="#0000bb"  VLINK="#551a8b" ALINK="#ff0000">
+<H3>
+PySNMP overview
+</H3>
+<P>
+The <B>pysnmp</B> collection of packages implements basic components of a SNMP
+(Simple Network Management Protocol) entity, such as SNMP manager or agent,
+purely in <A HREF="http://www.python.org">Python</A> programming language.
+For more information on SNMP protocol, see
+<A HREF="http://www.ietf.org/rfc/rfc1157.txt">RFC 1157</A>,
+<A HREF="http://www.ietf.org/rfc/rfc1155.txt">RFC 1155</A>,
+<A HREF="http://www.ietf.org/rfc/rfc1212.txt">RFC 1212</A> and
+<A HREF="http://www.ietf.org/rfc/rfc1213.txt">RFC 1213</A>
+covering version 1, while
+<A HREF="http://www.ietf.org/rfc/rfc1905.txt">RFC 1905</A>,
+<A HREF="http://www.ietf.org/rfc/rfc1902.txt">RFC 1902</A>,
+<A HREF="http://www.ietf.org/rfc/rfc1449.txt">RFC 1449</A>,
+<A HREF="http://www.ietf.org/rfc/rfc1907.txt">RFC 1907</A> and
+<A HREF="http://www.ietf.org/rfc/rfc1908.txt">RFC 1908</A>
+are dedicated to version 2.
+</P>
+<P>
+Most importantly, PySNMP includes SNMP message processing modules
+(currently implementing versions 1 and 2c of SNMP protocol) and UDP-based
+transport modules used for exchanging SNMP messages over the TCP/IP network.
+</P>
+<P>
+As an additional benefit, a framework for implementing various ASN.1
+(Abstract Syntax Notation One) data types is supplied with PySNMP among
+other sub-packages.
+</P>
+<P>
+Here is an example on performing SNMP GET request using PySNMP's
+high-level message API:
+</P>
+
+<A NAME="Example"></A>
+
+<PRE>
+
+Python 1.5.2 (#3, Aug 25 1999, 19:14:24)  [GCC 2.8.1] on sunos5
+Copyright 1991-1995 Stichting Mathematisch Centrum, Amsterdam
+>>> from pysnmp.proto import v1
+>>> from pysnmp.proto.api import generic
+>>> from pysnmp.mapping.udp import role
+>>> req = v1.GetRequest()
+>>> req.apiGetPdu().apiSetVarBind([('1.3.6.1.2.1.1.1.0', None)])
+>>> tr = role.manager(('router-1.glas.net', 161))
+>>> (answer, src) = tr.send_and_receive(req.encode())
+>>> rsp = v1.GetResponse()
+>>> rsp.decode(answer)
+>>> vars = rsp.apiGetPdu().apiGetVarBind()
+>>> print vars
+[('.1.3.6.1.2.1.1.1.0', OctetString('Cisco Internetwork Operating System Software
+\015\012IOS (tm) 5400 Software(C5400-JS-M), Version 12.2(11.8b), MAINTENANCE
+INTERIM SOFTWARE\015\012 Copyright (c) 1986-2002 by cisco Systems, Inc.\015\012
+Compiled Tue 30-Jul-02 19:02 by pwade'))]
+>>>
+</PRE>
+
+<P>
+A few notes on PySNMP software design should be given before going
+any further with this documentation.
+</P>
+<P>
+This software has been designed with the following guidelines in mind:
+</P>
+<P><UL>
+<LI>The whole system should be highly flexible. Flexibility is achieved by
+modularity. Modules can be used separately and independently from each other
+<LI>The system should be highly extensible by design to follow future
+SNMP protocol development
+<LI>Implementation must accurately follow the standards
+<LI>High-level API to SNMP protocol object should be provided to cover
+the most frequent problems in a simple way. For more specific solutions,
+low-level APIs should remain available to user.
+</UL></P>
+<P>
+The PySNMP package is composed from the following components (actually,
+Python sub-packages):
+</P>
+<PRE>
+
+[ pysnmp.asn1.encoding.ber ]
+         |
+          ----------->[ pysnmp.asn1 ]                   [ pysnmp.network.udp ]
+                             |                                     |
+             -------->[ pysnmp.proto ]      [ pysnmp.network ]<----
+            |                |                      |
+ [ pysnmp.proto.{api,cli} ]  |                      |
+                             |                      |
+                             |                      |
+                              ----------------------
+                                         |
+                                 [ pysnmp.compat ]
+
+</PRE>                 
+<P>
+On the above figure, the <STRONG>pysnmp.asn1</STRONG> component
+implements a framework for building ASN.1 data types, while the
+<STRONG>pysnmp.asn1.encoding.ber</STRONG> sub-package, being mixed into
+the <STRONG>pysnmp.asn1</STRONG>, provides one of the possible data
+serialization methods -- BER (Basic Encoding Rules), which is used in SNMP.
+</P>
+<P>
+The <STRONG>pysnmp.proto</STRONG> component is where SNMP-specific stuff
+is held. Basically, these are the implementations of the Structure of
+Management Information and Protocol Operations for various SNMP versions.
+</P>
+<P>
+A collection of various high-level APIs to SNMP protocol items is supplied by
+the <STRONG>pysnmp.proto.api</STRONG> sub-package (a single high-level API's
+implemented at the moment).
+</P>
+<P>
+The <STRONG>pysnmp.proto.cli</STRONG> sub-package holds a set of command line
+interfaces (CLI) to SNMP protocol objects used for object initialization from
+command line parameters. This tool aims at simplifying command-line SNMP
+utilities development.
+</P>
+<P>
+SNMP specifications define several possible network transports to be used
+for SNMP operations. One of these transports, for TCP/IP networks, is supplied
+with the <STRONG>pysnmp.mapping.udp</STRONG> sub-package.
+</P>
+<P>
+The <STRONG>pysnmp.compat</STRONG> sub-package holds the compatibility APIs
+to a few popular SNMP implementations as well as to legacy PySNMP interfaces.
+</P>
+<P>
+What follows is the documentation on all these PySNMP sub-packages.
+</P>
+<P>
+<UL>
+<LI><A HREF="proto/intro.html">Structure for Management Information and Protocol Operations</A>
+<LI><A HREF="mapping/intro.html">Transport mappings for SNMP</A>
+<LI><A HREF="asn1/intro.html">ASN.1 framework</A>
+<LI><A HREF="compat/intro.html">Compatibility interfaces</A>
+</UL>
+</P>
+
+<HR>
+
+<ADDRESS>
+ilya@glas.net
+</ADDRESS>
+
+</BODY>
+</HTML>

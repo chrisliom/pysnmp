@@ -1,8 +1,9 @@
-"""Pure Python SNMP toolkit module.
+"""
+   SNMP framework for Python.
 
-   Includes various tools for handling SNMP subset of ASN.1 data types,
-   SNMP messages of v.1 and v.2c, and a few network transports that can
-   be used to exchange SNMP messages with remote SNMP entities.
+   Includes generic ASN.1 framework, an implementation of SNMP engines for
+   protocol versions 1 and 2c as well as a UDP/IP based transport mapping
+   for SNMP entities.
 
    Copyright 1999-2002 by Ilya Etingof <ilya@glas.net>. See LICENSE for details.
-"""   
+"""
