@@ -10,6 +10,7 @@ __all__ = [ 'Boolean', 'Integer', 'BitString', 'OctetString', 'Null', \
             'SequenceOf', 'Set', 'SetOf', 'Choice' ]
 
 import string
+from sys import version_info
 from operator import getslice, setslice, delslice
 from types import IntType, LongType, StringType, NoneType, FloatType,  \
      ListType, SliceType
@@ -376,8 +377,9 @@ class OctetString(base.SimpleAsn1Object):
     __rmul__ = __mul__
 
     # They won't be defined if version is at least 2.0 final
-    def __getslice__(self, i, j):
-        return self[max(0, i):max(0, j):]
+    if version_info < (2, 0):
+        def __getslice__(self, i, j):
+            return self[max(0, i):max(0, j):]
 
 class Null(base.SimpleAsn1Object):
     """ASN.1 NULL object
@@ -457,12 +459,13 @@ class ObjectIdentifier(base.SimpleAsn1Object):
         return self.__class__(self.__class__(other).get() + self.get())
 
     # They won't be defined if version is at least 2.0 final
-    def __getslice__(self, i, j):
-        return self[max(0, i):max(0, j):]
-    def __setslice__(self, i, j, seq):
-        self[max(0, i):max(0, j):] = seq
-    def __delslice__(self, i, j):
-        del self[max(0, i):max(0, j):]
+    if version_info < (2, 0):
+        def __getslice__(self, i, j):
+            return self[max(0, i):max(0, j):]
+        def __setslice__(self, i, j, seq):
+            self[max(0, i):max(0, j):] = seq
+        def __delslice__(self, i, j):
+            del self[max(0, i):max(0, j):]
 
     def append(self, item):
         """Append sub-id with input verification
