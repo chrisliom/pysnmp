@@ -1,37 +1,52 @@
 """Notification Receiver Application (TRAP PDU)"""
 from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
 from pysnmp.carrier.asynsock.dgram.udp import UdpSocketTransport
-from pysnmp.proto import omni
+from pyasn1.codec.ber import encoder, decoder
+from pysnmp.proto import api
 
 def cbFun(tspDsp, transportDomain, transportAddress, wholeMsg):
-    metaReq = omni.MetaMessage()
     while wholeMsg:
-        wholeMsg = metaReq.decode(wholeMsg)
-        req = metaReq.omniGetCurrentComponent()
-
-        reportStr = '%s (version ID %s) from %s:%s:\n' % (
-            req.omniGetPdu().omniGetPduType(),
-            req.omniGetProtoVersionId(), transportDomain, transportAddress
+        reqVer = api.decodeMessageVersion(wholeMsg)
+        pMod = api.protoModules[reqVer]        
+        reqMsg, wholeMsg = decoder.decode(
+            wholeMsg,
+            asn1Spec=pMod.Message(),
             )
-        
-        if req.omniGetPdu().omniGetPduType() == omni.trapPduType:
-            pdu = req.omniGetPdu()
-            if req.omniGetProtoVersionId() == omni.protoVersionId1:
-                print reportStr, \
-                      'Enterprise: %s\n' % pdu.omniGetEnterprise(),\
-                'Agent Address: %s\n' % pdu.omniGetAgentAddr(),\
-                      'Generic Trap: %s\n' % pdu.omniGetGenericTrap(),\
-                      'Specific Trap: %s\n' % pdu.omniGetSpecificTrap(),\
-                      'Uptime: %s\n' % pdu.omniGetTimeStamp(),\
-                      'Var-binds:'
-            for varBind in pdu.omniGetVarBindList():
-                print varBind.omniGetOidVal()
+        print 'Message from %s:%s: ' % (
+            transportDomain, transportAddress
+            )
+        print reqMsg.prettyPrinter()
+        reqPDU = pMod.apiMessage.getPDU(reqMsg)
+        if reqPDU.isSameTypeWith(pMod.TrapPDU()):
+            if reqVer == api.protoVersion1:
+                print 'Enterprise: %s' % (
+                    pMod.apiTrapPDU.getEnterprise(reqPDU)
+                    )
+                print 'Agent Address: %s' % (
+                    repr(pMod.apiTrapPDU.getAgentAddr(reqPDU))
+                    )
+                print 'Generic Trap: %s' % (
+                    pMod.apiTrapPDU.getGenericTrap(reqPDU)
+                    )
+                print 'Specific Trap: %s' % (
+                    pMod.apiTrapPDU.getSpecificTrap(reqPDU)
+                    )
+                print 'Uptime: %s' % (
+                    pMod.apiTrapPDU.getTimeStamp(reqPDU)
+                    )
+                print 'Var-binds:'
+                for varBind in pMod.apiTrapPDU.getVarBindList(reqPDU):
+                    print pMod.apiVarBind.getOIDVal(varBind)
+            else:
+                print 'Var-binds:'
+                for varBind in pMod.apiTrapPDU.getVarBindList(reqPDU):
+                    print pMod.apiVarBind.getOIDVal(varBind)
         else:
-            print reportStr + 'unsupported request type'
+            print 'unsupported request type'
     return wholeMsg
 
 dsp = AsynsockDispatcher(
-    udp=UdpSocketTransport().openServerMode(('localhost', 1162))
+    udp=UdpSocketTransport().openServerMode(('localhost', 1162)) # 162
     )
 dsp.registerRecvCbFun(cbFun)
 dsp.runDispatcher(liveForever=1)
