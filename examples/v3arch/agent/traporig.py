@@ -1,10 +1,10 @@
-"""Command Generator Application (GET)"""
+"""Notification Originator Application (TRAP)"""
 from pysnmp.proto.rfc3412 import MsgAndPduDispatcher
-from pysnmp.proto import omni
+from pysnmp.proto import api
 
-# PDU version to use
-versionId = omni.protoVersionId1
-ver = omni.protoVersions[versionId]
+# Protocol version to use
+protoVersionID = api.protoVersion1
+pMod = api.protoModules[protoVersionID]
 
 msgAndPduDsp = MsgAndPduDispatcher()
 
@@ -21,17 +21,18 @@ msgAndPduDsp.mibInstrumController.writeVars(
     (snmpCommunityEntry.getInstNameByIndex(3, 'myAgentIdx'), 'myAgent')
     )
 
-pdu = ver.TrapPdu()
+pdu = pMod.TrapPDU()
+pMod.apiTrapPDU.setDefaults(pdu)  # XXX
 
 # Traps have quite different semantics among proto versions
-if pdu.omniGetProtoVersionId() == omni.protoVersionId1:
-    pdu.omniSetEnterprise((1,3,6,1,1,2,3,4,1))
-    pdu.omniSetGenericTrap('coldStart')
+if protoVersionID == api.protoVersion1:
+    pMod.apiTrapPDU.setEnterprise(pdu, (1,3,6,1,1,2,3,4,1))
+    pMod.apiTrapPDU.setGenericTrap(pdu, 'coldStart')
 
 msgAndPduDsp.sendPdu(
     transportDomain='udp', transportAddress=('127.0.0.1', 1162),
-    messageProcessingModel=versionId,
-    pduVersion=versionId,
+    messageProcessingModel=protoVersionID,
+    pduVersion=protoVersionID,
     securityName='myAgent',
     PDU=pdu
     )
