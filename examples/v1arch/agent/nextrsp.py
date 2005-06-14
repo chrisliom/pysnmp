@@ -1,71 +1,69 @@
 """Command Responder Application (GETNEXT PDU)"""
 from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
 from pysnmp.carrier.asynsock.dgram.udp import UdpSocketTransport
-from pysnmp.proto import omni
+from pyasn1.codec.ber import encoder, decoder
+from pysnmp.proto import api
+import time, bisect
 
-mibInstVer = omni.protoVersions[omni.protoVersionId1]
-mibInstr = [
-    (mibInstVer.ObjectName((1,3,6,1,2,1,1,1)), 'OctetString', __doc__),
-    (mibInstVer.ObjectName((1,3,6,1,2,1,1,3)), 'TimeTicks', 26011971)
-    ]
+class SysDescr:
+    name = (1,3,6,1,2,1,1,1)
+    def __cmp__(self, other): return cmp(self.name, other)    
+    def __call__(self, protoVer):
+        return api.protoModules[protoVer].OctetString(
+            'PySNMP example command responder %s' % __file__
+            )
+
+class Uptime:
+    name = (1,3,6,1,2,1,1,3)
+    birthday = time.time()
+    def __cmp__(self, other): return cmp(self.name, other)
+    def __call__(self, protoVer):
+        return api.protoModules[protoVer].TimeTicks(
+            (time.time()-self.birthday)*100
+            )
+
+mibInstr = ( SysDescr(), Uptime() )  # sorted by object name
 
 def cbFun(tspDsp, transportDomain, transportAddress, wholeMsg):
-    metaReq = omni.MetaMessage()
     while wholeMsg:
-        wholeMsg = metaReq.berDecode(wholeMsg)
-        req = metaReq.omniGetCurrentComponent()
-
-        # Build response from request object
-        rsp = req.omniReply()
-
+        reqVer = api.decodeMessageVersion(wholeMsg)
+        pMod = api.protoModules[reqVer]        
+        reqMsg, wholeMsg = decoder.decode(
+            wholeMsg, asn1Spec=pMod.Message(),
+            )
+        print 'Message version %s from %s:%s: ' % (
+            reqVer, transportDomain, transportAddress
+            )
+        print reqMsg.prettyPrinter()
+        rspMsg = pMod.apiMessage.getResponse(reqMsg)
+        rspPDU = pMod.apiMessage.getPDU(rspMsg)        
+        reqPDU = pMod.apiMessage.getPDU(reqMsg)        
         # Support only a single PDU type (but any proto version)
-        if req.omniGetPdu().omniGetPduType() == \
-               omni.getNextRequestPduType:
+        if reqPDU.isSameTypeWith(pMod.GetNextRequestPDU()):
             # Produce response var-binds
             varBinds = []; errorIndex = -1
-            for varBind in req.omniGetPdu().omniGetVarBindList():
-                oid, val = varBind.omniGetOidVal()
-                mibIdx = -1; errorIndex = errorIndex + 1
+            for oid, val in pMod.apiPDU.getVarBinds(reqPDU):
+                print transportAddress, oid, val
+                errorIndex = errorIndex + 1
                 # Search next OID to report
-                for idx in range(len(mibInstr)):
-                    if idx == 0:
-                        if oid < mibInstr[idx][0]:
-                            mibIdx = idx
-                            break
-                    else:
-                        if oid >= mibInstr[idx-1][0] and oid < mibInstr[idx][0]:
-                            mibIdx = idx
-                            break
-                else:
+                nextIdx = bisect.bisect(mibInstr, oid)
+                if nextIdx == len(mibInstr):
                     # Out of MIB
-                    rsp.omniGetPdu().omniSetEndOfMibIndices(errorIndex)
-
-                # Report value if OID is found
-                if mibIdx != -1:
-                    mibOid, mibVar, mibVal = mibInstr[mibIdx]                
-                    ver = omni.protoVersions[rsp.omniGetProtoVersionId()]
-                    if hasattr(ver, mibVar):
-                        varBinds.append(
-                            (ver.ObjectName(mibOid),
-                             getattr(ver, mibVar)(mibVal))
-                            )
-                        continue
-                    else:
-                        # Variable not available over this proto version
-                        rsp.omniGetPdu().omniSetErrorIndex(errorIndex)
-                        rsp.omniGetPdu().omniSetErrorStatus(5)
-
-                varBinds.append((oid, val))
-            apply(rsp.omniGetPdu().omniSetVarBindList, varBinds)
+                    pMod.apiPDU.setEndOfMIBIndices(rspPDU, errorIndex)
+                else:
+                    # Report value if OID is found
+                    varBinds.append(
+                        (mibInstr[nextIdx].name, mibInstr[nextIdx](reqVer))
+                        )
+            pMod.apiPDU.setVarBinds(rspPDU, varBinds)
         else:
             # Report unsupported request type
-            rsp.omniGetPdu().omniSetErrorStatus(5)
-            print '%s (version ID %s) from %s:%s: unsupported request type' % (
-                req.omniGetPdu().omniGetPduType(),
-                req.omniGetProtoVersionId(),
-                transportDomain, transportAddress
-                )
-    tspDsp.sendMessage(rsp.berEncode(), transportDomain, transportAddress)
+            pMod.apiPDU.setErrorStatus(rspPDU, 'genErr')
+            print 'unsupported request type'
+        print rspMsg.prettyPrinter()
+        tspDsp.sendMessage(
+            encoder.encode(rspMsg), transportDomain, transportAddress
+            )
     return wholeMsg
 
 dsp = AsynsockDispatcher(
