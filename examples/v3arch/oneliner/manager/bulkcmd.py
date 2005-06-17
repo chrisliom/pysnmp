@@ -1,7 +1,7 @@
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 
 errorIndication, errorStatus, errorIndex, \
-                 varBinds, varBindTable = cmdgen.CmdGen().snmpBulkWalk(
+                 varBinds, varBindTable = cmdgen.CmdGen().bulkCmd(
     cmdgen.UsmUserData('test-user', 'authkey1', 'privkey1'),
     cmdgen.UdpTransportTarget(('localhost', 161)),
     0, 25,
