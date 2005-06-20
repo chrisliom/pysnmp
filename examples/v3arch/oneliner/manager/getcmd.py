@@ -1,7 +1,8 @@
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 
 errorIndication, errorStatus, errorIndex, varBinds = cmdgen.CmdGen().getCmd(
-    cmdgen.UsmUserData('test-user', 'authkey1', 'privkey1'),
+    cmdgen.CommunityData('test-agent', 'public', 0),
+#    cmdgen.UsmUserData('test-user', 'authkey1', 'privkey1'),
     cmdgen.UdpTransportTarget(('localhost', 161)),
     (('sysDescr', 'SNMPv2-MIB'), 0),
     (('sysDescr',), 0),
