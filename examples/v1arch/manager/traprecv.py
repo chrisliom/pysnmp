@@ -1,24 +1,22 @@
 """Notification Receiver Application (TRAP PDU)"""
 from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
-from pysnmp.carrier.asynsock.dgram.udp import UdpSocketTransport
-from pyasn1.codec.ber import encoder, decoder
+from pysnmp.carrier.asynsock.dgram import udp
+from pyasn1.codec.ber import decoder
 from pysnmp.proto import api
 
-def cbFun(tspDsp, transportDomain, transportAddress, wholeMsg):
+def cbFun(transportDispatcher, transportDomain, transportAddress, wholeMsg):
     while wholeMsg:
-        reqVer = api.decodeMessageVersion(wholeMsg)
-        pMod = api.protoModules[reqVer]        
+        msgVer = int(api.decodeMessageVersion(wholeMsg))
+        pMod = api.protoModules[msgVer]
         reqMsg, wholeMsg = decoder.decode(
-            wholeMsg,
-            asn1Spec=pMod.Message(),
+            wholeMsg, asn1Spec=pMod.Message(),
             )
-        print 'Message from %s:%s: ' % (
+        print 'Notification message from %s:%s: ' % (
             transportDomain, transportAddress
             )
-        print reqMsg.prettyPrinter()
         reqPDU = pMod.apiMessage.getPDU(reqMsg)
         if reqPDU.isSameTypeWith(pMod.TrapPDU()):
-            if reqVer == api.protoVersion1:
+            if msgVer == api.protoVersion1:
                 print 'Enterprise: %s' % (
                     pMod.apiTrapPDU.getEnterprise(reqPDU)
                     )
@@ -39,14 +37,13 @@ def cbFun(tspDsp, transportDomain, transportAddress, wholeMsg):
                     print pMod.apiVarBind.getOIDVal(varBind)
             else:
                 print 'Var-binds:'
-                for varBind in pMod.apiTrapPDU.getVarBindList(reqPDU):
+                for varBind in pMod.apiPDU.getVarBindList(reqPDU):
                     print pMod.apiVarBind.getOIDVal(varBind)
-        else:
-            print 'unsupported request type'
     return wholeMsg
 
-dsp = AsynsockDispatcher(
-    udp=UdpSocketTransport().openServerMode(('localhost', 1162)) # 162
+transportDispatcher = AsynsockDispatcher()
+transportDispatcher.registerTransport(
+    udp.domainName, udp.UdpSocketTransport().openServerMode(('localhost', 1162))
     )
-dsp.registerRecvCbFun(cbFun)
-dsp.runDispatcher(liveForever=1)
+transportDispatcher.registerRecvCbFun(cbFun)
+transportDispatcher.runDispatcher()
