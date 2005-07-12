@@ -67,6 +67,7 @@ pysnmp/v4/entity/rfc3413/oneliner/cmdgen.py
 pysnmp/v4/entity/rfc3413/oneliner/__init__.py
 pysnmp/v4/entity/rfc3413/oneliner/.#cmdgen.py.1.4
 pysnmp/v4/entity/rfc3413/mibvar.py
+pysnmp/v4/entity/rfc3413/context.py
 pysnmp/v4/entity/__init__.py
 pysnmp/v4/entity/config.py
 pysnmp/v4/entity/engine.py
