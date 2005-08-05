@@ -91,9 +91,11 @@ pysnmp/v4/proto/secmod/rfc3414/auth/__init__.py
 pysnmp/v4/proto/secmod/rfc3414/auth/base.py
 pysnmp/v4/proto/secmod/rfc3414/auth/hmacmd5.py
 pysnmp/v4/proto/secmod/rfc3414/auth/hmacsha.py
+pysnmp/v4/proto/secmod/rfc3414/auth/noauth.py
 pysnmp/v4/proto/secmod/rfc3414/priv/__init__.py
 pysnmp/v4/proto/secmod/rfc3414/priv/base.py
 pysnmp/v4/proto/secmod/rfc3414/priv/des.py
+pysnmp/v4/proto/secmod/rfc3414/priv/nopriv.py
 pysnmp/v4/proto/secmod/rfc3414/__init__.py
 pysnmp/v4/proto/secmod/rfc3414/localkey.py
 pysnmp/v4/proto/secmod/rfc3414/service.py
