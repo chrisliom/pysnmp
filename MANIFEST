@@ -19,6 +19,7 @@ examples/v3arch/manager/nextgen.py
 examples/v3arch/manager/setgen.py
 examples/v3arch/oneliner/manager/nextgen.py
 examples/v3arch/oneliner/manager/getgen.py
+examples/v3arch/oneliner/manager/setgen.py
 examples/v3arch/oneliner/manager/bulkgen.py
 examples/v3arch/oneliner/manager/withmib/nextgen.py
 pysnmp/__init__.py
