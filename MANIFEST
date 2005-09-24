@@ -22,6 +22,7 @@ examples/v3arch/oneliner/manager/getgen.py
 examples/v3arch/oneliner/manager/setgen.py
 examples/v3arch/oneliner/manager/bulkgen.py
 examples/v3arch/oneliner/manager/withmib/nextgen.py
+examples/v3arch/oneliner/manager/withmib/setgen.py
 pysnmp/__init__.py
 pysnmp/v4/smi/mibs/ASN1.py
 pysnmp/v4/smi/mibs/PYSNMP-MIB.py
