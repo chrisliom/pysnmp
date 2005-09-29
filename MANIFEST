@@ -2,6 +2,8 @@ MANIFEST
 CHANGES
 LICENSE
 README
+docs/pysnmp-arch.gif
+docs/pysnmp-tutorial.html
 docs/mibs/PYSNMP-MIB.txt
 docs/mibs/PYSNMP-USM-MIB.txt
 examples/smi/instrum.py
