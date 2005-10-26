@@ -48,6 +48,14 @@ pysnmp/v4/smi/mibs/SNMPv2-TC.py
 pysnmp/v4/smi/mibs/SNMPv2-TM.py
 pysnmp/v4/smi/mibs/TRANSPORT-ADDRESS-MIB.py
 pysnmp/v4/smi/mibs/__init__.py
+pysnmp/v4/smi/mibs/instances/PYSNMP-USM-MIB.py
+pysnmp/v4/smi/mibs/instances/SNMPv2-MIB.py
+pysnmp/v4/smi/mibs/instances/SNMP-TARGET-MIB.py
+pysnmp/v4/smi/mibs/instances/SNMP-MPD-MIB.py
+pysnmp/v4/smi/mibs/instances/SNMP-FRAMEWORK-MIB.py
+pysnmp/v4/smi/mibs/instances/SNMP-VIEW-BASED-ACM-MIB.py
+pysnmp/v4/smi/mibs/instances/SNMP-USER-BASED-SM-MIB.py
+pysnmp/v4/smi/mibs/instances/__init__.py
 pysnmp/v4/smi/__init__.py
 pysnmp/v4/smi/builder.py
 pysnmp/v4/smi/error.py
