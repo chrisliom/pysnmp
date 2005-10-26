@@ -6,6 +6,7 @@ docs/mibs/PYSNMP-MIB.txt
 docs/mibs/PYSNMP-USM-MIB.txt
 docs/pysnmp-arch.gif
 docs/pysnmp-tutorial.html
+examples/smi/backend.py
 examples/smi/instrum.py
 examples/smi/view.py
 examples/v1arch/agent/cmdrsp.py
