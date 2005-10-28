@@ -14,10 +14,8 @@ libsmi2pysnmp=/usr/local/bin/libsmi2pysnmp
 for origFile in [A-Z]*.py
 do
   mibName=${origFile/.py/}
-  mibPath=$(find /usr/local/share/mibs -name $mibName)
-  [ -z $mibPath ] && {
-      mibPath=$(find /usr/local/share/mibs -name $mibName.txt)
-  }
+  mibPath=$(find /usr/local/share/snmp /usr/local/share/mibs /usr/share/snmp /usr/share/mibs -name "$mibName" -o -name "$mibName.txt" 2>/dev/null | head -1)
+  echo   $mibPath
   [ -z $mibPath ] && { echo "Missing MIB source for $origFile"; exit; }
 
   pyMibPath=$destDir/$mibName.py
