@@ -16,7 +16,7 @@ do
   mibName=${origFile/.py/}
   mibPath=$(find /usr/local/share/mibs -name $mibName)
   [ -z $mibPath ] && {
-      mibPath = $(find /usr/local/share/mibs -name $mibName.txt)
+      mibPath=$(find /usr/local/share/mibs -name $mibName.txt)
   }
   [ -z $mibPath ] && { echo "Missing MIB source for $origFile"; exit; }
 
