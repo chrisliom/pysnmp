@@ -128,6 +128,6 @@ pysnmp/v4/proto/secmod/rfc2576.py
 pysnmp/v4/proto/proxy/__init__.py
 pysnmp/v4/proto/proxy/rfc2576.py
 tools/libsmi2pysnmp
-tools/buildmibs.sh
+tools/build-pysnmp-mib
 TODO
 setup.py
