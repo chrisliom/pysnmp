@@ -20,13 +20,13 @@
     'usmUserSpinLock'
     )
 
-__usmStatsUnsupportedSecLevels = MibScalarInstance(usmStatsUnsupportedSecLevels.name, (0,), usmStatsUnsupportedSecLevels.syntax)
-__usmStatsNotInTimeWindows = MibScalarInstance(usmStatsNotInTimeWindows.name, (0,), usmStatsNotInTimeWindows.syntax)
-__usmStatsUnknownUserNames = MibScalarInstance(usmStatsUnknownUserNames.name, (0,), usmStatsUnknownUserNames.syntax)
-__usmStatsUnknownEngineIDs = MibScalarInstance(usmStatsUnknownEngineIDs.name, (0,), usmStatsUnknownEngineIDs.syntax)
-__usmStatsWrongDigests = MibScalarInstance(usmStatsWrongDigests.name, (0,), usmStatsWrongDigests.syntax)
-__usmStatsDecryptionErrors = MibScalarInstance(usmStatsDecryptionErrors.name, (0,), usmStatsDecryptionErrors.syntax)
-__usmUserSpinLock = MibScalarInstance(usmUserSpinLock.name, (0,), usmUserSpinLock.syntax)
+__usmStatsUnsupportedSecLevels = MibScalarInstance(usmStatsUnsupportedSecLevels.name, (0,), usmStatsUnsupportedSecLevels.syntax.clone(0))
+__usmStatsNotInTimeWindows = MibScalarInstance(usmStatsNotInTimeWindows.name, (0,), usmStatsNotInTimeWindows.syntax.clone(0))
+__usmStatsUnknownUserNames = MibScalarInstance(usmStatsUnknownUserNames.name, (0,), usmStatsUnknownUserNames.syntax.clone(0))
+__usmStatsUnknownEngineIDs = MibScalarInstance(usmStatsUnknownEngineIDs.name, (0,), usmStatsUnknownEngineIDs.syntax.clone(0))
+__usmStatsWrongDigests = MibScalarInstance(usmStatsWrongDigests.name, (0,), usmStatsWrongDigests.syntax.clone(0))
+__usmStatsDecryptionErrors = MibScalarInstance(usmStatsDecryptionErrors.name, (0,), usmStatsDecryptionErrors.syntax.clone(0))
+__usmUserSpinLock = MibScalarInstance(usmUserSpinLock.name, (0,), usmUserSpinLock.syntax.clone(0))
 
 mibBuilder.exportSymbols(
     '__SNMP-USER-BASED-SM-MIB',

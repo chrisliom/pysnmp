@@ -11,9 +11,9 @@
     'snmpUnknownPDUHandlers',
     )
 
-__snmpUnknownSecurityModels = MibScalarInstance(snmpUnknownSecurityModels.name, (0,), snmpUnknownSecurityModels.syntax)
-__snmpInvalidMsgs = MibScalarInstance(snmpInvalidMsgs.name, (0,), snmpInvalidMsgs.syntax)
-__snmpUnknownPDUHandlers = MibScalarInstance(snmpUnknownPDUHandlers.name, (0,), snmpUnknownPDUHandlers.syntax)
+__snmpUnknownSecurityModels = MibScalarInstance(snmpUnknownSecurityModels.name, (0,), snmpUnknownSecurityModels.syntax.clone(0))
+__snmpInvalidMsgs = MibScalarInstance(snmpInvalidMsgs.name, (0,), snmpInvalidMsgs.syntax.clone(0))
+__snmpUnknownPDUHandlers = MibScalarInstance(snmpUnknownPDUHandlers.name, (0,), snmpUnknownPDUHandlers.syntax.clone(0))
 
 mibBuilder.exportSymbols(
     '__SNMP-MPD-MIB',
