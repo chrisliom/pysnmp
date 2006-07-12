@@ -2,6 +2,7 @@ MANIFEST
 CHANGES
 LICENSE
 README
+THANKS
 docs/mibs/PYSNMP-MIB.txt
 docs/mibs/PYSNMP-USM-MIB.txt
 docs/pysnmp-arch.gif
