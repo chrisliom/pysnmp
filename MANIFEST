@@ -32,6 +32,7 @@ examples/v3arch/oneliner/manager/withmib/setgen.py
 examples/v3arch/oneliner/manager/setgen.py
 examples/v3arch/oneliner/agent/ntforg.py
 pysnmp/__init__.py
+pysnmp/v4/debug.py
 pysnmp/v4/smi/mibs/ASN1.py
 pysnmp/v4/smi/mibs/PYSNMP-MIB.py
 pysnmp/v4/smi/mibs/PYSNMP-USM-MIB.py
