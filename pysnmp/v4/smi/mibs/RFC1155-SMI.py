@@ -25,7 +25,7 @@ class Gauge(Integer32):
 
 class IpAddress(OctetString):
     subtypeSpec = OctetString.subtypeSpec+constraint.ValueSizeConstraint(4,4)
-    isFixedLengthFlag = 1
+    fixedLength = 4
     pass
 
 class NetworkAddress(IpAddress):
