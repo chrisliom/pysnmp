@@ -94,6 +94,7 @@ pysnmp/v4/entity/rfc3413/config.py
 pysnmp/v4/entity/__init__.py
 pysnmp/v4/entity/config.py
 pysnmp/v4/entity/engine.py
+pysnmp/v4/nextid.py
 pysnmp/v4/proto/acmod/__init__.py
 pysnmp/v4/proto/acmod/rfc3415.py
 pysnmp/v4/proto/__init__.py
